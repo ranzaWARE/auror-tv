@@ -165,6 +165,8 @@ its ID, and missing or unusable IDs and non-CEC inputs open the port alone.
 
 `test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, and an uploaded JPEG survives reinitialisation and is served with its image type. The dashboard check prepares a PNG as JPEG, shows the uploaded image and verifies that a second tab recovers after the first finishes uploading.
 
+`test-home-jellyfin.js` runs a stand-in Jellyfin server: a one-time code that links once, details tried before they are kept and the key never sent back, a choice of user when there are several, Continue watching before Recently added, a minute's cache, the paths servers before 10.9 answer on, pictures proxied only for well-formed ids, and a server that stops answering shown as offline. `test-home.js` also checks that LG's notifications and search start hidden once and stay as arranged after, and that the view's own settings are kept through a layout save.
+
 `test-home-recent-apps.js` exercises the recent-app HTTP routes: refused and
 unconfirmed stops retain their cards for retry, unavailable running lists
 report failure, Close all stops web and native apps while preserving Home,

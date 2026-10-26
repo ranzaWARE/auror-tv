@@ -78,9 +78,22 @@ assets/fonts/OFL-SpaceGrotesk.txt assets/fonts/OFL-SpaceMono.txt \
 assets/screensavers/clock.qml assets/screensavers/fireworks.qml \
 assets/screensavers/starfield.qml assets/screensavers/vitals.qml assets/screensavers/star.png \
 assets/screensavers/bokeh.qml assets/screensavers/bokeh.png \
-assets/screensavers/harmonograph.qml \
+assets/screensavers/harmonograph.qml assets/screensavers/auror.qml \
+assets/screensavers/mimus-run-dark.gif assets/screensavers/mimus-run-light.gif \
+assets/screensavers/mimus-sleep-dark.gif assets/screensavers/mimus-sleep-light.gif \
+assets/screensavers/quetza-dark.gif assets/screensavers/quetza-light.gif \
+assets/jellyfin-phone.html \
+assets/banners/LICENSE-simple-icons.txt assets/banners/apple-music.svg assets/banners/apple-tv.svg \
+assets/banners/browser.svg assets/banners/crunchyroll.svg assets/banners/dazn.svg \
+assets/banners/deezer.svg assets/banners/emby.svg assets/banners/glasshouse.svg \
+assets/banners/jellyfin.svg assets/banners/kodi.svg assets/banners/lg-home.svg \
+assets/banners/netflix.svg assets/banners/paramount-plus.svg assets/banners/playstation.svg \
+assets/banners/plex.svg assets/banners/rakuten-tv.svg assets/banners/sky.svg \
+assets/banners/soundcloud.svg assets/banners/spotify.svg assets/banners/steam.svg \
+assets/banners/tidal.svg assets/banners/twitch.svg assets/banners/vimeo.svg \
+assets/banners/youtube-music.svg assets/banners/youtube.svg \
 lib/mqtt.js lib/ha.js lib/updater.js lib/fetch.js lib/repo.js lib/installer.js lib/privacy.js lib/devtools.js lib/oled.js lib/screensavers.js lib/telemetry.js \
-lib/apps.js lib/samrescan.js lib/children.js lib/luna.js lib/piccap.js lib/state.js lib/mqtt-state.js lib/notifications.js lib/screentime.js lib/services.js lib/preload.js lib/quickaccess.js lib/remotekeys.js lib/homescreen.js lib/homescreen-webos9.js lib/homescreen-webos10.js lib/say.js lib/controls.js lib/routes.js lib/lgsettings.js lib/game.js lib/topics.js lib/timers.js lib/util.js lib/names.js lib/prometheus.js lib/remotebuttons.js lib/remotebuttons.py lib/logs.js lib/syslog.js lib/ntp.js lib/power.js lib/history.js lib/sshkeys.js lib/remotebattery.js lib/backup.js lib/iconserver.js lib/home.js lib/home-picture.js lib/home-takeover.js lib/home-wallpapers.js lib/home-recent.js lib/home-recent-apps.js"
+lib/apps.js lib/samrescan.js lib/children.js lib/luna.js lib/piccap.js lib/state.js lib/mqtt-state.js lib/notifications.js lib/screentime.js lib/services.js lib/preload.js lib/quickaccess.js lib/remotekeys.js lib/homescreen.js lib/homescreen-webos9.js lib/homescreen-webos10.js lib/say.js lib/controls.js lib/routes.js lib/lgsettings.js lib/game.js lib/topics.js lib/timers.js lib/util.js lib/names.js lib/prometheus.js lib/remotebuttons.js lib/remotebuttons.py lib/logs.js lib/syslog.js lib/ntp.js lib/power.js lib/history.js lib/sshkeys.js lib/remotebattery.js lib/backup.js lib/iconserver.js lib/home.js lib/home-picture.js lib/home-takeover.js lib/home-wallpapers.js lib/home-recent.js lib/home-recent-apps.js lib/home-jellyfin.js"
 
 for t in tar base64 fold; do
   command -v "$t" >/dev/null 2>&1 && continue

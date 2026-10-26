@@ -35,19 +35,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     linear-gradient(90deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.35) 38%,rgba(0,0,0,0) 70%),
     linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 18%,rgba(0,0,0,.45) 36%,rgba(0,0,0,.82) 62%,rgba(0,0,0,.92) 100%)}
 
-#now,#rows{position:relative}
-#now,.row h2,.tile{text-shadow:0 1px 12px rgba(0,0,0,.55)}
-
-#now{display:-webkit-flex;display:flex;-webkit-align-items:flex-end;align-items:flex-end;padding:0 112px;height:262px}
-#when{width:520px;-webkit-flex:0 0 auto;flex:0 0 auto}
-#clock{font-family:'Outfit',sans-serif;font-size:176px;line-height:.8;font-weight:300;letter-spacing:-4px}
-#date{margin-top:22px;font-size:28px;color:#a39d93}
-#source{-webkit-flex:1 1 auto;flex:1 1 auto;min-width:0;padding-left:24px;border-left:1px solid #2a2825;padding-bottom:2px}
-#source.none{visibility:hidden}
-#srcKind{font-size:23px;color:#e9ad55}
-#srcTitle{font-family:'Outfit',sans-serif;font-size:70px;line-height:1;font-weight:400;letter-spacing:-1px;margin:8px 0 12px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#srcVia{font-size:26px;color:#a39d93}
+#rows{position:relative}
+.row h2,.tile{text-shadow:0 1px 12px rgba(0,0,0,.55)}
 
 /* The plate: the picture of what was last on, right-aligned in three rows
    that mirror the source's: the signal level with its kind, the mode, read
@@ -154,8 +143,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   -webkit-transform:translateY(100%);transform:translateY(100%);visibility:hidden;
   -webkit-transition:-webkit-transform .32s cubic-bezier(.2,.7,.2,1),visibility 0s .32s;transition:transform .32s cubic-bezier(.2,.7,.2,1),visibility 0s .32s}
 .recents #recents{-webkit-transform:none;transform:none;visibility:visible;-webkit-transition-delay:0s;transition-delay:0s}
-#rows,#now{-webkit-transition:opacity .32s;transition:opacity .32s}
-.recents #rows,.recents #now{opacity:.25}
+#rows{-webkit-transition:opacity .32s;transition:opacity .32s}
+.recents #rows{opacity:.25}
 .recents #rows .tile.focus{outline-color:transparent;background:none}
 #recents .head{display:-webkit-flex;display:flex;-webkit-align-items:baseline;align-items:baseline;padding:0 112px;margin-bottom:18px}
 #recents h2{-webkit-flex:1 1 auto;flex:1 1 auto;font-family:'Outfit',sans-serif;font-size:40px;font-weight:300;letter-spacing:-.3px;color:#ece7df}
@@ -192,18 +181,39 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 </head>
 <body>
 <div id="stage">
+<div id="drift">
   <div id="wall"><div class="layer"></div><div class="layer"></div></div>
   <div id="scrim"></div>
 
-  <section id="now">
-    <div id="when">
-      <div id="clock">&mdash;</div>
-      <div id="date">&mdash;</div>
+  <section id="shelf">
+    <div id="topbar">
+      <div id="when">
+        <div id="clock">&mdash;</div>
+        <div id="date">&mdash;</div>
+        <div id="themeNote"></div>
+      </div>
+      <span class="topbtn" id="btnTheme" role="button" aria-label="Light or dark theme" data-t-aria-label="home.theme.toggle">
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+      </span>
+      <span class="topbtn" id="btnSettings" role="button" aria-label="Settings" data-t-aria-label="home.settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </span>
     </div>
-    <div id="source" class="none">
-      <div id="srcKind">&mdash;</div>
-      <div id="srcTitle">&mdash;</div>
-      <div id="srcVia">&mdash;</div>
+    <div id="shelfBody" class="none">
+      <div class="sh-title">
+        <div class="kick" id="shelfKind">&mdash;</div>
+        <div id="shelfTitle">&mdash;</div>
+        <div id="shelfSub">&mdash;</div>
+      </div>
+      <div class="sh-cards">
+        <div class="kick" id="shelfCardsKind">&mdash;</div>
+        <div id="shelfCards"></div>
+      </div>
+      <div class="sh-stats">
+        <div class="kick" id="shelfStatsKind">&mdash;</div>
+        <div id="shelfStats"></div>
+      </div>
     </div>
     <div id="plate" class="none">
       <div id="plSig"></div>
@@ -212,11 +222,12 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     </div>
   </section>
 
-  <main id="rows"></main>
+  <div id="rowsView"><main id="rows"></main></div>
 
   <div id="banner">
-    <span><b data-t="home.arrange.title">Arranging</b><span id="bannerState">&mdash;</span></span>
-    <span class="keys" data-t="home.arrange.keys">OK picks a tile up or puts it down. Held, the arrows move it or its row, and Back hides or shows it, or removes a channel. Left of a row, OK sets its order.</span>
+    <i class="mark"></i>
+    <b id="bannerState">&mdash;</b>
+    <span class="keys" data-t="home.arrange.keysShort">OK picks up or drops · Held, the arrows move it · Back hides</span>
     <span class="btn" id="btnHide" data-t="home.arrange.hide">Hide or show</span>
     <span class="btn" id="btnReset" data-t="home.arrange.reset">Reset</span>
     <span class="btn" id="btnDone" data-t="home.arrange.done">Done</span>
@@ -231,13 +242,29 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     <div class="wrap"><div class="track" id="recentsTrack"></div></div>
   </section>
 
+  <section id="settings">
+    <div id="setWhen"><div id="setClock">&mdash;</div><div id="setDate">&mdash;</div></div>
+    <div id="setSide">
+      <span id="setBack" data-t="home.set.back">&lsaquo; Home</span>
+      <div class="kick" data-t="home.settings">Settings</div>
+      <h1 id="setTitle"></h1>
+      <p id="setDesc"></p>
+      <nav id="setNav"></nav>
+    </div>
+    <div id="setRows"></div>
+  </section>
+
   <div id="fault">
+    <div class="kick" translate="no">Glasshouse Home</div>
     <h1 data-t="home.fault.title">Glasshouse is not answering</h1>
     <p data-t="home.fault.desc">Glasshouse Home comes back when it answers. Should it stay silent, LG's Home comes back in a few minutes.</p>
   </div>
 </div>
+  <div id="mascot" aria-hidden="true"></div>
+</div>
 
 <script src="/assets/i18n.js"></script>
+<script src="/assets/qr.js"></script>
 <script>
 /*
  * Glasshouse Home's view. Everything comes from /api/home/*: the layout shared
@@ -264,8 +291,34 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   var guideData = {};
   var lastOn = { kind: null };
   // last: the tile focused last, which the bar's Hide or show acts on.
-  var state = { row: 0, col: {}, arranging: false, held: false, bar: -1, last: null };
+  // top: the button focused above the rows, by its index in TOP, or -1.
+  var state = { row: 0, col: {}, arranging: false, held: false, bar: -1, top: -1, last: null };
   var BAR = ['btnHide', 'btnReset', 'btnDone'];
+  var TOP = ['btnTheme', 'btnSettings'];
+  var DASHBOARD_APP = 'com.tvweb.dashboard';
+  // The focus rests this long on a tile before its Top Shelf data is asked for.
+  var SHELF_REST_MS = 450;
+  var JELLYFIN_TTL_MS = 60000, STATS_TTL_MS = 10000;
+  /*
+   * Banners: full 16:9 colour cards in assets/banners, the logo white on the
+   * brand's colour, from Simple Icons (CC0-1.0). Matched on an app's title, or
+   * on the id for Glasshouse's, LG's Home and the web browser. An app with
+   * none gets its own icon on a colour: the brand's where it is known, else
+   * one taken from its name, so the row stays colourful.
+   */
+  var BANNERS = [
+    [/youtube ?music/i, 'youtube-music'], [/youtube/i, 'youtube'], [/jellyfin/i, 'jellyfin'], [/spotify/i, 'spotify'],
+    [/netflix/i, 'netflix'], [/plex/i, 'plex'], [/kodi/i, 'kodi'], [/twitch/i, 'twitch'], [/apple ?tv/i, 'apple-tv'],
+    [/crunchyroll/i, 'crunchyroll'], [/emby/i, 'emby'], [/tidal/i, 'tidal'], [/deezer/i, 'deezer'],
+    [/apple ?music/i, 'apple-music'], [/steam/i, 'steam'], [/playstation/i, 'playstation'], [/dazn/i, 'dazn'],
+    [/paramount/i, 'paramount-plus'], [/vimeo/i, 'vimeo'], [/soundcloud/i, 'soundcloud'], [/rakuten/i, 'rakuten-tv'],
+    [/^sky\b/i, 'sky'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser']
+  ];
+  // Brands Simple Icons leaves out, by their own colours.
+  var BRAND_COLOURS = [
+    [/prime ?video|amazon/i, '#1AB4F0', '#0067A8'], [/disney/i, '#1B4FD8', '#0B1F5C'], [/xbox/i, '#1DA31D', '#0B5C0B'],
+    [/rai ?play/i, '#1A6FE0', '#0A2E73'], [/mediaset|infinity/i, '#2F62D9', '#172F72']
+  ];
   var build = null;
   var okDownAt = 0, okTimer = null, okLong = false, okInRecents = false, backDown = false;
   var beatFails = 0;
@@ -294,10 +347,10 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     });
   }
 
-  function request(method, url, body, cb) {
+  function request(method, url, body, cb, timeout) {
     var x = new XMLHttpRequest();
     x.open(method, url, true);
-    x.timeout = 8000;
+    x.timeout = timeout || 8000;
     if (body !== null) x.setRequestHeader('Content-Type', 'application/json');
     x.onload = function () {
       var j = null;
@@ -341,7 +394,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     var out = [];
     (data.order[kind] || []).forEach(function (id) {
       var it = byId(kind, id);
-      if (it && (state.arranging || !hidden(kind, id))) out.push(it);
+      // An input with nothing plugged in is left out, even while arranging.
+      if (it && !(kind === 'dev' && it.unused) && (state.arranging || !hidden(kind, id))) out.push(it);
     });
     return out;
   }
@@ -370,6 +424,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (kind === 'dev') {
       var ports = [];
       items('dev').forEach(function (d) { if (!d.unused && ports.indexOf(d.port) === -1) ports.push(d.port); });
+      if (!ports.length) return t('home.dev.unused', 'Nothing connected');
       return ports.length === 1 ? t('home.row.inputsNoteOne', 'Devices on HDMI {port}', { port: ports[0] })
         : t('home.row.inputsNote', 'Devices on {n} HDMI inputs', { n: ports.length });
     }
@@ -397,24 +452,47 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     applyFocus(true);
   }
 
+  function bannerFor(a) {
+    var own = a.id === DASHBOARD_APP || a.id === LG_HOME_TILE || a.id === 'com.webos.app.browser';
+    var name = own ? a.id : a.title || a.id;
+    for (var i = 0; i < BANNERS.length; i++) if (BANNERS[i][0].test(name)) return '/assets/banners/' + BANNERS[i][1] + '.svg';
+    return null;
+  }
+
+  // The colour behind an app with no banner, as an inline style the skin's !important rules give way to.
+  function tint(a) {
+    var title = a.title || a.id, from = null, to = null;
+    for (var i = 0; i < BRAND_COLOURS.length; i++) {
+      if (BRAND_COLOURS[i][0].test(title)) { from = BRAND_COLOURS[i][1]; to = BRAND_COLOURS[i][2]; }
+    }
+    if (!from) {
+      var h = 0;
+      for (var j = 0; j < title.length; j++) h = (h * 31 + title.charCodeAt(j)) % 360;
+      from = 'hsl(' + h + ',62%,52%)';
+      to = 'hsl(' + ((h + 28) % 360) + ',68%,32%)';
+    }
+    return ' style="background:linear-gradient(135deg,' + from + ',' + to + ') !important"';
+  }
+
   var hiddenLabel = '<span class="hid">' + esc(t('home.hidden', 'Hidden')) + '</span>';
 
   var TILE = {
     app: function (a, i) {
       var cls = 'tile app' + (hidden('app', a.id) ? ' hidden' : '');
-      var icon = a.icon ? '<img src="' + esc(a.icon) + '" alt="">' :
-        '<span class="mono">' + esc(a.lg ? 'LG' : String(a.title).charAt(0)) + '</span>';
+      var banner = bannerFor(a);
+      var icon = banner ? '<img class="banner" src="' + esc(banner) + '" alt="">'
+        : a.icon ? '<img class="tinted" src="' + esc(a.icon) + '" alt=""' + tint(a) + '>'
+        : '<span class="mono tinted"' + tint(a) + '>' + esc(a.lg ? 'LG' : String(a.title).charAt(0)) + '</span>';
       return '<div class="' + cls + '" data-c="' + i + '">' + icon + '<div class="nm">' + esc(a.title) + '</div>' + hiddenLabel + '</div>';
     },
     dev: function (d, i) {
       var last = lastOn.kind === 'input' && lastOn.port === d.port;
-      var cls = 'tile dev' + (last ? ' last' : '') + (d.unused ? ' unused' : '') + (hidden('dev', d.id) ? ' hidden' : '');
-      var path = d.unused ? '' : d.via ? t('home.dev.through', 'HDMI {port}, through {via}', { port: d.port, via: d.via })
-                       : t('home.dev.port', 'HDMI {port}', { port: d.port });
-      return '<div class="' + cls + '" data-c="' + i + '"><div><div class="nm">' + esc(d.name) + '</div>' +
-        '<div class="path">' + esc(path) + '</div></div>' +
-        '<div class="st"><em>' + esc(last ? t('home.dev.last', 'Last watched') : d.unused ? t('home.dev.unused', 'Nothing connected') : t('home.dev.connected', 'Connected')) + '</em>' +
-        '<span>' + (d.address ? esc(t('home.dev.cec', 'CEC {address}', { address: d.address })) : '') + '</span></div>' + hiddenLabel + '</div>';
+      var cls = 'tile dev' + (last ? ' last' : '') + (hidden('dev', d.id) ? ' hidden' : '');
+      var path = d.via ? t('home.dev.through', 'HDMI {port}, through {via}', { port: d.port, via: d.via })
+        : t('home.dev.port', 'HDMI {port}', { port: d.port });
+      return '<div class="' + cls + '" data-c="' + i + '"><div class="nm">' + esc(d.name) + '</div>' +
+        '<div class="path">' + esc(path + ' \u00b7 ' + (last ? t('home.dev.last', 'Last watched') : t('home.dev.connected', 'Connected'))) + '</div>' +
+        hiddenLabel + '</div>';
     },
     ch: function (c, i) {
       var cls = 'tile ch' + (hidden('ch', c.id) ? ' hidden' : '');
@@ -432,7 +510,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   function applyFocus(instant) {
     var rows = document.querySelectorAll('.row');
     for (var ri = 0; ri < rows.length; ri++) {
-      var rowEl = rows[ri], kind = rowEl.getAttribute('data-key'), active = ri === state.row && state.bar < 0;
+      var rowEl = rows[ri], kind = rowEl.getAttribute('data-key'), active = ri === state.row && state.bar < 0 && state.top < 0;
       rowEl.className = 'row' + (rowEl.getAttribute('data-empty') ? ' empty' : '') + (active ? ' active' : '') + (active && state.held ? ' held-row' : '');
       var tiles = rowEl.querySelectorAll('.tile'), c = colOf(kind);
       for (var ci = 0; ci < tiles.length; ci++) {
@@ -442,10 +520,14 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       rowEl.querySelector('.sort').className = 'sort' + (active && c === -1 ? ' focus' : '');
       scrollTrack(rowEl, tiles[c], instant);
     }
+    shelfFocusMoved();
     for (var b = 0; b < BAR.length; b++) $(BAR[b]).className = 'btn' + (state.bar === b ? ' focus' : '');
-    if (state.bar < 0) {
+    for (var tb = 0; tb < TOP.length; tb++) $(TOP[tb]).className = 'topbtn' + (state.top === tb ? ' focus' : '');
+    scrollRows(instant);
+    if (state.bar < 0 && state.top < 0) {
       var focused = items(rowKey())[colOf(rowKey())];
       state.last = focused ? { kind: rowKey(), id: focused.id } : null;
+      renderShelf();
     }
     // Apps and inputs come from the TV and can only be hidden; channels were added, so they are removed.
     $('btnHide').textContent = state.last && state.last.kind === 'ch'
@@ -466,7 +548,9 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (!track) return;
     if (!tile) tile = track.querySelector('.tile');
     if (!tile) return;
-    var viewW = wrap.clientWidth - 44;
+    // The wrap's padding leaves room for the focused tile to grow and lift.
+    var pad = window.getComputedStyle(wrap);
+    var viewW = wrap.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     var cur = -(parseFloat(track.getAttribute('data-x')) || 0), x = cur;
     if (tile.offsetLeft + tile.offsetWidth > cur + viewW) x = tile.offsetLeft + tile.offsetWidth - viewW;
     if (tile.offsetLeft < cur) x = tile.offsetLeft;
@@ -477,31 +561,550 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (instant) { void track.offsetWidth; track.style.webkitTransition = track.style.transition = ''; }
   }
 
-  // ---------------------------------------------------------------- top strip
+  // Rows taller than the space under the Top Shelf move up, under it, to keep the focused one whole.
+  function scrollRows(instant) {
+    var rowsEl = $('rows'), active = rowsEl.querySelector('.row.active');
+    var y = state.top >= 0 ? 0 : +(rowsEl.getAttribute('data-y') || 0);
+    if (active) {
+      var viewH = $('rowsView').clientHeight;
+      var bottom = active.offsetTop + active.offsetHeight;
+      if (bottom - y > viewH) y = bottom - viewH;
+      if (active.offsetTop < y) y = active.offsetTop;
+      y = Math.max(0, y);
+    }
+    if (instant) rowsEl.style.webkitTransition = rowsEl.style.transition = 'none';
+    rowsEl.setAttribute('data-y', y);
+    rowsEl.style.webkitTransform = rowsEl.style.transform = 'translateY(' + (-y) + 'px)';
+    if (instant) { void rowsEl.offsetWidth; rowsEl.style.webkitTransition = rowsEl.style.transition = ''; }
+  }
+
+  // ---------------------------------------------------------------- top shelf
 
   function renderNow() {
     var d = new Date();
-    $('clock').textContent = hm(d);
-    $('date').textContent = dateText(d);
-    var kind = '', title = '', via = '';
-    if (lastOn.kind === 'input') {
-      kind = t('home.now.lastWatched', 'Last watched');
-      title = lastOn.title || t('home.dev.port', 'HDMI {port}', { port: lastOn.port });
-      via = t('home.dev.port', 'HDMI {port}', { port: lastOn.port });
-    } else if (lastOn.kind === 'channel' && lastOn.channel) {
-      kind = t('home.now.lastWatched', 'Last watched');
-      title = lastOn.channel.name;
-      via = lastOn.programme ? t('home.now.channelShow', 'Channel {number}: {title}', { number: lastOn.channel.number, title: lastOn.programme.title })
-        : t('home.now.channel', 'Channel {number}', { number: lastOn.channel.number });
-    } else if (lastOn.kind === 'app' && lastOn.title) {
-      kind = t('home.now.lastOpened', 'Last opened');
-      title = lastOn.title;
-      via = t('home.now.app', 'App on this TV');
+    $('clock').textContent = $('setClock').textContent = hm(d);
+    $('date').textContent = $('setDate').textContent = dateText(d);
+    applyTheme();
+    renderShelf();
+  }
+
+  /*
+   * The Top Shelf shows the focused tile. Jellyfin shows what is being
+   * watched or was added last, Glasshouse the TV's own readings, an input its
+   * device; any other tile its name. Their data is asked for only once the
+   * focus has rested on the tile, and the shelf fades in again only when what
+   * it shows has changed.
+   */
+  var shelfShown = null, shelfRest = null;
+  var shelfData = { jellyfin: null, jellyfinAt: 0, stats: null, statsAt: 0 };
+
+  function look() { return (layout && layout.look) || { theme: 'auto', mascots: true, saverBright: false, shelf: {} }; }
+  function shelfOn(part) { return look().shelf[part] !== false; }
+  function isJellyfin(it) { return /jellyfin/i.test(it.id + ' ' + it.title); }
+
+  function shelfFor(kind, it) {
+    var open = t('home.shelf.open', 'Press OK to open');
+    if (kind === 'app') {
+      if (it.lg) return { mode: 'title', kind: it.title, title: t('home.shelf.lgHome', 'Back to LG’s Home'), sub: open };
+      if (isJellyfin(it) && shelfOn('jellyfin')) {
+        var jf = shelfData.jellyfin;
+        if (jf && (jf.state === 'resume' || jf.state === 'latest')) {
+          return { mode: 'cards', items: jf.items.slice(0, 3),
+            kind: jf.state === 'resume' ? t('home.jf.resume', 'Jellyfin · Continue watching') : t('home.jf.latest', 'Jellyfin · Recently added') };
+        }
+        if (jf && jf.state === 'offline') return { mode: 'title', kind: it.title, title: it.title, sub: t('home.jf.offline', 'Server not reachable · Press OK to open the app') };
+        if (jf && jf.state === 'empty') return { mode: 'title', kind: it.title, title: it.title, sub: t('home.jf.empty', 'Nothing new on the server · Press OK to open') };
+      }
+      if (it.id === DASHBOARD_APP && shelfOn('glasshouse') && shelfData.stats) {
+        return { mode: 'stats', kind: t('home.stats.title', 'Glasshouse · The TV now'), stats: shelfData.stats };
+      }
+      var lastApp = lastOn.kind === 'app' && lastOn.appId === it.id;
+      return { mode: 'title', kind: lastApp ? t('home.now.lastOpened', 'Last opened') : t('home.now.app', 'App on this TV'), title: it.title, sub: open };
     }
-    $('source').className = title ? '' : 'none';
-    $('srcKind').textContent = kind || ' ';
-    $('srcTitle').textContent = title || ' ';
-    $('srcVia').textContent = via || ' ';
+    if (kind === 'dev') {
+      var lastDev = lastOn.kind === 'input' && lastOn.port === it.port;
+      return {
+        mode: 'title',
+        kind: t('home.shelf.input', 'Input · HDMI {port}', { port: it.port }),
+        title: shelfOn('hdmi') ? it.name : t('home.dev.port', 'HDMI {port}', { port: it.port }),
+        sub: (lastDev ? t('home.dev.last', 'Last watched') : t('home.dev.connected', 'Connected')) + ' · ' +
+          t('home.shelf.switch', 'Press OK to switch to this input')
+      };
+    }
+    var shows = guideData[it.id] || [];
+    return {
+      mode: 'title',
+      kind: t('home.now.channel', 'Channel {number}', { number: it.number }),
+      title: it.name,
+      sub: shows.length ? shows[0].title + ' · ' + hm(new Date(shows[0].start)) + '–' + hm(new Date(shows[0].end))
+        : t('home.shelf.watch', 'Press OK to watch')
+    };
+  }
+
+  function cardLine(c) {
+    if (c.kind === 'episode' && c.season !== null && c.episode !== null) {
+      return t('home.jf.episode', 'S{season} E{episode} · {name}', { season: c.season, episode: c.episode, name: c.name });
+    }
+    if (c.kind === 'episode') return c.name;
+    if (c.kind === 'series') return t('home.jf.series', 'Series');
+    return c.year ? t('home.jf.movieYear', 'Film · {year}', { year: c.year }) : t('home.jf.movie', 'Film');
+  }
+
+  function shelfHtml(s) {
+    if (s.mode === 'cards') {
+      return s.items.map(function (c) {
+        return '<div class="card"><div class="pic">' + (c.image ? '<img src="' + esc(c.image) + '" alt="">' : '') +
+          (c.progress !== null ? '<div class="bar"><i style="width:' + c.progress + '%"></i></div>' : '') + '</div>' +
+          '<div class="ct">' + esc(c.title) + '</div><div class="cs">' + esc(cardLine(c)) + '</div></div>';
+      }).join('');
+    }
+    var st = s.stats;
+    function stat(label, value, unit) {
+      return '<div class="stat"><div class="sl">' + esc(label) + '</div><div class="sv">' + esc(value === null ? '—' : value) +
+        (value === null ? '' : '<small>' + esc(unit) + '</small>') + '</div></div>';
+    }
+    return stat(t('home.stats.soc', 'SoC'), st.temp, ' °C') + stat(t('home.stats.cpu', 'CPU'), st.cpu, ' %') +
+      stat(t('home.stats.memory', 'Memory'), st.mem, ' %') + stat(t('home.stats.wifi', 'Wi-Fi'), st.wifi, ' dBm');
+  }
+
+  function renderShelf() {
+    if (!data || !layout || state.top >= 0 || state.bar >= 0) return;
+    var kind = rowKey(), it = items(kind)[colOf(kind)];
+    var s = it ? shelfFor(kind, it) : null;
+    var key = s ? JSON.stringify(s) : '';
+    if (key === shelfShown) return;
+    var sameMode = s && shelfShown && JSON.parse(shelfShown).mode === s.mode && s.mode === 'stats';
+    shelfShown = key;
+    var body = $('shelfBody');
+    if (!s) { body.className = 'none'; return; }
+    if (s.mode === 'title') {
+      $('shelfKind').textContent = s.kind;
+      $('shelfTitle').textContent = s.title;
+      $('shelfSub').textContent = s.sub;
+    } else if (s.mode === 'cards') {
+      $('shelfCardsKind').textContent = s.kind;
+      $('shelfCards').innerHTML = shelfHtml(s);
+      var imgs = $('shelfCards').querySelectorAll('img');
+      for (var i = 0; i < imgs.length; i++) imgs[i].onerror = function () { this.parentNode.removeChild(this); };
+    } else {
+      $('shelfStatsKind').textContent = s.kind;
+      $('shelfStats').innerHTML = shelfHtml(s);
+    }
+    // New readings for the same tile change in place; anything else fades in.
+    if (sameMode) { body.className = s.mode; return; }
+    body.className = '';
+    void body.offsetWidth;
+    body.className = s.mode + ' fade';
+  }
+
+  // Called on every focus change: the data waits for the focus to rest.
+  function shelfFocusMoved() {
+    clearTimeout(shelfRest);
+    shelfRest = setTimeout(loadShelfData, SHELF_REST_MS);
+  }
+
+  function loadShelfData() {
+    if (!data || !layout || state.top >= 0 || state.bar >= 0 || settings.open) return;
+    var kind = rowKey(), it = items(kind)[colOf(kind)];
+    if (!it || kind !== 'app') return;
+    var now = Date.now();
+    if (isJellyfin(it) && shelfOn('jellyfin') && now - shelfData.jellyfinAt > JELLYFIN_TTL_MS) {
+      shelfData.jellyfinAt = now;
+      getJson('/api/home/jellyfin', function (r) {
+        if (!r || !r.ok) { shelfData.jellyfinAt = 0; return; }
+        shelfData.jellyfin = r;
+        renderShelf();
+      });
+    }
+    if (it.id === DASHBOARD_APP && shelfOn('glasshouse') && now - shelfData.statsAt > STATS_TTL_MS - 500) {
+      shelfData.statsAt = now;
+      getJson('/api/stats', function (r) {
+        if (!r) { shelfData.statsAt = 0; return; }
+        var mem = r.mem && r.mem.total ? Math.round((1 - r.mem.avail / r.mem.total) * 100) : null;
+        shelfData.stats = {
+          temp: typeof r.temp === 'number' ? Math.round(r.temp) : null,
+          cpu: typeof r.load === 'number' ? Math.round(r.load) : null,
+          mem: mem,
+          wifi: r.wifi && typeof r.wifi.level === 'number' ? r.wifi.level : null
+        };
+        renderShelf();
+      });
+      // Readings move on while the focus stays.
+      shelfRest = setTimeout(loadShelfData, STATS_TTL_MS);
+    }
+  }
+
+  // ---------------------------------------------------------------- theme
+
+  /*
+   * Light from 06:00 to 17:00, dark from 17:00, the wallpapers' evening slot.
+   * A switch by hand lasts until the next of those changes: it is kept with
+   * the period it was made in, and a night runs from 17:00 to 06:00 the next
+   * day. ?hour= previews another hour here too.
+   */
+  var THEME_KEY = 'glasshouse.home.theme';
+  var themeOverride = null;
+  try { themeOverride = JSON.parse(window.localStorage.getItem(THEME_KEY) || 'null'); } catch (e) {}
+
+  function themePeriod() {
+    var d = new Date();
+    var h = preview.hour !== undefined ? +preview.hour % 24 : d.getHours();
+    var day = h >= 6 && h < 17;
+    if (h < 6) d = new Date(d.getTime() - 24 * 3600 * 1000);
+    return { auto: day ? 'light' : 'dark', until: day ? '17:00' : '06:00',
+             period: (day ? 'day ' : 'night ') + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() };
+  }
+
+  // Settings can keep one theme instead; the button then switches that.
+  function currentTheme() {
+    var p = themePeriod();
+    var kept = look().theme === 'light' || look().theme === 'dark' ? look().theme : null;
+    var manual = !kept && themeOverride && themeOverride.period === p.period ? themeOverride.theme : null;
+    p.name = kept || manual || p.auto;
+    p.kept = !!kept;
+    p.manual = !!manual;
+    return p;
+  }
+
+  var themeName = 'dark';
+  function applyTheme() {
+    var cur = currentTheme();
+    if (themeOverride && !cur.manual) saveThemeOverride(null);
+    $('themeNote').textContent = !cur.manual ? ''
+      : cur.name === 'light' ? t('home.theme.untilLight', 'Light theme until {time}', { time: cur.until })
+      : t('home.theme.untilDark', 'Dark theme until {time}', { time: cur.until });
+    if (cur.name === themeName) return;
+    themeName = cur.name;
+    stageClass();
+
+  }
+
+  function saveThemeOverride(o) {
+    themeOverride = o;
+    try {
+      if (o) window.localStorage.setItem(THEME_KEY, JSON.stringify(o));
+      else window.localStorage.removeItem(THEME_KEY);
+    } catch (e) {}
+  }
+
+  function toggleTheme() {
+    var cur = currentTheme(), next = cur.name === 'dark' ? 'light' : 'dark';
+    if (cur.kept) return setLook({ theme: next });
+    saveThemeOverride(next === cur.auto ? null : { theme: next, period: cur.period });
+    applyTheme();
+  }
+
+  function pressTop(i) {
+    if (i === 0) return toggleTheme();
+    openSettings();
+  }
+
+  function topAt(target) {
+    while (target && target !== document.body) {
+      if (target.id && TOP.indexOf(target.id) !== -1) return TOP.indexOf(target.id);
+      target = target.parentNode;
+    }
+    return -1;
+  }
+
+  // ---------------------------------------------------------------- settings
+
+  /*
+   * Home's settings on the TV, from the gear: sections down the left, their
+   * rows on the right. Left and right move between the two, OK changes a row,
+   * Back goes home. Jellyfin is linked from a phone, by the QR code here.
+   */
+  var settings = { open: false, cat: 0, side: true, row: {}, rows: [], busy: '', pairUrl: null, pairError: '', pairAt: 0, poll: null };
+  var SET_CATS = [
+    { id: 'look', label: t('home.set.look', 'Look'),
+      desc: t('home.set.lookDesc', 'Home’s theme and the screen saver. Automatic: light from 06:00 to 17:00, dark from 17:00.') },
+    { id: 'shelf', label: t('home.set.shelf', 'Top Shelf'),
+      desc: t('home.set.shelfDesc', 'What the band at the top shows when an app or an input is selected.') },
+    { id: 'tiles', label: t('home.set.tiles', 'Tiles'),
+      desc: t('home.set.tilesDesc', 'Which apps Home shows. To reorder them, hold OK on a tile.') },
+    { id: 'jellyfin', label: 'Jellyfin',
+      desc: t('home.set.jfDesc', 'The server the Top Shelf takes Continue watching and Recently added from.') }
+  ];
+
+  function onText(on) { return on ? t('home.set.on', 'On') : t('home.set.off', 'Off'); }
+
+  function setRows(id) {
+    var lk = look(), saver = data && data.saver;
+    if (id === 'look') {
+      var themes = ['auto', 'light', 'dark'];
+      var themeText = { auto: t('home.set.themeAuto', 'Automatic'), light: t('home.set.themeLight', 'Light'), dark: t('home.set.themeDark', 'Dark') };
+      var saverOn = !!(saver && saver.mode === 'auror');
+      var rows = [{
+        kind: 'cycle', label: t('home.set.theme', 'Theme'), help: t('home.set.themeHelp', 'The button on Home changes it until the next switch'),
+        value: themeText[lk.theme], act: function () { setLook({ theme: themes[(themes.indexOf(lk.theme) + 1) % themes.length] }); }
+      }];
+      if (saver && saver.available) {
+        rows.push({
+          kind: 'switch', on: saverOn, label: t('home.set.saver', 'AUROR screen saver'), help: t('home.set.saverHelp', 'The clock on black, moving slowly'),
+          value: settings.busy === 'saver' ? t('home.set.switching', 'Switching…') : onText(saverOn),
+          act: function () { setSaver(!saverOn, lk.saverBright); }
+        });
+      }
+      rows.push({
+        kind: 'cycle', label: t('home.set.saverLevel', 'Screen saver brightness'),
+        value: lk.saverBright ? t('home.set.bright', 'Full') : t('home.set.dim', 'Dimmed'),
+        act: function () { setLook({ saverBright: !lk.saverBright }, function () { if (saverOn) setSaver(true, !lk.saverBright); }); }
+      });
+      rows.push({
+        kind: 'switch', on: lk.mascots, label: t('home.set.mascots', 'Mimus and Quetza'),
+        help: t('home.set.mascotsHelp', 'Now and then they cross Home and the screen saver'),
+        // Two of them: Italian and others make the word plural.
+        value: lk.mascots ? t('home.set.onBoth', 'On') : t('home.set.offBoth', 'Off'), act: function () { setLook({ mascots: !lk.mascots }); }
+      });
+      return rows;
+    }
+    if (id === 'shelf') {
+      return [
+        ['jellyfin', 'Jellyfin', t('home.set.shelfJfHelp', 'Continue watching, or else Recently added')],
+        ['glasshouse', 'Glasshouse', t('home.set.shelfGhHelp', 'Temperature, CPU, memory and Wi-Fi')],
+        ['hdmi', t('home.set.shelfHdmi', 'HDMI inputs'), t('home.set.shelfHdmiHelp', 'The name of the device plugged in')]
+      ].map(function (r) {
+        var on = shelfOn(r[0]);
+        return { kind: 'switch', on: on, label: r[1], help: r[2], value: onText(on),
+          act: function () { var part = {}; part[r[0]] = !on; setLook({ shelf: part }); } };
+      });
+    }
+    if (id === 'tiles') {
+      return data.order.app.map(function (appId) {
+        var a = byId('app', appId);
+        if (!a) return null;
+        if (a.lg) return { kind: 'switch', on: true, locked: true, label: a.title, help: t('home.set.lgHelp', 'The way back to LG’s Home'), value: t('home.alwaysShown', 'Always shown') };
+        var shownNow = !hidden('app', appId);
+        return { kind: 'switch', on: shownNow, label: a.title, value: shownNow ? t('home.shown', 'Shown') : t('home.hidden', 'Hidden'),
+          act: function () { setAppHidden(appId, shownNow); } };
+      }).filter(function (r) { return !!r; });
+    }
+    var jf = data.jellyfin || { configured: false };
+    var list = [
+      { kind: 'info', label: t('home.set.jfServer', 'Server'), value: jf.configured ? jf.server : t('home.set.jfNone', 'Not linked') },
+      { kind: 'info', label: t('home.set.jfUser', 'User'), value: jf.configured ? jf.user : '—' }
+    ];
+    if (jf.configured) {
+      list.push({ kind: 'action', label: t('home.set.jfForget', 'Unlink'), help: t('home.set.jfForgetHelp', 'The key is removed from the TV'), value: '', act: forgetJellyfin });
+    }
+    return list;
+  }
+
+  function qrBox() {
+    var jf = (data && data.jellyfin) || {};
+    return '<div class="qrbox"><div class="qr">' + (settings.pairUrl ? '<svg shape-rendering="crispEdges"></svg>' : '<span>' + esc(settings.pairError || '…') + '</span>') + '</div>' +
+      '<div><div class="qt">' + esc(jf.configured ? t('home.set.jfRelink', 'Link another server from the phone') : t('home.set.jfLink', 'Link Jellyfin from the phone')) + '</div>' +
+      '<div class="qd">' + esc(t('home.set.jfQrDesc', 'Scan the code: the server address and the API key are entered on the phone, not with the remote. The key stays on the TV only.')) + '</div></div></div>';
+  }
+
+  function renderSettings() {
+    if (!settings.open || !data || !layout) return;
+    var cat = SET_CATS[settings.cat];
+    $('setTitle').textContent = cat.label;
+    $('setDesc').textContent = cat.desc;
+    $('setNav').innerHTML = SET_CATS.map(function (c, i) {
+      return '<span class="setcat' + (i === settings.cat ? ' current' : '') + (settings.side && i === settings.cat ? ' focus' : '') +
+        '" data-i="' + i + '">' + esc(c.label) + '</span>';
+    }).join('');
+    var rows = settings.rows = setRows(cat.id);
+    var ri = settings.row[cat.id] = Math.max(0, Math.min(settings.row[cat.id] || 0, rows.length - 1));
+    var html = rows.map(function (r, i) {
+      var on = !settings.side && i === ri;
+      return '<div class="setrow' + (on ? ' focus' : '') + (r.locked ? ' locked' : '') + '" data-i="' + i + '">' +
+        '<span class="sl"><span class="lb">' + esc(r.label) + '</span>' + (on && r.help ? '<span class="hp">' + esc(r.help) + '</span>' : '') + '</span>' +
+        '<span class="sv">' + esc(r.value) +
+        (r.kind === 'switch' ? '<i class="sw' + (r.on ? ' on' : '') + '"><b></b></i>' : r.kind === 'cycle' ? '<i class="cy">›</i>' : '') +
+        '</span></div>';
+    }).join('');
+    if (cat.id === 'jellyfin') html += qrBox();
+    $('setRows').innerHTML = html;
+    var svg = $('setRows').querySelector('.qr svg');
+    if (svg) qrDraw(svg, settings.pairUrl);
+  }
+
+  function openSettings() {
+    settings.open = true;
+    settings.side = true;
+    settings.cat = 0;
+    stageClass();
+    renderNow();
+    renderSettings();
+  }
+
+  function closeSettings() {
+    settings.open = false;
+    clearInterval(settings.poll);
+    settings.poll = null;
+    stageClass();
+    applyFocus();
+  }
+
+  function selectCat(i) {
+    i = Math.max(0, Math.min(SET_CATS.length - 1, i));
+    if (i === settings.cat) return;
+    settings.cat = i;
+    clearInterval(settings.poll);
+    settings.poll = null;
+    if (SET_CATS[i].id !== 'jellyfin') return;
+    // A code lasts ten minutes on the server.
+    if (!settings.pairUrl || Date.now() - settings.pairAt > 9 * 60000) requestPair();
+    settings.poll = setInterval(pollJellyfin, 3000);
+  }
+
+  function requestPair() {
+    settings.pairUrl = null;
+    settings.pairError = '';
+    postJson('/api/home/jellyfin/pair', {}, function (r) {
+      if (r && r.ok && r.url) { settings.pairUrl = r.url; settings.pairAt = Date.now(); }
+      else settings.pairError = (r && r.error) || t('home.set.jfNoCode', 'No code: the TV did not answer');
+      renderSettings();
+    });
+  }
+
+  // Linked from the phone: the rows and the shelf follow.
+  function pollJellyfin() {
+    getJson('/api/home/jellyfin/status', function (r) {
+      if (!r || !r.ok || !data) return;
+      var was = data.jellyfin || {};
+      if (r.configured === !!was.configured && r.server === was.server && r.user === was.user) return;
+      data.jellyfin = r;
+      shelfData.jellyfin = null;
+      shelfData.jellyfinAt = 0;
+      if (r.configured) {
+        toast(t('home.set.jfLinked', 'Jellyfin linked'), r.user);
+        requestPair();
+      }
+      renderSettings();
+    });
+  }
+
+  function forgetJellyfin() {
+    postJson('/api/home/jellyfin/forget', {}, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      data.jellyfin = { configured: false };
+      shelfData.jellyfin = null;
+      shelfData.jellyfinAt = 0;
+      renderSettings();
+    });
+  }
+
+  function setLook(patch, then) {
+    postJson('/api/home/look', patch, function (r) {
+      if (!r || !r.ok || !r.layout) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      layout.look = r.layout.look;
+      if (r.layoutVersion) layoutVersion = r.layoutVersion;
+      shelfShown = null;
+      applyTheme();
+      renderShelf();
+      renderSettings();
+      if (then) then();
+    });
+  }
+
+  function setAppHidden(appId, hide) {
+    var list = layout.hidden.app.slice(), i = list.indexOf(appId);
+    if (hide && i === -1) list.push(appId);
+    if (!hide && i !== -1) list.splice(i, 1);
+    postJson('/api/home/layout', { hidden: { app: list } }, function (r) {
+      if (!r || !r.ok || !r.layout) return toast(t('home.arrange.saveFailed', 'Layout could not be saved'));
+      layout = r.layout;
+      if (r.layoutVersion) layoutVersion = r.layoutVersion;
+      render();
+      renderSettings();
+    });
+  }
+
+  // Changing screen saver remounts LG's app, which can take most of a minute.
+  function setSaver(on, bright) {
+    if (settings.busy) return;
+    settings.busy = 'saver';
+    renderSettings();
+    request('POST', '/api/home/screensaver', { on: on, bright: !!bright }, function (r) {
+      settings.busy = '';
+      if (r && r.current && data.saver) { data.saver.mode = r.current; data.saver.level = r.level; }
+      if (!r || !r.ok) toast(t('home.set.saverFailed', 'The screen saver did not change'), r && r.error);
+      renderSettings();
+    }, 90000);
+  }
+
+  function settingsKey(k) {
+    var cat = SET_CATS[settings.cat];
+    if (k === KEY.back) return closeSettings();
+    if (settings.side) {
+      if (k === KEY.up || k === KEY.down) selectCat(settings.cat + (k === KEY.up ? -1 : 1));
+      else if ((k === KEY.right || k === KEY.ok) && settings.rows.length) settings.side = false;
+      return renderSettings();
+    }
+    var ri = settings.row[cat.id] || 0;
+    if (k === KEY.left) settings.side = true;
+    else if (k === KEY.up) settings.row[cat.id] = Math.max(0, ri - 1);
+    else if (k === KEY.down) settings.row[cat.id] = Math.min(settings.rows.length - 1, ri + 1);
+    else if (k === KEY.ok && settings.rows[ri] && settings.rows[ri].act) return settings.rows[ri].act();
+    renderSettings();
+  }
+
+  function settingsAt(target) {
+    while (target && target !== document.body) {
+      if (target.id === 'setBack') return { back: true };
+      var cls = typeof target.className === 'string' ? target.className : '';
+      if (/\bsetcat\b/.test(cls)) return { cat: +target.getAttribute('data-i') };
+      if (/\bsetrow\b/.test(cls)) return { row: +target.getAttribute('data-i') };
+      target = target.parentNode;
+    }
+    return null;
+  }
+
+  function settingsPointer(target, click) {
+    var hit = settingsAt(target);
+    if (!hit) return;
+    if (hit.back) { if (click) closeSettings(); return; }
+    var cat = SET_CATS[settings.cat];
+    if (hit.cat !== undefined) {
+      if (hit.cat === settings.cat && settings.side) return;
+      settings.side = true;
+      selectCat(hit.cat);
+    } else {
+      var changed = settings.side || settings.row[cat.id] !== hit.row;
+      settings.side = false;
+      settings.row[cat.id] = hit.row;
+      if (click && settings.rows[hit.row] && settings.rows[hit.row].act) return settings.rows[hit.row].act();
+      if (!changed) return;
+    }
+    renderSettings();
+  }
+
+  // ---------------------------------------------------------------- mascots
+
+  /*
+   * Every few minutes Mimus runs along the bottom or Quetza glides across the
+   * top, on Home itself only and unless switched off; ?mascots=demo sends
+   * them every few seconds.
+   */
+  var mascotTimer = null;
+  var MASCOTS = { mimus: { ms: 9000, file: 'mimus-run' }, quetza: { ms: 14000, file: 'quetza' } };
+  function planMascot() {
+    clearTimeout(mascotTimer);
+    var demo = /[?&]mascots=demo/.test(location.search);
+    mascotTimer = setTimeout(showMascot, demo ? 2000 + Math.random() * 4000 : 180000 + Math.random() * 420000);
+  }
+  function showMascot() {
+    var el = $('mascot');
+    if (!layout || !look().mascots || document.hidden || state.arranging || recents.open || settings.open || faultShown) return planMascot();
+    var who = /[?&]mascot=(mimus|quetza)/.exec(location.search);
+    who = who ? who[1] : Math.random() < 0.5 ? 'mimus' : 'quetza';
+    el.innerHTML = '<img src="/assets/screensavers/' + MASCOTS[who].file + '-' + themeName + '.gif" alt="">';
+    el.className = '';
+    void el.offsetWidth;
+    el.className = who;
+    mascotTimer = setTimeout(function () { el.className = ''; el.innerHTML = ''; planMascot(); }, MASCOTS[who].ms + 200);
+  }
+
+  var faultShown = false;
+  function showFault(on) {
+    if (on === faultShown) return;
+    faultShown = on;
+    $('fault').className = on ? 'show' : '';
+    stageClass();
   }
 
   /*
@@ -586,10 +1189,17 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   }
 
   function move(dr, dc) {
+    // Up from the first row reaches the buttons over the Top Shelf; down comes back.
+    if (state.top >= 0) {
+      if (dr > 0) state.top = -1;
+      else if (dc) state.top = Math.max(0, Math.min(TOP.length - 1, state.top + dc));
+      return applyFocus();
+    }
     var onSort = colOf(rowKey()) === -1;
     if (dr) {
       var to = nextShown(state.row + dr, dr);
       if (to >= 0 && to < layout.rows.length && shown(to)) state.row = to;
+      else if (dr < 0 && !state.arranging) { state.top = 0; return applyFocus(); }
     }
     // Up and down from a row's Order go to the next row's.
     if (dr && onSort) state.col[rowKey()] = -1;
@@ -601,7 +1211,10 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   }
 
   function stageClass() {
-    $('stage').className = (state.arranging ? 'arranging' : '') + (recents.open ? ' recents' : '');
+    // inputs: the Inputs row shows, so the shelf makes room for it.
+    var inputs = !!(data && layout && !state.arranging && items('dev').length);
+    $('stage').className = (state.arranging ? 'arranging' : '') + (recents.open ? ' recents' : '') + (themeName === 'light' ? ' light' : '') +
+      (settings.open ? ' settings' : '') + (faultShown ? ' fault' : '') + (inputs ? ' inputs' : '');
   }
 
   // ---------------------------------------------------------------- recent apps
@@ -905,11 +1518,11 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       if (okDownAt) return;
       okDownAt = Date.now();
       okLong = false;
-      okInRecents = recents.open;
+      okInRecents = recents.open || settings.open;
       if (okInRecents) return;
       okTimer = setTimeout(function () {
         okLong = true;
-        if (state.held) return;
+        if (state.held || state.top >= 0) return;
         setArranging(!state.arranging);
       }, LONG_PRESS_MS);
       return;
@@ -918,12 +1531,14 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       e.preventDefault();
       if (backDown) return;
       backDown = true;
+      if (settings.open) return closeSettings();
       if (recents.open || recents.loading) return closeRecents();
       if (state.arranging && state.held) { state.held = false; return toggleHidden(); }
       if (state.arranging) return setArranging(false);
       return openRecents();
     }
     if (recents.open) { e.preventDefault(); return recentsKey(k); }
+    if (settings.open) { e.preventDefault(); return settingsKey(k); }
     if (state.arranging) { arrangeKey(k); e.preventDefault(); return; }
     if (k === KEY.left) move(0, -1);
     else if (k === KEY.right) move(0, 1);
@@ -940,9 +1555,14 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     clearTimeout(okTimer);
     okDownAt = 0;
     if (okLong || layoutBusy) return;
-    if (okInRecents) { if (recents.open) recentsKey(KEY.ok); return; }
+    if (okInRecents) {
+      if (recents.open) recentsKey(KEY.ok);
+      else if (settings.open) settingsKey(KEY.ok);
+      return;
+    }
     if (recents.open || recents.loading) return;
     if (state.arranging) arrangeKey(KEY.ok);
+    else if (state.top >= 0) pressTop(state.top);
     else activate();
   }
 
@@ -956,6 +1576,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   }
   function onPointer(e) {
     if (layoutBusy) return;
+    if (settings.open) return settingsPointer(e.target, false);
     var tile = tileAt(e.target);
     if (recents.open) {
       if (tile && /\brc\b/.test(tile.className) && (+tile.getAttribute('data-c') !== recents.col || recents.onAll)) {
@@ -964,20 +1585,27 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       }
       return;
     }
+    var top = topAt(e.target);
+    if (top >= 0 && !state.arranging) {
+      if (state.top !== top) { state.top = top; applyFocus(); }
+      return;
+    }
     if (!tile || state.held) return;
     var rowEl = tile.parentNode;
     while (rowEl && !/\brow\b/.test(rowEl.className)) rowEl = rowEl.parentNode;
     var r = +rowEl.getAttribute('data-row'), c = +tile.getAttribute('data-c'), kind = layout.rows[r];
-    if (state.row !== r || colOf(kind) !== c || state.bar >= 0) {
-      state.row = r; state.col[kind] = c; state.bar = -1;
+    if (state.row !== r || colOf(kind) !== c || state.bar >= 0 || state.top >= 0) {
+      state.row = r; state.col[kind] = c; state.bar = -1; state.top = -1;
       applyFocus();
     }
   }
   function onClick(e) {
     if (!data || !layout || layoutBusy) return;
     if (recents.open) return recentsClick(e.target);
+    if (settings.open) return settingsPointer(e.target, true);
     var btn = e.target && e.target.id;
     if (BAR.indexOf(btn) !== -1) return pressBar(BAR.indexOf(btn));
+    if (topAt(e.target) >= 0) return state.arranging ? undefined : pressTop(topAt(e.target));
     if (state.arranging && /\bsort\b/.test(e.target.className || '')) {
       var sortRow = e.target.parentNode.parentNode;
       state.row = +sortRow.getAttribute('data-row');
@@ -1084,7 +1712,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     getJson('/api/home/catalogue', function (r) {
       if (!r || !r.ok) {
         if (!data) {
-          $('fault').className = 'show';
+          showFault(true);
           // A live HTTP server is not enough: Home needs its tiles and escape tile.
           if (!document.hidden && !initialEscape) {
             initialEscape = true;
@@ -1109,7 +1737,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       wallRevision = r.wallpapers && r.wallpapers.revision || '';
       updateWall();
       if (!state.arranging) render();
-      if (firstLoad) beat();
+      if (firstLoad) { beat(); planMascot(); }
+      renderSettings();
       if (!layout.hintSeen) {
         toast(t('home.hint.title', 'Hold OK to arrange'), t('home.hint.desc', 'Move or hide tiles and rows. LG\'s Home is the last tile in Apps.'));
         postJson('/api/home/layout', { hintSeen: true });
@@ -1156,7 +1785,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         wallSlots = r.wallpapers && r.wallpapers.slots;
         wallRevision = r.wallpapers && r.wallpapers.revision || '';
         updateWall();
-        $('fault').className = '';
+        showFault(false);
         // A new release of the server: the page is the old one's until reloaded.
         if (build && r.build && r.build !== build) {
           if (!state.arranging && !layoutBusy) location.reload();
@@ -1166,7 +1795,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         if (r.layoutVersion && layoutVersion && r.layoutVersion !== layoutVersion && !state.arranging && !layoutBusy) load();
         return;
       }
-      if (++beatFails === 3) $('fault').className = 'show';
+      if (++beatFails === 3) showFault(true);
     });
   }
 
@@ -1177,7 +1806,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     closeRecents();
     readLaunchParams();
     updateWall();
-    state.row = 0; state.col = {}; state.bar = -1;
+    state.row = 0; state.col = {}; state.bar = -1; state.top = -1;
+    if (settings.open) closeSettings();
     if (state.arranging) setArranging(false);
     beat();
     load();
