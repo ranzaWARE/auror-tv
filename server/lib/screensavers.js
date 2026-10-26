@@ -71,6 +71,11 @@ var SCREENSAVERS = {
     description: msg('srv.saver.harmonograph.desc', 'Pendulum ribbons of light weaving and fading on black.'),
     qml: 'screensavers/harmonograph.qml'
   },
+  auror: {
+    label: msg('srv.saver.auror', 'AUROR'),
+    description: msg('srv.saver.auror.desc', 'Glasshouse Home\'s clock, dimmed on black and wandering slowly, with Mimus and Quetza now and then.'),
+    qml: 'screensavers/auror.qml'
+  },
   vitals: {
     label: msg('srv.saver.vitals', 'Panel vitals'),
     description: msg('srv.saver.vitals.desc', 'The TV\'s own readings - panel hours, pixel refresher countdown, temperature.'),

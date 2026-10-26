@@ -324,6 +324,37 @@ step('the LG Home tile cannot be hidden, and unknown rows are dropped', function
   });
 });
 
+step('LG\'s notifications and search start hidden, once, and stay as arranged after', function (done) {
+  start(null);
+  var sidebar = ['com.webos.app.notificationcenter', 'com.webos.app.voice'];
+  assert.deepEqual(home.layout().hidden.app.slice(-2), sidebar, 'a new layout hides them');
+  // A file from before: they are hidden once.
+  start({ hidden: { app: ['netflix'], dev: [], ch: [] } });
+  assert.deepEqual(home.layout().hidden.app, ['netflix'].concat(sidebar));
+  home.setLayout({ hidden: { app: ['netflix'] } }, function (r) {
+    assert.deepEqual(r.layout.hidden.app, ['netflix'], 'shown again by hand');
+    start(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')));
+    assert.deepEqual(home.layout().hidden.app, ['netflix'], 'and they stay shown');
+    done();
+  });
+});
+
+step('the view\'s look is kept apart from the layout, and survives a layout save', function (done) {
+  start(null);
+  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } });
+  home.setLook({ theme: 'dark', mascots: false, shelf: { hdmi: false, bogus: true }, saverBright: 'yes' }, function (r) {
+    assert.ok(r.ok, r.error);
+    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: false } });
+    home.setLayout({ hidden: { dev: [] } }, function (r2) {
+      assert.strictEqual(r2.layout.look.theme, 'dark');
+      home.setLook({ theme: 'sepia' }, function (r3) {
+        assert.strictEqual(r3.layout.look.theme, 'auto', 'an unknown theme falls back to automatic');
+        done();
+      });
+    });
+  });
+});
+
 var clock = 0;
 function at(id) { clock += 1000; foreground(id); }
 

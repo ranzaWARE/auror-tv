@@ -30,6 +30,7 @@ var msg = require('./say').msg;
 var names = require('./names');
 var writeJsonAtomic = require('./util').writeJsonAtomic;
 var wallpapers = require('./home-wallpapers');
+var jellyfin = require('./home-jellyfin');
 var takeover = require('./home-takeover');
 var recent = require('./home-recent');
 var recentApps = require('./home-recent-apps');
@@ -65,6 +66,8 @@ var LG_SIDEBAR_APPS = [
   { id: 'com.webos.app.voice', icon: false }
 ];
 var MAX_CHANNELS = 40;
+// The view's theme: by the time of day, or one kept.
+var THEMES = ['auto', 'light', 'dark'];
 /*
  * The power-on reasons bootd opens Home for while auto launch is on: LG's
  * com.webos.service.tvpower.fullHomeBootingPowerOnReasons on a G5 (webOS
@@ -199,7 +202,10 @@ function defaults() {
     rows: ROWS.slice(),
     order: { app: [], dev: [], ch: [] },
     sort: { app: 'custom', dev: 'custom', ch: 'custom' },
-    hidden: { app: PROMO_APPS.slice(), dev: [], ch: [] },
+    hidden: { app: PROMO_APPS.concat(sidebarIds()), dev: [], ch: [] },
+    // Set once LG's notifications and search have started hidden: a file from
+    // before they did gets them hidden once, and they stay as arranged after.
+    sidebarHidden: true,
     channels: [],
     hintSeen: false,
     // The plate describing the picture of what was last on: detail many
@@ -207,6 +213,8 @@ function defaults() {
     picture: false,
     // { text, accent } as #rrggbb, or null for the view's own colours.
     colours: null,
+    // How the view looks and what its Top Shelf shows, set from its own settings.
+    look: normaliseLook(null),
     // null until chosen: the first start keeps an empty layout an earlier build left.
     hideLgHomeAtStart: null,
     // LG's Home auto launch as it was before Glasshouse Home switched it off,
@@ -215,6 +223,20 @@ function defaults() {
     lgAutoLaunchCheck: null,
     snapshot: null
   };
+}
+
+function sidebarIds() { return LG_SIDEBAR_APPS.map(function (a) { return a.id; }); }
+
+function normaliseLook(raw) {
+  var d = { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } };
+  if (!raw || typeof raw !== 'object') return d;
+  if (THEMES.indexOf(raw.theme) !== -1) d.theme = raw.theme;
+  if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;
+  if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
+  if (raw.shelf && typeof raw.shelf === 'object') {
+    for (var k in d.shelf) if (typeof raw.shelf[k] === 'boolean') d.shelf[k] = raw.shelf[k];
+  }
+  return d;
 }
 
 /*
@@ -250,6 +272,10 @@ function normalise(raw) {
   d.hintSeen = raw.hintSeen === true;
   d.picture = raw.picture === true;
   d.colours = validColours(raw.colours);
+  d.look = normaliseLook(raw.look);
+  if (raw.sidebarHidden !== true) {
+    sidebarIds().forEach(function (id) { if (d.hidden.app.indexOf(id) === -1) d.hidden.app.push(id); });
+  }
   if (typeof raw.hideLgHomeAtStart === 'boolean') d.hideLgHomeAtStart = raw.hideLgHomeAtStart;
   if (typeof raw.lgAutoLaunch === 'string' && raw.lgAutoLaunch) d.lgAutoLaunch = raw.lgAutoLaunch;
   if (typeof raw.lgAutoLaunchCheck === 'string' && raw.lgAutoLaunchCheck) d.lgAutoLaunchCheck = raw.lgAutoLaunchCheck;
@@ -344,6 +370,8 @@ function setLayout(body, cb) {
     hideLgHomeAtStart: c.hideLgHomeAtStart,
     lgAutoLaunch: c.lgAutoLaunch,
     lgAutoLaunchCheck: c.lgAutoLaunchCheck,
+    sidebarHidden: true,
+    look: c.look,
     rows: body.rows !== undefined ? body.rows : c.rows,
     order: perRow(body.order, c.order),
     sort: perRow(body.sort, c.sort),
@@ -376,7 +404,25 @@ function setLayout(body, cb) {
 
 function layoutOf(c) {
   return { rows: c.rows, order: c.order, sort: c.sort, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen, picture: c.picture,
-    colours: c.colours };
+    colours: c.colours, look: c.look };
+}
+
+// From the view's settings: any of theme, mascots, saverBright and shelf, the rest kept.
+function setLook(body, cb) {
+  var c = readConfig();
+  if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
+  var merged = JSON.parse(JSON.stringify(c.look));
+  ['theme', 'mascots', 'saverBright'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  if (body.shelf && typeof body.shelf === 'object') {
+    for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
+  }
+  var before = c.look;
+  c.look = normaliseLook(merged);
+  if (!saveConfig()) {
+    c.look = before;
+    return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+  }
+  cb({ ok: true, layout: layoutOf(c), layoutVersion: layoutVersion() });
 }
 
 // ---------------------------------------------------------------- what it shows
@@ -1394,6 +1440,7 @@ function init(opts) {
   historyModule = opts.history || null;
   if (opts.stateDir) stateDir = opts.stateDir;
   wallpapers.init(stateDir);
+  jellyfin.init(stateDir, opts.now);
   recent.init(stateDir, opts.now);
   recentApps.init({ luna: lunaFn });
   takeover.init({
@@ -1532,6 +1579,7 @@ module.exports = {
   now: now,
   open: open,
   setLayout: function (body, cb) { change(function (done) { setLayout(body, done); }, cb); },
+  setLook: function (body, cb) { change(function (done) { setLook(body, done); }, cb); },
   setHideLgHomeAtStart: function (body, cb) { change(function (done) { setHideLgHomeAtStart(body, done); }, cb); },
   enable: function (cb) { change(function (done) { enable(function (r) { if (r.ok) homeKeysFn(true); done(r); }); }, cb); },
   disable: function (cb) { change(function (done) { disable(function (r) { homeKeysFn(false); done(r); }); }, cb); },
@@ -1542,6 +1590,8 @@ module.exports = {
   iconPath: iconPath,
   // Back on the view: the TV's recent apps (lib/home-recent-apps).
   recentApps: recentApps,
+  // The Top Shelf's Jellyfin (lib/home-jellyfin).
+  jellyfin: jellyfin,
   wallpaperPath: wallpapers.image,
   uploadWallpaper: function (slot, req, cb) {
     var sup = supported();

@@ -29,7 +29,7 @@ var MIME = {
   '.otf': 'font/otf', '.ttf': 'font/ttf', '.woff2': 'font/woff2',
   '.css': 'text/css; charset=utf-8', '.js': 'application/javascript',
   '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png', '.svg': 'image/svg+xml'
+  '.png': 'image/png', '.svg': 'image/svg+xml', '.gif': 'image/gif'
 };
 
 /**
@@ -1075,6 +1075,10 @@ function handleHomeRoute(req, res, u, pathname) {
           c.enabled = st.enabled;
           c.wallpapers = st.wallpapers;
           c.layoutVersion = homeModule.layoutVersion();
+          // For the view's own settings.
+          c.jellyfin = homeModule.jellyfin.status();
+          c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
+            available: !screensaversModule.heldBack() } : null;
           reply(c);
         });
       });
@@ -1084,6 +1088,10 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
     if (pathname === '/api/home/now') return homeModule.now(reply);
+    if (pathname === '/api/home/look') return reply({ ok: true, look: homeModule.layout().look });
+    if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
+    if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());
+    if (pathname === '/api/home/jellyfin/image') return homeModule.jellyfin.image(u.query || {}, res);
     if (pathname === '/api/home/picture') {
       return homePictureModule.picture(String(u.query && u.query.kind || ''), Number(u.query && u.query.port), reply,
         String(u.query && u.query.app || ''));
@@ -1130,6 +1138,14 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     return readJsonBody(req, res, function (body) {
       if (pathname === '/api/home/layout') return homeModule.setLayout(body, reply);
+      if (pathname === '/api/home/look') return homeModule.setLook(body, reply);
+      if (pathname === '/api/home/jellyfin/pair') return reply(homeModule.jellyfin.pair(lanOrigin()));
+      if (pathname === '/api/home/jellyfin/forget') return homeModule.jellyfin.forget(reply);
+      // The view's AUROR screen saver switch, with its brightness.
+      if (pathname === '/api/home/screensaver') {
+        if (!screensaversModule) return reply({ ok: false, error: 'screen savers unavailable' });
+        return screensaversModule.setScreensaver(body && body.on === true ? 'auror' : 'stock', body && body.bright === true ? 'bright' : 'dim', reply);
+      }
       if (pathname === '/api/home/start-layout') return homeModule.setHideLgHomeAtStart(body, reply);
       if (pathname === '/api/home/wallpapers') return homeModule.setWallpapers(body, reply);
       if (pathname === '/api/home/enable') return homeModule.enable(reply);
@@ -1143,6 +1159,28 @@ function handleHomeRoute(req, res, u, pathname) {
         return reply({ ok: false, error: 'action must be open, close or closeAll' });
       }
       send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+/*
+ * The phone's page for linking Jellyfin, and what it sends. Only with a live
+ * code from the TV's settings; the details are tried before they are kept.
+ */
+function handleJellyfinPhone(req, res, u, pathname) {
+  var jf = homeModule.jellyfin;
+  if (pathname === '/jellyfin' && req.method === 'GET') {
+    var page = assetPath('jellyfin-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (pathname === '/jellyfin/link' && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      jf.link(body, function (r) { send(res, r.ok || r.needUser ? 200 : 400, JSON.stringify(r)); });
     });
   }
   send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
@@ -1214,6 +1252,9 @@ function handleRequest(req, res) {
       error: msg('srv.install.hostRefused', 'this address is not allowed to install apps; add the name to apps.hosts in config.json, or use the TV\'s IP address')
     }));
   }
+
+  // Jellyfin linked from a phone: the one-time code in the TV's QR code stands in for the token.
+  if ((pathname === '/jellyfin' || pathname === '/jellyfin/link') && homeModule) return handleJellyfinPhone(req, res, u, pathname);
 
   if (pathname.indexOf('/api/') === 0 && !authed(u.query, req)) {
     return send(res, 401, JSON.stringify({ ok: false, error: 'bad or missing token' }));

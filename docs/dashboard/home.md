@@ -7,7 +7,25 @@
 
 ## What is on screen
 
-Glasshouse Home displays a clock and date, the last active source or app, and up to three rows (any row with no visible items is automatically hidden):
+Glasshouse Home displays a Top Shelf over up to three rows (any row with no visible items is automatically hidden). The Top Shelf shows the focused tile, fading in as the focus moves:
+
+* **Jellyfin**: Continue watching, or Recently added when nothing is under way, or that the server is not answering. It is linked from a phone, in **Settings › Jellyfin** (below).
+* **Glasshouse**: the SoC temperature, CPU, memory in use and Wi-Fi signal, from `/api/stats`, read again every 10 s while it has the focus.
+* **An HDMI input**: the name of the device on it.
+* **Any other app**: its name.
+
+Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile. App tiles are 16:9 colour banners that show their name only when focused: well-known apps have their logo in white on the brand's colour, from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0-1.0, the logos remaining their owners' trademarks), and any other app its own icon on a colour. The clock and date sit at the top right with two buttons, reached with **Up**: the theme switch and the settings.
+
+The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, slowly and continuously, so no text stays on the same pixels. Every few minutes Mimus runs along the bottom or Quetza flies across the top.
+
+### Settings on the TV
+
+The gear opens Glasshouse Home's own settings, worked with the remote:
+
+* **Look**: the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza.
+* **Top Shelf**: what Jellyfin, Glasshouse and the HDMI inputs show there.
+* **Tiles**: which apps show. LG's Home always does.
+* **Jellyfin**: the server and user linked, and a QR code. Scanned with a phone on the same network, it opens a page for the server's address and an API key (Jellyfin's **Dashboard › API Keys**), so neither is typed with the remote. The code lasts ten minutes and links once; the details are tried before they are kept, and the key is kept on the TV only, in `/var/lib/tvweb/jellyfin.json`.
 
 <div class="grid cards" markdown>
 
@@ -15,13 +33,13 @@ Glasshouse Home displays a clock and date, the last active source or app, and up
 
     ---
 
-    Every app from LG's launcher with its native icon. LG's promotional tiles (LG Channels, Sports, Always Ready, Alexa, Camera) start hidden, and apps hidden under [Hide home screen system apps](apps.md) stay hidden here. Includes **Notifications**, **Search**, and an always-present **LG Home** tile at the end.
+    Every app from LG's launcher. LG's promotional tiles (LG Channels, Sports, Always Ready, Alexa, Camera) and LG's **Notifications** and **Search** start hidden, and apps hidden under [Hide home screen system apps](apps.md) stay hidden here. An always-present **LG Home** tile comes at the end.
 
 -   **Inputs & HDMI-CEC devices**
 
     ---
 
-    Every HDMI port, plus separate tiles for connected HDMI-CEC devices (for example, *"HDMI 2, through STEREO 70s"*). Selecting a CEC tile wakes the device and switches receivers to that source; inactive ports appear dimmed.
+    Only the HDMI ports with something plugged in, with separate tiles for connected HDMI-CEC devices (for example, *"HDMI 2, through STEREO 70s"*). Selecting a CEC tile wakes the device and switches receivers to that source. With nothing plugged in, the row is left out.
 
 -   **Channels**
 
@@ -39,7 +57,7 @@ Glasshouse Home displays a clock and date, the last active source or app, and up
 
     ---
 
-    When **Picture details** is switched on, a top-right badge shows the active picture preset, OLED light / backlight level, and signal format — live HDMI resolution, refresh rate, chroma, bit depth, HDR format, and VRR, or the last video format played in an app.
+    When **Picture details** is switched on, a badge at the bottom right of the Top Shelf shows the active picture preset, OLED light / backlight level, and signal format — live HDMI resolution, refresh rate, chroma, bit depth, HDR format, and VRR, or the last video format played in an app.
 
 -   **Colours & themes**
 
@@ -51,10 +69,10 @@ Glasshouse Home displays a clock and date, the last active source or app, and up
 
 ## Wallpapers
 
-By default, Glasshouse Home uses a pure `#000` OLED black background (and leaves the TV's [screen saver](screen-savers.md) untouched). Custom wallpapers can be uploaded for four times of day (**Morning** 06:00, **Afternoon** 11:00, **Evening** 17:00, **Night** 21:00):
+By default, Glasshouse Home uses AUROR's plain dark or light background (and leaves the TV's [screen saver](screen-savers.md) untouched). Custom wallpapers can be uploaded for four times of day (**Morning** 06:00, **Afternoon** 11:00, **Evening** 17:00, **Night** 21:00):
 
 * Select a JPEG, PNG, or WebP image (up to 25 MB) in the web dashboard and click **Upload image**. The browser scales it to 1920 × 1080 JPEG before saving it to `/var/lib/tvweb/home-wallpaper-uploads` on the TV.
-* **Remove uploaded images** restores the pure black background.
+* **Remove uploaded images** restores the plain background.
 
 === "Afternoon wallpaper"
 
