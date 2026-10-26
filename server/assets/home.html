@@ -823,7 +823,9 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     { id: 'tiles', label: t('home.set.tiles', 'Tiles'),
       desc: t('home.set.tilesDesc', 'Which apps Home shows. To reorder them, hold OK on a tile.') },
     { id: 'jellyfin', label: 'Jellyfin',
-      desc: t('home.set.jfDesc', 'The server the Top Shelf takes Continue watching and Recently added from.') }
+      desc: t('home.set.jfDesc', 'The server the Top Shelf takes Continue watching and Recently added from.') },
+    { id: 'more', label: 'Glasshouse',
+      desc: t('home.set.moreDesc', 'Everything else, from switching this Home on or off to wallpapers and Home Assistant, is in the Glasshouse app.') }
   ];
 
   function onText(on) { return on ? t('home.set.on', 'On') : t('home.set.off', 'Off'); }
@@ -879,6 +881,9 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
           act: function () { setAppHidden(appId, shownNow); } };
       }).filter(function (r) { return !!r; });
     }
+    if (id === 'more') {
+      return [{ kind: 'link', label: t('home.set.moreOpen', 'Open the Glasshouse app'), value: '', act: openGlasshouse }];
+    }
     var jf = data.jellyfin || { configured: false };
     var list = [
       { kind: 'info', label: t('home.set.jfServer', 'Server'), value: jf.configured ? jf.server : t('home.set.jfNone', 'Not linked') },
@@ -913,7 +918,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       return '<div class="setrow' + (on ? ' focus' : '') + (r.locked ? ' locked' : '') + '" data-i="' + i + '">' +
         '<span class="sl"><span class="lb">' + esc(r.label) + '</span>' + (on && r.help ? '<span class="hp">' + esc(r.help) + '</span>' : '') + '</span>' +
         '<span class="sv">' + esc(r.value) +
-        (r.kind === 'switch' ? '<i class="sw' + (r.on ? ' on' : '') + '"><b></b></i>' : r.kind === 'cycle' ? '<i class="cy">›</i>' : '') +
+        (r.kind === 'switch' ? '<i class="sw' + (r.on ? ' on' : '') + '"><b></b></i>' : r.kind === 'cycle' || r.kind === 'link' ? '<i class="cy">›</i>' : '') +
         '</span></div>';
     }).join('');
     if (cat.id === 'jellyfin') html += qrBox();
@@ -975,6 +980,12 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         requestPair();
       }
       renderSettings();
+    });
+  }
+
+  function openGlasshouse() {
+    postJson('/api/home/open', { kind: 'app', id: DASHBOARD_APP }, function (r) {
+      if (!r || !r.ok) toast(t('home.openFailed', 'That did not open'), r && r.error);
     });
   }
 
