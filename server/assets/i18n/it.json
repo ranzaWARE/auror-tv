@@ -529,6 +529,8 @@
  "home.set.lookDesc": {"text": "Tema della Home e salvaschermo. Automatico: chiaro dalle 6:00 alle 17:00, scuro dalle 17:00.", "from": "Home’s theme and the screen saver. Automatic: light from 06:00 to 17:00, dark from 17:00."},
  "home.set.mascots": {"text": "Mimus e Quetza", "from": "Mimus and Quetza"},
  "home.set.mascotsHelp": {"text": "Ogni tanto attraversano la Home e il salvaschermo", "from": "Now and then they cross Home and the screen saver"},
+ "home.set.moreDesc": {"text": "Tutto il resto, dall’accendere o spegnere questa Home agli sfondi e a Home Assistant, è nell’app Glasshouse.", "from": "Everything else, from switching this Home on or off to wallpapers and Home Assistant, is in the Glasshouse app."},
+ "home.set.moreOpen": {"text": "Apri l’app Glasshouse", "from": "Open the Glasshouse app"},
  "home.set.off": {"text": "Disattivo", "from": "Off"},
  "home.set.offBoth": {"text": "Disattivi", "from": "Off"},
  "home.set.on": {"text": "Attivo", "from": "On"},

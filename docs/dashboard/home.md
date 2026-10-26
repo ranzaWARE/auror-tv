@@ -26,6 +26,7 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 * **Top Shelf**: what Jellyfin, Glasshouse and the HDMI inputs show there.
 * **Tiles**: which apps show. LG's Home always does.
 * **Jellyfin**: the server and user linked, and a QR code. Scanned with a phone on the same network, it opens a page for the server's address and an API key (Jellyfin's **Dashboard › API Keys**), so neither is typed with the remote. The code lasts ten minutes and links once; the details are tried before they are kept, and the key is kept on the TV only, in `/var/lib/tvweb/jellyfin.json`.
+* **Glasshouse**: opens Glasshouse's TV app, for everything else.
 
 <div class="grid cards" markdown>
 
