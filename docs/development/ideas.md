@@ -36,7 +36,8 @@ without copying anything:
 1. The settings show a QR code to the TV's page, as for Jellyfin.
 2. The TV starts an authorization code flow with PKCE, keeping the verifier;
    `state` carries a one-time nonce and the TV's LAN address.
-3. The redirect URI is a static page on the fork's GitHub Pages. It only
+3. The redirect URI is a static page on any HTTPS site the owner has, their
+   own domain or the fork's GitHub Pages. It only
    reads `code` and `state` and sends the browser on to
    `http://<TV>/spotify/callback`, refusing any address that is not a private
    one.
