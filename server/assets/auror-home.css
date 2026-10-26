@@ -1,0 +1,37 @@
+/* Skin AUROR per Glasshouse Home: colori, font, raggio 10px e banner 16:9. Valori da auror/css/tokens.css (tema scuro). */
+@font-face{font-family:"Space Grotesk";src:url("/assets/fonts/SpaceGrotesk.ttf") format("truetype");font-weight:300 700}
+@font-face{font-family:"Space Mono";src:url("/assets/fonts/SpaceMono-Regular.ttf") format("truetype");font-weight:400}
+
+html,body,#stage{background:#15191f !important}
+body,#srcTitle,#plMode,.dev .nm,.ch .num,#recents h2,.app .mono{font-family:"Space Grotesk",sans-serif !important}
+body{color:#e0e4ea !important}
+#scrim{display:none}
+
+#clock{font-family:"Space Grotesk",sans-serif !important;font-weight:300 !important;letter-spacing:-6px !important}
+#date{color:#99a2af !important;font-size:26px !important}
+#source{border-left:1px solid rgba(255,255,255,.08) !important}
+#srcKind{color:#f5a000 !important;font-family:"Space Mono",monospace;font-size:20px !important;text-transform:uppercase;letter-spacing:.06em}
+#srcVia{color:#99a2af !important}
+#now,.row h2,.tile{text-shadow:none !important}
+
+.row h2{font-size:20px !important;color:#99a2af !important;text-transform:uppercase;letter-spacing:.08em}
+.row h2 span{color:#5d6472 !important;text-transform:none;letter-spacing:0;font-family:"Space Mono",monospace;font-size:18px}
+
+.tile{border-radius:10px !important;opacity:.85 !important}
+.row:not(.active) .tile{opacity:.6 !important}
+.tile.focus{background:#23272e !important;outline:2px solid #f5a000 !important;opacity:1 !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.app img,.app .mono{border-radius:10px !important}
+.app .mono{background:#1c2028 !important;color:#e0e4ea !important;border:1px solid rgba(255,255,255,.08);font-weight:400 !important}
+.app .nm{font-weight:600 !important;color:#e0e4ea}
+
+#banner,#toast{background:#23272e !important;border-radius:10px !important;border-left:3px solid #f5a000 !important}
+
+/* ---- Banner 16:9 al posto delle icone quadrate ---- */
+.app{width:352px !important;padding:0 !important;text-align:left !important;margin-right:16px !important;background:transparent}
+.app img,.app .mono{width:352px !important;height:198px !important;margin:0 !important;border-radius:10px !important;
+  object-fit:contain;padding:43px 0;background:#1c2028 !important;border:1px solid rgba(255,255,255,.08)}
+.app .mono{padding:0;line-height:198px !important;font-size:64px !important;text-align:center}
+.app .nm{margin:12px 4px 8px !important;font-size:22px !important}
+.tile.app.focus{background:transparent !important;outline:none !important;box-shadow:none}
+.tile.app.focus img,.tile.app.focus .mono{outline:3px solid #f5a000;outline-offset:4px;background:#23272e !important;box-shadow:0 8px 24px rgba(0,0,0,.5)}
