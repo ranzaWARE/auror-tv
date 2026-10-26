@@ -89,6 +89,7 @@ nav:
 not_in_nav: |
   /install-homebrew-channel.md
   /dashboard/tv-app.md
+  /development/ideas.md
 
 extra_css:
   - stylesheets/extra.css
