@@ -40,7 +40,7 @@
   var layout = {
     rows: ['app', 'dev', 'ch'], sort: { app: 'custom', dev: 'custom', ch: 'custom' },
     hidden: { app: ['netflix', 'amazon', 'com.disney.disneyplus-prod', 'dazn', 'it.sky.now', 'com.webos.app.lgchannels'], dev: [], ch: [] },
-    order: { app: [], dev: [], ch: [] }, channels: [], hintSeen: true, searchHintSeen: true, search: true,
+    order: { app: [], dev: [], ch: [] }, folder: [], channels: [], hintSeen: true, searchHintSeen: true, search: true,
     hideUnused: true, picture: false, colours: null,
     look: { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } }
   };
@@ -129,7 +129,8 @@
         return { ok: true, layout: copy(layout), layoutVersion: 'v' + version };
       case '/api/home/layout':
         if (b.reset) { layout.order = { app: [], dev: [], ch: [] }; layout.sort = { app: 'custom', dev: 'custom', ch: 'custom' }; }
-        ['rows'].forEach(function (k) { if (b[k]) layout[k] = b[k]; });
+        ['rows', 'folder'].forEach(function (k) { if (b[k]) layout[k] = b[k]; });
+        if (b.reset) layout.folder = [];
         ['order', 'sort', 'hidden'].forEach(function (k) { if (b[k]) for (var r in b[k]) layout[k][r] = b[k][r]; });
         for (var k in b) if (typeof b[k] === 'boolean') layout[k] = b[k];
         version++;
