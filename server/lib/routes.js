@@ -21,6 +21,7 @@ var ha = require('./ha');
 var fetchLib = require('./fetch');
 var devtools = require('./devtools');
 var names = require('./names');
+var aurorUpdate = require('./auror-autoupdate');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
 var HA_ENTITIES = ha.HA_ENTITIES;
@@ -1144,6 +1145,7 @@ function handleHomeRoute(req, res, u, pathname) {
           c.layoutVersion = homeModule.layoutVersion();
           // For the view's own settings.
           c.jellyfin = homeModule.jellyfin.status();
+          c.update = aurorUpdate.status();
           c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
             available: !screensaversModule.heldBack() } : null;
           reply(c);
@@ -1216,6 +1218,7 @@ function handleHomeRoute(req, res, u, pathname) {
         if (!screensaversModule) return reply({ ok: false, error: 'screen savers unavailable' });
         return screensaversModule.setScreensaver(body && body.on === true ? 'auror' : 'stock', body && body.bright === true ? 'bright' : 'dim', reply);
       }
+      if (pathname === '/api/home/autoupdate') return aurorUpdate.setAuto(!!(body && body.auto === true), reply);
       if (pathname === '/api/home/start-layout') return homeModule.setHideLgHomeAtStart(body, reply);
       if (pathname === '/api/home/wallpapers') return homeModule.setWallpapers(body, reply);
       if (pathname === '/api/home/enable') return homeModule.enable(reply);

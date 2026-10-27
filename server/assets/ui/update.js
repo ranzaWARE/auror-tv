@@ -1,7 +1,8 @@
 // The release check, in-place upgrade and rollback, and the app on the TV's home screen.
 
 // Releases are cut on the upstream repo, so the tag link points there.
-const REPO = 'https://github.com/rorygallagher2024/glasshouse';
+// AUROR's releases, which the server installs.
+const REPO = 'https://github.com/ranzaWARE/auror-tv';
 
 // A git build's version carries its commit as build metadata, 0.80.1+55e51e5 or
 // 0.80.1+55e51e5.dirty; releases and the updater know only the part before it.

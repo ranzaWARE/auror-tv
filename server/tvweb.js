@@ -19,7 +19,7 @@
  * first 4096 bytes of a downloaded tvweb.js for this line (up to 0.82.2), and
  * refuses a release where it is further down (#586).
  */
-var TVWEB_VERSION = '0.122.2';
+var TVWEB_VERSION = '0.122.101';
 
 var http = require('http');
 var fs = require('fs');
@@ -1943,6 +1943,11 @@ if (!CLI_MODE) {
   // Not at startup: a reboot brings the whole house back at once, and nothing
   // about this is urgent.
   updater.scheduleUpdateChecks(120000);
+  // AUROR: its own releases, installed with the TV off or at night (lib/auror-autoupdate).
+  require('./lib/auror-autoupdate').start({
+    updater: updater, config: CONFIG, control: doControl, writeSettings: routes.writeSettings,
+    tvOff: function () { var p = liveState.state.snapshot().power; return !!p && p.systemOn === false; }
+  });
 }
 
 /*

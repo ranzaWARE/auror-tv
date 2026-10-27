@@ -130,7 +130,7 @@ Homebrew Channel it starts limited to the TV, until the owner opens it during
 setup. While a phone is being used to enter Home Assistant details,
 port 8081 answers a one-time code for up to ten minutes. The server connects out
 only to the configured MQTT broker, to the NTP server when one is configured,
-and, when update checks are switched on, to GitHub's releases API. Update checks are off by default.
+and, when update checks are switched on, to GitHub's releases API. Update checks are off by default. AUROR's automatic updates ask the same API for AUROR's releases at most every three hours; `"update": { "auto": false }` in `config.json` stops them.
 
 With **Share app icons** on in the MQTT tab (`iconServer` in `config.json`), port 8082 (the dashboard's
 port plus two) answers on the whole network, dual-stack like the dashboard,
