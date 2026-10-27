@@ -86,12 +86,13 @@ assets/jellyfin-phone.html \
 assets/banners/LICENSE-simple-icons.txt assets/banners/apple-music.svg assets/banners/apple-tv.svg \
 assets/banners/browser.svg assets/banners/crunchyroll.svg assets/banners/dazn.svg \
 assets/banners/deezer.svg assets/banners/emby.svg assets/banners/glasshouse.svg \
-assets/banners/jellyfin.svg assets/banners/kodi.svg assets/banners/lg-home.svg \
+assets/banners/jellyfin.svg assets/banners/kodi.svg assets/banners/lg-home.svg assets/banners/lg-channels.svg \
 assets/banners/netflix.svg assets/banners/paramount-plus.svg assets/banners/playstation.svg \
 assets/banners/plex.svg assets/banners/rakuten-tv.svg assets/banners/sky.svg \
 assets/banners/soundcloud.svg assets/banners/spotify.svg assets/banners/steam.svg \
 assets/banners/tidal.svg assets/banners/twitch.svg assets/banners/vimeo.svg \
 assets/banners/youtube-music.svg assets/banners/youtube.svg \
+assets/banners/logo/lg-channels.svg assets/banners/logo/lg-channels-ink.svg \
 assets/banners/logo/apple-music-ink.svg assets/banners/logo/apple-music.svg assets/banners/logo/apple-tv-ink.svg \
 assets/banners/logo/apple-tv.svg assets/banners/logo/browser-ink.svg assets/banners/logo/browser.svg \
 assets/banners/logo/crunchyroll-ink.svg assets/banners/logo/crunchyroll.svg assets/banners/logo/dazn-ink.svg \
