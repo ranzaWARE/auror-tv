@@ -1264,10 +1264,16 @@ html.faded #stage{opacity:0}
    * it shows has changed.
    */
   var shelfShown = null, shelfRest = null;
-  var shelfData = { jellyfin: null, jellyfinAt: 0, stats: null, statsAt: 0 };
+  var shelfData = { jellyfin: null, jellyfinAt: 0, stats: null, statsAt: 0, immich: null, immichAt: 0 };
+  var IMMICH_TTL_MS = 10 * 60000;
 
   function look() { return (layout && layout.look) || { theme: 'auto', mascots: true, saverBright: false, shelf: {} }; }
   function shelfOn(part) { return look().shelf[part] !== false; }
+  // The view's own date, so the TV's time zone decides what this day is.
+  function todayText() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
+  }
   function isJellyfin(it) { return /jellyfin/i.test(it.id + ' ' + it.title); }
 
   function shelfFor(kind, it) {
@@ -1284,6 +1290,18 @@ html.faded #stage{opacity:0}
         }
         if (jf && jf.state === 'offline') return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.jf.offline', 'Server not reachable · Press OK to open the app'));
         if (jf && jf.state === 'empty') return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.jf.empty', 'Nothing new on the server · Press OK to open'));
+      }
+      // Immich: this day in years past, from its memories, else its name.
+      var mem = it.immich && shelfOn('immich') && shelfData.immich;
+      if (mem && mem.memories && mem.memories.length) {
+        var year = new Date().getFullYear();
+        return { mode: 'cards', kind: t('home.immich.memories', 'Immich · On this day'), items: mem.memories.slice(0, 3).map(function (m) {
+          var ago = year - m.year;
+          return { image: immichPic(m.cover, 'preview'), progress: null,
+            title: ago === 1 ? t('home.immich.yearAgo', 'A year ago') : t('home.immich.yearsAgo', '{n} years ago', { n: ago }),
+            line: (m.count === 1 ? t('home.immich.oneItem', '1 photo or video') : t('home.immich.nItems', '{n} photos and videos', { n: m.count })) +
+              (m.place ? ' · ' + m.place : '') };
+        }) };
       }
       if (it.id === DASHBOARD_APP && shelfOn('glasshouse') && shelfData.stats) {
         return { mode: 'stats', kind: t('home.stats.title', 'Glasshouse · The TV now'), stats: shelfData.stats };
@@ -1344,6 +1362,7 @@ html.faded #stage{opacity:0}
   }
 
   function cardLine(c) {
+    if (c.line !== undefined) return c.line;
     if (c.kind === 'episode' && c.season !== null && c.episode !== null) {
       return t('home.jf.episode', 'S{season} E{episode} · {name}', { season: c.season, episode: c.episode, name: c.name });
     }
@@ -1425,6 +1444,14 @@ html.faded #stage{opacity:0}
       getJson('/api/home/jellyfin', function (r) {
         if (!r || !r.ok) { shelfData.jellyfinAt = 0; return; }
         shelfData.jellyfin = r;
+        renderShelf();
+      });
+    }
+    if (it.immich && shelfOn('immich') && (now - shelfData.immichAt > IMMICH_TTL_MS || (shelfData.immich && shelfData.immich.day !== todayText()))) {
+      shelfData.immichAt = now;
+      getJson('/api/home/immich/memories?day=' + todayText(), function (r) {
+        if (!r || !r.ok) { shelfData.immichAt = 0; return; }
+        shelfData.immich = r;
         renderShelf();
       });
     }
@@ -1701,7 +1728,8 @@ html.faded #stage{opacity:0}
     if (id === 'look') {
       var themes = ['auto', 'light', 'dark'];
       var themeText = { auto: t('home.set.themeAuto', 'Automatic'), light: t('home.set.themeLight', 'Light'), dark: t('home.set.themeDark', 'Dark') };
-      var saverOn = !!(saver && saver.mode === 'auror');
+      var saverOn = !!(saver && (saver.mode === 'auror' || saver.mode === 'auror-immich'));
+      var photosOn = !!(saver && saver.mode === 'auror-immich'), im = data.immich || {};
       var rows = [{
         kind: 'text', label: t('home.set.name', 'Your name'), help: t('home.set.nameHelp', 'For the greeting over the Top Shelf. OK, then the TV’s keyboard'),
         value: lk.name || '—', act: startNameEdit
@@ -1713,13 +1741,34 @@ html.faded #stage{opacity:0}
         rows.push({
           kind: 'switch', on: saverOn, label: t('home.set.saver', 'AUROR screen saver'), help: t('home.set.saverHelp', 'The clock on black, moving slowly'),
           value: settings.busy === 'saver' ? t('home.set.switching', 'Switching…') : onText(saverOn),
-          act: function () { setSaver(!saverOn, lk.saverBright); }
+          act: function () { setSaver(!saverOn, lk.saverBright, photosOn); }
         });
+        // An option of the AUROR screen saver: Immich's photos in place of black.
+        if (im.configured) {
+          rows.push({
+            kind: 'switch', on: photosOn, label: t('home.set.saverPhotos', 'Photos from Immich'),
+            help: t('home.set.saverPhotosHelp', 'In the screen saver, one at a time, with the time in a corner'),
+            value: onText(photosOn), act: function () { setSaver(true, lk.saverBright, !photosOn); }
+          });
+          if (photosOn) {
+            var albums = settings.immichAlbums || [], chosen = null;
+            albums.forEach(function (a) { if (a.id === im.saverAlbum) chosen = a; });
+            rows.push({
+              kind: 'cycle', label: t('home.set.saverAlbum', 'Screen saver album'),
+              help: t('home.set.saverAlbumHelp', 'Or the whole library, at random'),
+              value: chosen ? chosen.name : t('home.set.saverLibrary', 'Whole library'),
+              act: function () {
+                var ids = [null].concat(albums.map(function (a) { return a.id; }));
+                setSaverAlbum(ids[(ids.indexOf(chosen ? chosen.id : null) + 1) % ids.length]);
+              }
+            });
+          }
+        }
       }
       rows.push({
         kind: 'cycle', label: t('home.set.saverLevel', 'Screen saver brightness'),
         value: lk.saverBright ? t('home.set.bright', 'Full') : t('home.set.dim', 'Dimmed'),
-        act: function () { setLook({ saverBright: !lk.saverBright }, function () { if (saverOn) setSaver(true, !lk.saverBright); }); }
+        act: function () { setLook({ saverBright: !lk.saverBright }, function () { if (saverOn) setSaver(true, !lk.saverBright, photosOn); }); }
       });
       rows.push({
         kind: 'switch', on: lk.mascots, label: t('home.set.mascots', 'Mimus and Quetza'),
@@ -1733,8 +1782,9 @@ html.faded #stage{opacity:0}
       return [
         ['jellyfin', 'Jellyfin', t('home.set.shelfJfHelp', 'Continue watching, or else Recently added')],
         ['glasshouse', 'Glasshouse', t('home.set.shelfGhHelp', 'Temperature, CPU, memory and Wi-Fi')],
-        ['hdmi', t('home.set.shelfHdmi', 'HDMI inputs'), t('home.set.shelfHdmiHelp', 'The name of the device plugged in')]
-      ].map(function (r) {
+        ['hdmi', t('home.set.shelfHdmi', 'HDMI inputs'), t('home.set.shelfHdmiHelp', 'The name of the device plugged in')],
+        ['immich', 'Immich', t('home.set.shelfImmichHelp', 'Memories of this day in years past')]
+      ].filter(function (r) { return r[0] !== 'immich' || (data.immich && data.immich.configured); }).map(function (r) {
         var on = shelfOn(r[0]);
         return { kind: 'switch', on: on, label: r[1], help: r[2], value: onText(on),
           act: function () { var part = {}; part[r[0]] = !on; setLook({ shelf: part }); } };
@@ -1864,6 +1914,7 @@ html.faded #stage{opacity:0}
     settings.open = true;
     settings.side = true;
     settings.cat = 0;
+    loadImmichAlbums();
     stageClass();
     renderNow();
     renderSettings();
@@ -1897,6 +1948,7 @@ html.faded #stage{opacity:0}
       return;
     }
     if (SET_CATS[i].id === 'ssh') return loadSsh();
+    if (SET_CATS[i].id === 'look') return loadImmichAlbums();
     if (SET_CATS[i].id === 'immich') {
       // A code lasts ten minutes on the server.
       if (!settings.immich.url || Date.now() - settings.immich.at > 9 * 60000) requestImmichPair();
@@ -2099,6 +2151,24 @@ html.faded #stage{opacity:0}
     });
   }
 
+  // The albums for the screen saver's choice, asked as the Look settings open.
+  function loadImmichAlbums() {
+    if (!data || !data.immich || !data.immich.configured) return;
+    getJson('/api/home/immich/albums', function (r) {
+      if (!r || !r.ok) return;
+      settings.immichAlbums = r.albums;
+      renderSettings();
+    });
+  }
+
+  function setSaverAlbum(id) {
+    postJson('/api/home/immich/saver', { album: id }, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      data.immich = r;
+      renderSettings();
+    });
+  }
+
   function immichRows() {
     var im = data.immich || { configured: false };
     var rows = [
@@ -2234,11 +2304,11 @@ html.faded #stage{opacity:0}
   }
 
   // Changing screen saver remounts LG's app, which can take most of a minute.
-  function setSaver(on, bright) {
+  function setSaver(on, bright, photos) {
     if (settings.busy) return;
     settings.busy = 'saver';
     renderSettings();
-    request('POST', '/api/home/screensaver', { on: on, bright: !!bright }, function (r) {
+    request('POST', '/api/home/screensaver', { on: on, bright: !!bright, photos: !!photos }, function (r) {
       settings.busy = '';
       if (r && r.current && data.saver) { data.saver.mode = r.current; data.saver.level = r.level; }
       if (!r || !r.ok) toast(t('home.set.saverFailed', 'The screen saver did not change'), r && r.error);

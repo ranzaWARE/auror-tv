@@ -8,6 +8,12 @@
  * immich.json readable by root only. The view never has the key: pictures
  * and videos come through here, which adds it.
  *
+ * Also on Home: the Top Shelf's memories of this day in years past, from
+ * Immich's own, which the key needs memory.read for; without it the tile
+ * shows its name. And the photos the AUROR · Immich screen saver goes
+ * through (assets/screensavers/auror-immich): an album's, or the library's at
+ * random, chosen in Home's settings and kept with the key.
+ *
  * An album's contents: Immich 1 listed them with the album; later releases
  * give them a month at a time through the timeline, asked when the album
  * comes without them. The older timeline needed size=MONTH, sent again when
@@ -34,6 +40,9 @@ var MAX_ASSETS = 20000;
 var CODE_TTL_MS = 10 * 60000;
 var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var SIZES = ['thumbnail', 'preview'];
+var MEMORIES_TTL_MS = 30 * 60000;
+var SAVER_TTL_MS = 60 * 60000;
+var SAVER_PHOTOS = 200;
 
 var stateDir = '/var/lib/tvweb';
 var nowMs = Date.now;
@@ -41,6 +50,8 @@ var cfg = null;
 var codes = {};
 var albumsCache = null;
 var albumCache = {};
+var memoriesCache = null;
+var saverCache = null;
 
 function init(dir, now) {
   stateDir = dir;
@@ -49,6 +60,8 @@ function init(dir, now) {
   codes = {};
   albumsCache = null;
   albumCache = {};
+  memoriesCache = null;
+  saverCache = null;
 }
 
 function file() { return path.join(stateDir, CONFIG_FILE); }
@@ -59,7 +72,8 @@ function config() {
   try {
     var raw = JSON.parse(fs.readFileSync(file(), 'utf8'));
     if (raw && typeof raw.server === 'string' && typeof raw.key === 'string') {
-      cfg = { server: raw.server, key: raw.key, user: String(raw.user || '') };
+      cfg = { server: raw.server, key: raw.key, user: String(raw.user || ''),
+        saverAlbum: typeof raw.saverAlbum === 'string' && UUID.test(raw.saverAlbum) ? raw.saverAlbum : null };
     }
   } catch (e) {}
   return cfg.server ? cfg : null;
@@ -76,18 +90,25 @@ function normaliseServer(s) {
 }
 
 /*
- * A GET to Immich's API. cb(err, status, body): body is the parsed JSON, or
- * with raw the response itself, still to be read. headers go along (Range).
+ * A GET to Immich's API, or with headers.body a POST of it as JSON.
+ * cb(err, status, body): body is the parsed JSON, or with raw the response
+ * itself, still to be read. Other headers go along (Range).
  */
 function request(server, key, pathAndQuery, raw, headers, cb) {
   var u = parseUrl(server + '/api' + pathAndQuery);
   var lib = u.protocol === 'https:' ? https : http;
   var h = { 'x-api-key': key, 'Accept': raw ? '*/*' : 'application/json' };
-  for (var k in headers || {}) if (headers[k]) h[k] = headers[k];
+  var payload = null;
+  for (var k in headers || {}) if (headers[k] && k !== 'body') h[k] = headers[k];
+  if (headers && headers.body) {
+    payload = new Buffer(JSON.stringify(headers.body));
+    h['Content-Type'] = 'application/json';
+    h['Content-Length'] = payload.length;
+  }
   var done = false;
   function finish(err, status, body) { if (!done) { done = true; cb(err, status, body); } }
   var req = lib.request({
-    hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.path, method: 'GET', headers: h
+    hostname: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.path, method: payload ? 'POST' : 'GET', headers: h
   }, function (res) {
     if (raw) return finish(null, res.statusCode, res);
     var chunks = [], size = 0;
@@ -105,13 +126,13 @@ function request(server, key, pathAndQuery, raw, headers, cb) {
   // A video's reply is read for as long as it plays: only the wait for its start is timed.
   req.setTimeout(REQUEST_MS, function () { if (!done) { req.abort(); finish(new Error('timed out')); } });
   req.on('error', function (e) { finish(e); });
-  req.end();
+  req.end(payload || undefined);
 }
 
-function api(pathAndQuery, cb) {
+function api(pathAndQuery, cb, post) {
   var c = config();
   if (!c) return cb(msg('srv.immich.none', 'Immich is not linked'));
-  request(c.server, c.key, pathAndQuery, false, null, function (err, status, body) {
+  request(c.server, c.key, pathAndQuery, false, post ? { body: post } : null, function (err, status, body) {
     if (err) return cb(msg('srv.immich.unreachable', 'Immich did not answer: {error}', { error: err.message }));
     if (status === 401 || status === 403) return cb(msg('srv.immich.refused', 'Immich refused the API key: it needs album.read, asset.read and asset.view'), status);
     if (status !== 200) return cb(msg('srv.immich.status', 'Immich answered {status}', { status: status }), status);
@@ -217,6 +238,99 @@ function timeline(id, order, cb) {
   }
 }
 
+// ------------------------------------------------------------- memories
+
+function today() {
+  var d = new Date(nowMs());
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+}
+
+function placeOf(a) {
+  var ex = (a && a.exifInfo) || {};
+  return ex.city || ex.country || null;
+}
+
+/*
+ * This day in years past, as Immich keeps it: { year, count, cover, place }
+ * each, the most recent year first, the photos only. day is the view's own
+ * date, so the TV's time zone counts. Without memory.read, or on an Immich
+ * without memories, there are none.
+ */
+function memories(day, cb) {
+  if (!config()) return cb({ ok: false, error: msg('srv.immich.none', 'Immich is not linked') });
+  day = /^\d{4}-\d\d-\d\d$/.test(String(day || '')) ? day : today();
+  if (memoriesCache && memoriesCache.day === day && nowMs() - memoriesCache.at < MEMORIES_TTL_MS) return cb(memoriesCache.value);
+  api('/memories?for=' + day + '&type=on_this_day', function (error, status, list) {
+    var out = [];
+    (isList(list) ? list : []).forEach(function (m) {
+      var all = m && isList(m.assets) ? m.assets : [];
+      var photos = all.filter(function (a) { return a && UUID.test(String(a.id)) && a.type !== 'VIDEO'; });
+      var year = m && m.data && +m.data.year;
+      if (!photos.length || !year) return;
+      var placed = photos.filter(placeOf)[0];
+      out.push({ year: year, count: all.length, cover: photos[0].id, place: placed ? placeOf(placed) : null });
+    });
+    out.sort(function (x, y) { return y.year - x.year; });
+    var value = { ok: true, day: day, memories: out, unavailable: !!error };
+    memoriesCache = { at: nowMs(), day: day, value: value };
+    cb(value);
+  });
+}
+
+// ------------------------------------------------------------- the screen saver's photos
+
+function shuffle(list) {
+  for (var i = list.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1)), x = list[i];
+    list[i] = list[j];
+    list[j] = x;
+  }
+  return list;
+}
+
+/*
+ * The photos the AUROR · Immich screen saver shows, { id, date, place } each,
+ * in a new order each hour: the chosen album's, or else a random draw from
+ * the library. Videos are left out.
+ */
+function saverPhotos(cb) {
+  var c = config();
+  if (!c) return cb({ ok: false, error: msg('srv.immich.none', 'Immich is not linked'), items: [] });
+  if (saverCache && saverCache.album === c.saverAlbum && nowMs() - saverCache.at < SAVER_TTL_MS) return cb(saverCache.value);
+  function done(items, error) {
+    var value = { ok: !error, error: error || undefined, album: c.saverAlbum, items: shuffle(items).slice(0, SAVER_PHOTOS) };
+    if (!error) saverCache = { at: nowMs(), album: c.saverAlbum, value: value };
+    cb(value);
+  }
+  if (c.saverAlbum) {
+    return album(c.saverAlbum, function (r) {
+      if (!r.ok) return done([], r.error);
+      done(r.assets.filter(function (a) { return !a.video; }).map(function (a) { return { id: a.id, date: a.date, place: a.place }; }));
+    });
+  }
+  api('/search/random', function (error, status, list) {
+    if (error) return done([], error);
+    done((isList(list) ? list : []).filter(function (a) { return a && UUID.test(String(a.id)) && a.type !== 'VIDEO'; })
+      .map(function (a) { return { id: a.id, date: day(a.localDateTime || a.fileCreatedAt), place: placeOf(a) }; }));
+  }, { size: SAVER_PHOTOS, type: 'IMAGE', withExif: true });
+}
+
+// The album the screen saver shows, or null for the library at random.
+function setSaverAlbum(id, cb) {
+  var c = config();
+  if (!c) return cb({ ok: false, error: msg('srv.immich.none', 'Immich is not linked') });
+  if (id !== null && !(typeof id === 'string' && UUID.test(id))) return cb({ ok: false, error: msg('srv.immich.noAlbum', 'that album is not on Immich') });
+  try {
+    util.writeJsonAtomic(file(), { server: c.server, key: c.key, user: c.user, saverAlbum: id }, 384);
+  } catch (e) {
+    return cb({ ok: false, error: msg('srv.immich.saveFailed', 'could not save the Immich details') });
+  }
+  cfg = null;
+  saverCache = null;
+  cb(status());
+}
+
 // ------------------------------------------------------------- pictures and videos
 
 function refuse(res, code) {
@@ -268,7 +382,7 @@ function video(query, req, res) {
 function status() {
   var c = config();
   if (!c) return { ok: true, configured: false };
-  return { ok: true, configured: true, server: parseUrl(c.server).host, user: c.user };
+  return { ok: true, configured: true, server: parseUrl(c.server).host, user: c.user, saverAlbum: c.saverAlbum };
 }
 
 function pair(origin) {
@@ -311,6 +425,8 @@ function link(body, cb) {
       cfg = null;
       albumsCache = null;
       albumCache = {};
+      memoriesCache = null;
+      saverCache = null;
       console.log('immich: linked from a phone' + (user ? ', user ' + user : '') + ', ' + list.length + ' albums');
       cb({ ok: true, user: user, albums: list.length });
     });
@@ -322,6 +438,8 @@ function forget(cb) {
   cfg = null;
   albumsCache = null;
   albumCache = {};
+  memoriesCache = null;
+  saverCache = null;
   cb({ ok: true, configured: false });
 }
 
@@ -329,6 +447,9 @@ module.exports = {
   init: init,
   albums: albums,
   album: album,
+  memories: memories,
+  saverPhotos: saverPhotos,
+  setSaverAlbum: setSaverAlbum,
   thumb: thumb,
   video: video,
   status: status,

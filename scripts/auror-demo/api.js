@@ -42,14 +42,14 @@
     hidden: { app: ['netflix', 'amazon', 'com.disney.disneyplus-prod', 'dazn', 'it.sky.now', 'com.webos.app.lgchannels', 'com.tvweb.dashboard'], dev: [], ch: [] },
     order: { app: [], dev: [], ch: [] }, folder: [], channels: [], hintSeen: true, searchHintSeen: true, search: true,
     hideUnused: true, picture: false, colours: null,
-    look: { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } }
+    look: { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true } }
   };
   var saver = { mode: 'auror', level: 'dim', available: true };
   var update = { auto: true, installed: '0.122.101', latest: '0.122.101', available: false };
   var jellyfin = { linked: true };
   var tmdb = { linked: true };
   // Immich's albums: the build's landscapes and posters stand in for the photos.
-  var immich = { linked: true };
+  var immich = { linked: true, saverAlbum: null };
   var ALBUMS = [
     { id: 'a1', name: 'Estate al lago', cover: 'photo1', from: '2026-07-12', to: '2026-07-26', places: ['Garda', 'Malcesine', 'Riva del Garda'] },
     { id: 'a2', name: 'Montagna', cover: 'photo2', from: '2026-02-01', to: '2026-02-08', places: ['Cortina d’Ampezzo', 'Dobbiaco'] },
@@ -125,7 +125,7 @@
       saver: saver, update: update, tmdb: { ok: true, configured: tmdb.linked }, immich: immichStatus() };
   }
   function immichStatus() {
-    return immich.linked ? { ok: true, configured: true, server: 'immich.example.org', user: 'Demo' } : { ok: true, configured: false };
+    return immich.linked ? { ok: true, configured: true, server: 'immich.example.org', user: 'Demo', saverAlbum: immich.saverAlbum } : { ok: true, configured: false };
   }
   function shelf() {
     if (!jellyfin.linked) return { ok: true, state: 'off', items: [] };
@@ -194,6 +194,14 @@
         if (!hit) return { ok: false, error: 'that album is not on Immich', status: 400 };
         var assets = albumAssets(hit);
         return { ok: true, id: hit.id, name: hit.name, count: assets.length, assets: assets, delay: 300 };
+      case '/api/home/immich/memories':
+        return { ok: true, day: new Date().toISOString().slice(0, 10), memories: [
+          { year: new Date().getFullYear() - 1, count: 14, cover: 'photo1', place: 'Malcesine' },
+          { year: new Date().getFullYear() - 3, count: 6, cover: 'photo0', place: 'Verona' },
+          { year: new Date().getFullYear() - 6, count: 23, cover: 'photo2', place: null }] };
+      case '/api/home/immich/saver':
+        if (method === 'POST') immich.saverAlbum = b.album || null;
+        return immichStatus();
       case '/api/home/immich/pair': return { ok: true, url: location.href.replace(/[^/]*$/, '') + 'immich.html?c=demo' };
       case '/api/home/immich/forget': immich.linked = false; version++; return { ok: true, configured: false };
       case '/immich/link':
@@ -226,7 +234,7 @@
         version++;
         return { ok: true, layout: copy(layout), layoutVersion: 'v' + version };
       case '/api/home/screensaver':
-        saver.mode = b.on ? 'auror' : 'stock'; saver.level = b.bright ? 'bright' : 'dim';
+        saver.mode = b.on ? (b.photos ? 'auror-immich' : 'auror') : 'stock'; saver.level = b.bright ? 'bright' : 'dim';
         return { ok: true, current: saver.mode, level: saver.level, delay: 600 };
       case '/api/home/autoupdate': update.auto = b.auto === true; return { ok: true, update: update };
       case '/api/home/updatenow': return { ok: true, installing: false, update: update, delay: 900 };
