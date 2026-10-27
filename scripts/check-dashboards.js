@@ -1622,8 +1622,9 @@ async function visitTvNonOled(browser, base, problems) {
   await visitHomeGuide(browser, base, problems);
   await visitHomeSearch(browser, base, problems);
   await browser.close();
-  for (const p of problems) console.log(p);
+  // On GitHub, as annotations: they show on the run's summary, without opening its log.
+  for (const p of problems) console.log((process.env.GITHUB_ACTIONS ? '::error::' : '') + p);
   console.log((web.length + tv.length) + ' tabs opened (' + web.length + ' web, ' + tv.length + ' TV app), ' +
               'TV navigation and LCD profile, Home arranging, picture, visibility, colours, fading and inputs, update, editing, order, uploads, readiness, availability, recents, scrolling, motion, guide and search checked, ' + problems.length + ' problem' + (problems.length === 1 ? '' : 's'));
   process.exit(problems.length ? 1 : 0);
-})().catch(e => { console.error(e.message); process.exit(1); });
+})().catch(e => { console.error((process.env.GITHUB_ACTIONS ? '::error::' : '') + e.message.split('\n')[0]); process.exit(1); });
