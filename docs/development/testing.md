@@ -199,6 +199,8 @@ its ID, and missing or unusable IDs and non-CEC inputs open the port alone.
 
 `test-home-jellyfin.js` runs a stand-in Jellyfin server: a one-time code that links once, details tried before they are kept and the key never sent back, a choice of user when there are several, Continue watching before Recently added, a minute's cache, the paths servers before 10.9 answer on, pictures proxied only for well-formed ids, and a server that stops answering shown as offline. `test-home.js` also checks that LG's notifications and search start hidden once and stay as arranged after, and that the view's own settings are kept through a layout save.
 
+`test-auror-search.js` answers for TMDB and the Jellyfin library: only Jellyfin without a key, a key tried before it is kept and only with a live code, titles offered on the apps the TV has (Prime Video with Ads is the Prime Video app), the services with no app here and those that rent or sell named, the library's own titles first and one also on TMDB matched by its TMDB id, one on no service in Italy counted, a repeated query answered from what was kept, only an offered app opened, and the library still answered while TMDB is down.
+
 `test-home-recent-apps.js` exercises the recent-app HTTP routes: refused and
 unconfirmed stops retain their cards for retry, unavailable running lists
 report failure, Close all stops web and native apps while preserving Home,

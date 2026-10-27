@@ -86,7 +86,7 @@ Glasshouse Home leaves empty rows out and centres the remaining rows below the c
 
 Glasshouse Home's text and accent colours are saved in `/var/lib/tvweb/home.json` and applied to its view within a few seconds. **Use the default colours** clears the choice.
 
-Glasshouse Home's own settings (theme, Mimus and Quetza, what the Top Shelf shows) are kept in `/var/lib/tvweb/home.json` too. A Jellyfin server linked from a phone is kept in `/var/lib/tvweb/jellyfin.json`, readable by root only, with its API key; **Unlink** in those settings deletes it. The AUROR screen saver, switched on there, is staged like the others, with its GIFs.
+Glasshouse Home's own settings (theme, Mimus and Quetza, what the Top Shelf shows) are kept in `/var/lib/tvweb/home.json` too. A Jellyfin server linked from a phone is kept in `/var/lib/tvweb/jellyfin.json`, readable by root only, with its API key; **Unlink** in those settings deletes it. TMDB's key for AUROR's search is kept the same way in `/var/lib/tvweb/tmdb.json`, and a row set to Most used keeps its opens in `/var/lib/tvweb/home-use.json`. The AUROR screen saver, switched on there, is staged like the others, with its GIFs.
 
 Glasshouse Home's **Last watched**, **App count** and **CEC addresses** switches are saved in `/var/lib/tvweb/home.json`, on unless switched off. Both dashboards edit the same choices, which reach an open Home view through its heartbeat. The source stays hidden until the saved layout loads.
 

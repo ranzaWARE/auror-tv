@@ -1145,6 +1145,7 @@ function handleHomeRoute(req, res, u, pathname) {
           c.layoutVersion = homeModule.layoutVersion();
           // For the view's own settings.
           c.jellyfin = homeModule.jellyfin.status();
+          c.tmdb = homeModule.search.status();
           c.update = aurorUpdate.status();
           c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
             available: !screensaversModule.heldBack() } : null;
@@ -1160,6 +1161,7 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/look') return reply({ ok: true, look: homeModule.layout().look });
     if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
     if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());
+    if (pathname === '/api/home/search/status') return reply(homeModule.search.status());
     if (pathname === '/api/home/jellyfin/image') return homeModule.jellyfin.image(u.query || {}, res);
     if (pathname === '/api/home/picture') {
       return homePictureModule.picture(String(u.query && u.query.kind || ''), Number(u.query && u.query.port), reply,
@@ -1227,6 +1229,8 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/open') return homeModule.open(body, reply);
       if (pathname === '/api/home/search') return homeModule.search.find(body && body.query, reply);
       if (pathname === '/api/home/search/open') return homeModule.search.open(body, reply);
+      if (pathname === '/api/home/search/pair') return reply(homeModule.search.pair(lanOrigin()));
+      if (pathname === '/api/home/search/forget') return homeModule.search.forget(reply);
       if (pathname === '/api/home/recents') {
         var recentApps = homeModule.recentApps, recentId = body && typeof body.id === 'string' ? body.id : '';
         if (body && body.action === 'open') return recentApps.open(recentId, reply);
@@ -1257,6 +1261,24 @@ function handleJellyfinPhone(req, res, u, pathname) {
   if (pathname === '/jellyfin/link' && req.method === 'POST') {
     return readJsonBody(req, res, function (body) {
       jf.link(body, function (r) { send(res, r.ok || r.needUser ? 200 : 400, JSON.stringify(r)); });
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+// The phone's page for TMDB's key, for AUROR's search (lib/auror-search), as for Jellyfin.
+function handleTmdbPhone(req, res, pathname) {
+  if (pathname === '/tmdb' && req.method === 'GET') {
+    var page = assetPath('search-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (pathname === '/tmdb/link' && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      homeModule.search.link(body, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
     });
   }
   send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
@@ -1329,8 +1351,9 @@ function handleRequest(req, res) {
     }));
   }
 
-  // Jellyfin linked from a phone: the one-time code in the TV's QR code stands in for the token.
+  // Jellyfin and TMDB linked from a phone: the one-time code in the TV's QR code stands in for the token.
   if ((pathname === '/jellyfin' || pathname === '/jellyfin/link') && homeModule) return handleJellyfinPhone(req, res, u, pathname);
+  if ((pathname === '/tmdb' || pathname === '/tmdb/link') && homeModule) return handleTmdbPhone(req, res, pathname);
 
   if (pathname.indexOf('/api/') === 0 && !authed(u.query, req)) {
     return send(res, 401, JSON.stringify({ ok: false, error: 'bad or missing token' }));

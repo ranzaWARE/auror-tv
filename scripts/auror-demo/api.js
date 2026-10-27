@@ -47,6 +47,7 @@
   var saver = { mode: 'auror', level: 'dim', available: true };
   var update = { auto: true, installed: '0.122.101', latest: '0.122.101', available: false };
   var jellyfin = { linked: true };
+  var tmdb = { linked: true };
   // Most used, as the server keeps it: opens, here only those made in the demo.
   var opens = {};
   var version = 1;
@@ -76,7 +77,7 @@
       sources: { apps: true, devices: true, channels: 0 }, layout: copy(layout), enabled: true,
       wallpapers: { available: false }, layoutVersion: 'v' + version,
       jellyfin: jellyfin.linked ? { ok: true, configured: true, server: 'jellyfin.example.org', user: 'Demo' } : { ok: true, configured: false },
-      saver: saver, update: update };
+      saver: saver, update: update, tmdb: { ok: true, configured: tmdb.linked } };
   }
   function shelf() {
     if (!jellyfin.linked) return { ok: true, state: 'off', items: [] };
@@ -85,21 +86,22 @@
       { title: 'Casa sul lago', kind: 'episode', season: 1, episode: 7, name: 'Inverno', year: null, progress: 35, image: POSTER(1) },
       { title: 'Nebbia d’agosto', kind: 'movie', season: null, episode: null, name: '', year: 2022, progress: 15, image: POSTER(2) }] };
   }
-  // As LG's catalogue answers: titles on the streaming services the TV has, never a Jellyfin server's.
+  // As AUROR's search answers: Jellyfin's own first, then where each is to watch in Italy.
   function search(q) {
+    var jf = { id: 'org.jellyfin.webos', title: 'Jellyfin', icon: null };
+    var nf = { id: 'netflix', title: 'Netflix', icon: null }, pv = { id: 'amazon', title: 'Prime Video', icon: null };
     var all = [
-      { title: 'Orbite basse', kind: 'series', year: 2025, genre: 'Fantascienza, Dramma', poster: POSTER(0), app: 'netflix' },
-      { title: 'Il faro del nord', kind: 'film', year: 2024, minutes: 112, genre: 'Giallo', poster: POSTER(3), app: 'amazon' },
-      { title: 'Cronache di vetro', kind: 'series', year: 2023, genre: 'Documentario', poster: POSTER(4), app: 'com.disney.disneyplus-prod' },
-      { title: 'La valle lenta', kind: 'film', year: 2021, minutes: 98, genre: 'Commedia', poster: POSTER(5), app: 'netflix' }
+      { title: 'Orbite basse', kind: 'series', year: 2025, genre: 'Fantascienza, Dramma', poster: POSTER(0), apps: [jf], also: [], rent: [], buy: [] },
+      { title: 'Il faro del nord', kind: 'film', year: 2024, minutes: 112, genre: 'Giallo', poster: POSTER(3), apps: [nf], also: ['NOW'], rent: ['Apple TV', 'Chili'], buy: [] },
+      { title: 'Cronache di vetro', kind: 'series', year: 2023, genre: 'Documentario', poster: POSTER(4), apps: [pv], also: ['RaiPlay'], rent: [], buy: [] },
+      { title: 'La valle lenta', kind: 'film', year: 2021, minutes: 98, genre: 'Commedia', poster: POSTER(5), apps: [], also: [], rent: ['Apple TV', 'Rakuten TV'], buy: ['Apple TV'] }
     ];
     var words = String(q || '').toLowerCase();
     var hits = all.filter(function (h) { return !words || h.title.toLowerCase().indexOf(words) !== -1 || h.genre.toLowerCase().indexOf(words) !== -1; });
     if (!hits.length) hits = all;
-    return { ok: true, query: q, elsewhere: 0, results: hits.map(function (h, i) {
-      var app = apps.filter(function (a) { return a.id === h.app; })[0];
-      return { id: 'demo.' + i, title: h.title, kind: h.kind, year: h.year, minutes: h.minutes || null, genre: h.genre, rating: null,
-        poster: h.poster, apps: [{ id: app.id, title: app.title, icon: null }] };
+    return { ok: true, query: q, elsewhere: 1, tmdb: tmdb.linked, jellyfin: true, delay: 500, results: hits.map(function (h, i) {
+      h.id = 'demo.' + i; h.rating = null; h.minutes = h.minutes || null;
+      return h;
     }) };
   }
   var DEMO_ONLY = 'Nella demo non si apre niente: sulla TV partirebbe questo.';
@@ -138,6 +140,13 @@
       case '/api/home/autoupdate': update.auto = b.auto === true; return { ok: true, update: update };
       case '/api/home/updatenow': return { ok: true, installing: false, update: update, delay: 900 };
       case '/api/home/search': return search(b.query);
+      case '/api/home/search/pair': return { ok: true, url: location.href.replace(/[^/]*$/, '') + 'tmdb.html?c=demo' };
+      case '/api/home/search/status': return { ok: true, configured: tmdb.linked };
+      case '/api/home/search/forget': tmdb.linked = false; return { ok: true, configured: false };
+      case '/tmdb/link':
+        if (b.check) return { ok: true, valid: true };
+        tmdb.linked = true;
+        return { ok: true };
       case '/api/home/search/open': return { ok: false, error: DEMO_ONLY };
       case '/api/home/open':
         if (b.kind === 'app' && b.id) opens[b.id] = (opens[b.id] || 0) + 1;
@@ -160,7 +169,7 @@
   DemoRequest.prototype.open = function (method, url, async) {
     this._method = method;
     this._url = String(url);
-    this._fake = /^\/(api|jellyfin)\//.test(this._url);
+    this._fake = /^\/(api|jellyfin|tmdb)\//.test(this._url);
     if (this._fake) return;
     var self = this, r = this._real = new Real();
     r.open(method, this._url.replace(/^\/assets\//, 'assets/'), async !== false);

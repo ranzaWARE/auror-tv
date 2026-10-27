@@ -24,8 +24,9 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 
 * **Look**: the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza.
 * **Top Shelf**: what Jellyfin, Glasshouse and the HDMI inputs show there.
-* **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), then search, hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
+* **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), then hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
 * **Tiles**: which apps show. LG's Home always does.
+* **Search**: the switch, and TMDB's key, linked from a phone by a QR code (see [Search](#search)).
 * **Jellyfin**: the server and user linked, and a QR code. Scanned with a phone on the same network, it opens a page for the server's address and an API key (Jellyfin's **Dashboard › API Keys**), so neither is typed with the remote. The code lasts ten minutes and links once; the details are tried before they are kept, and the key is kept on the TV only, in `/var/lib/tvweb/jellyfin.json`.
 * **Glasshouse**: AUROR's automatic updates, **Update now**, which asks for AUROR's latest release and installs it at once, the version installed, and Glasshouse's TV app, for everything else.
 
@@ -92,11 +93,13 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 ## Search
 
 > [!WARNING]
-> **Sends queries to LG's search service:** Enabling **Search** sends typed search queries to LG's cloud search service (`com.webos.service.nlpmanager` / `*.nextlgsdp.com` — the same backend used by LG's built-in Search app) and nowhere else. It is **off by default** so nothing leaves the TV unless explicitly switched on.
+> **Sends queries to TMDB and the Jellyfin server:** Enabling **Search** sends what is typed to [TMDB](https://www.themoviedb.org) and to the Jellyfin server linked, and nowhere else; LG's search is not asked. It is **off by default** so nothing leaves the TV unless explicitly switched on.
 
-When switched on under **Home** on the web dashboard or in the TV app's Home section, **Search** adds a magnifier beside the theme switch and the settings, over the Top Shelf: **Up** from the rows reaches it. **OK** opens a search panel over the right of Glasshouse Home for films and series, typed on the TV's keyboard. While the keyboard is up the titles are single lines, with the icons of the apps that have them; once it closes each shows its poster, year, running time and apps. Editing the query clears the previous titles immediately. Up and down move between titles, left and right between apps, and OK opens the app at that title. A series opens at its start where the app allows: Prime Video and HBO Max at its first season, Disney+ and BBC iPlayer playing its first episode, Netflix at the series; Apple TV opens its latest episode. Titles only on apps the TV does not have are counted, not listed, and trailers, teasers and sneak peeks are never shown or opened. Back closes the keyboard, then the panel, leaving the focus on the magnifier. Coming back from an app opened there within 30 minutes, without the TV having been switched off, finds the panel as it was left. Switched off, the magnifier goes and nothing typed leaves the TV.
+When switched on, in **Settings › Search** on the TV or under **Home** on the web dashboard, **Search** adds a magnifier beside the theme switch and the settings, over the Top Shelf: **Up** from the rows reaches it. **OK** opens a search panel over the right of Glasshouse Home for films and series, typed on the TV's keyboard. Editing the query clears the previous titles immediately. Back closes the keyboard, then the panel, leaving the focus on the magnifier.
 
-LG's search needs the TV online and LG's search server (`gb.nextlgsdp.com` on a TV in the UK) reachable. Where the ad blocker blocks that server, on **Everything** or through an uploaded hosts list, the magnifier is hidden on Glasshouse Home and the **Search** switch is greyed on both dashboards, with a note saying what blocks it. The switch keeps its setting, and search comes back when the blocker is set to **Ads & telemetry** or off.
+Each title says where it is to watch in Italy. Those in the Jellyfin library come first, with Jellyfin to open them; the others follow with the apps on this TV that stream them (Netflix, Prime Video, Disney+, NOW and the like, hidden or not), then the services that stream it with no app here (**Also on**), and those that rent or sell it. A title on no service in Italy is counted, not listed. OK opens the app chosen at its start: TMDB knows where a title is, not its address in the app. The titles and where they are come from TMDB, which has the services from [JustWatch](https://www.justwatch.com); this product uses the TMDB API but is not endorsed or certified by TMDB.
+
+TMDB needs an API key, free from themoviedb.org (**Settings › API**). **Settings › Search** on the TV shows a QR code: scanned with a phone on the same network, it opens a page that says how to get the key and takes it. The key is tried before it is kept, on the TV only, in `/var/lib/tvweb/tmdb.json`. Without it, only Jellyfin is searched.
 
 ## Wallpapers
 

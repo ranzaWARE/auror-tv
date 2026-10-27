@@ -1079,7 +1079,7 @@ function glasshouseHomeRows(d) {
     }
     var searchOn = d.layout.search === true, blocked = d.layout.searchBlocked;
     var searchAbout = t('home.searchDesc', 'Left of the rows on Glasshouse Home: films and series on this TV\u2019s apps, opened in the app at the title.');
-    var searchWarn = t('home.searchPrivacy', 'What is typed is sent to LG\u2019s search, as with LG\u2019s own Search, and to nowhere else. Switched off, the search mark goes and nothing typed leaves the TV.');
+    var searchWarn = t('home.searchPrivacy', 'What is typed goes to TMDB, to find films and series and where they are to watch in Italy, and to the Jellyfin server linked. Switched off, the magnifier goes and nothing typed leaves the TV.');
     // Greyed while the ad blocker blocks LG's search; the setting itself is kept.
     r.push(blocked ? { label: t('home.search', 'Search'), value: t('home.searchUnavailable', 'Unavailable'), cls: 'off',
              hint: searchAbout,

@@ -1403,16 +1403,20 @@ html.faded #stage{opacity:0}
    * rows on the right. Left and right move between the two, OK changes a row,
    * Back goes home. Jellyfin is linked from a phone, by the QR code here.
    */
-  var settings = { open: false, cat: 0, side: true, row: {}, rows: [], busy: '', pairUrl: null, pairError: '', pairAt: 0, poll: null };
+  // tmdb: the same as pairUrl, pairError and pairAt, for the TMDB key AUROR's search needs.
+  var settings = { open: false, cat: 0, side: true, row: {}, rows: [], busy: '', pairUrl: null, pairError: '', pairAt: 0, poll: null,
+    tmdb: { url: null, error: '', at: 0 } };
   var SET_CATS = [
     { id: 'look', label: t('home.set.look', 'Look'),
       desc: t('home.set.lookDesc', 'Home’s theme and the screen saver. Automatic: light from 06:00 to 17:00, dark from 17:00.') },
     { id: 'shelf', label: t('home.set.shelf', 'Top Shelf'),
       desc: t('home.set.shelfDesc', 'What the band at the top shows when an app or an input is selected.') },
     { id: 'rows', label: t('home.set.rows', 'Rows'),
-      desc: t('home.set.rowsDesc', 'What the rows show, the order of the apps, and search.') },
+      desc: t('home.set.rowsDesc', 'What the rows show, and the order of the apps.') },
     { id: 'tiles', label: t('home.set.tiles', 'Tiles'),
       desc: t('home.set.tilesDesc', 'Which apps Home shows. To reorder them, hold OK on a tile.') },
+    { id: 'search', label: t('home.search', 'Search'),
+      desc: t('home.set.searchDesc', 'Where a film or series is to watch: in Jellyfin, and on the services in Italy, which TMDB knows from JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.') },
     { id: 'jellyfin', label: 'Jellyfin',
       desc: t('home.set.jfDesc', 'The server the Top Shelf takes Continue watching and Recently added from.') },
     { id: 'more', label: 'Glasshouse',
@@ -1465,7 +1469,6 @@ html.faded #stage{opacity:0}
     if (id === 'rows') {
       var blocked = !!layout.searchBlocked;
       var flags = [
-        ['search', t('home.search', 'Search'), t('home.set.searchHelp', 'Films and series on this TV’s apps, from LG’s search'), false],
         ['hideUnused', t('home.hideUnused', 'Hide inputs with nothing connected'), '', false],
         ['showLastOn', t('home.showLast', 'Last watched'), t('home.set.lastHelp', 'On the input or app the TV showed last'), true],
         ['showCec', t('home.showCec', 'CEC addresses'), t('home.showCecDesc', 'On each input’s tile: the HDMI-CEC address of the device behind it.'), true],
@@ -1485,6 +1488,19 @@ html.faded #stage{opacity:0}
         return { kind: 'switch', on: on, label: f[1], help: f[2], value: onText(on),
           act: function () { var patch = {}; patch[f[0]] = !on; setLayoutFlags(patch); } };
       }));
+    }
+    if (id === 'search') {
+      var tm = data.tmdb || { configured: false }, searchNow = layout.search === true;
+      var searchRows = [
+        { kind: 'switch', on: searchNow, label: t('home.search', 'Search'),
+          help: t('home.set.searchHelp', 'The magnifier over the Top Shelf; what is typed goes to TMDB and to the Jellyfin server'),
+          value: onText(searchNow), act: function () { setLayoutFlags({ search: !searchNow }); } },
+        { kind: 'info', label: 'TMDB', value: tm.configured ? t('home.set.tmdbLinked', 'Linked') : t('home.set.jfNone', 'Not linked') }
+      ];
+      if (tm.configured) {
+        searchRows.push({ kind: 'action', label: t('home.set.tmdbForget', 'Unlink TMDB'), help: t('home.set.jfForgetHelp', 'The key is removed from the TV'), value: '', act: forgetTmdb });
+      }
+      return searchRows;
     }
     if (id === 'tiles') {
       return data.order.app.map(function (appId) {
@@ -1530,6 +1546,13 @@ html.faded #stage{opacity:0}
       '<div class="qd">' + esc(t('home.set.jfQrDesc', 'Scan the code: the server address and the API key are entered on the phone, not with the remote. The key stays on the TV only.')) + '</div></div></div>';
   }
 
+  function tmdbQrBox() {
+    var tm = (data && data.tmdb) || {};
+    return '<div class="qrbox"><div class="qr">' + (settings.tmdb.url ? '<svg shape-rendering="crispEdges"></svg>' : '<span>' + esc(settings.tmdb.error || '…') + '</span>') + '</div>' +
+      '<div><div class="qt">' + esc(tm.configured ? t('home.set.tmdbRelink', 'Link another TMDB key from the phone') : t('home.set.tmdbLink', 'Link TMDB from the phone')) + '</div>' +
+      '<div class="qd">' + esc(t('home.set.tmdbQrDesc', 'Scan the code: the phone shows how to get a free TMDB API key, and takes it. The key stays on the TV only.')) + '</div></div></div>';
+  }
+
   function renderSettings() {
     if (!settings.open || !data || !layout) return;
     var cat = SET_CATS[settings.cat];
@@ -1550,9 +1573,10 @@ html.faded #stage{opacity:0}
         '</span></div>';
     }).join('');
     if (cat.id === 'jellyfin') html += qrBox();
+    if (cat.id === 'search') html += tmdbQrBox();
     $('setRows').innerHTML = html;
     var svg = $('setRows').querySelector('.qr svg');
-    if (svg) qrDraw(svg, settings.pairUrl);
+    if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : settings.pairUrl);
   }
 
   function openSettings() {
@@ -1578,6 +1602,11 @@ html.faded #stage{opacity:0}
     settings.cat = i;
     clearInterval(settings.poll);
     settings.poll = null;
+    if (SET_CATS[i].id === 'search') {
+      if (!settings.tmdb.url || Date.now() - settings.tmdb.at > 9 * 60000) requestTmdbPair();
+      settings.poll = setInterval(pollTmdb, 3000);
+      return;
+    }
     if (SET_CATS[i].id !== 'jellyfin') return;
     // A code lasts ten minutes on the server.
     if (!settings.pairUrl || Date.now() - settings.pairAt > 9 * 60000) requestPair();
@@ -1590,6 +1619,37 @@ html.faded #stage{opacity:0}
     postJson('/api/home/jellyfin/pair', {}, function (r) {
       if (r && r.ok && r.url) { settings.pairUrl = r.url; settings.pairAt = Date.now(); }
       else settings.pairError = (r && r.error) || t('home.set.jfNoCode', 'No code: the TV did not answer');
+      renderSettings();
+    });
+  }
+
+  function requestTmdbPair() {
+    settings.tmdb.url = null;
+    settings.tmdb.error = '';
+    postJson('/api/home/search/pair', {}, function (r) {
+      if (r && r.ok && r.url) { settings.tmdb.url = r.url; settings.tmdb.at = Date.now(); }
+      else settings.tmdb.error = (r && r.error) || t('home.set.jfNoCode', 'No code: the TV did not answer');
+      renderSettings();
+    });
+  }
+
+  function pollTmdb() {
+    getJson('/api/home/search/status', function (r) {
+      if (!r || !r.ok || !data) return;
+      if (r.configured === !!(data.tmdb && data.tmdb.configured)) return;
+      data.tmdb = r;
+      if (r.configured) {
+        toast(t('home.set.tmdbDone', 'TMDB linked'), t('home.set.tmdbDoneSub', 'Search now says where each title is to watch'));
+        requestTmdbPair();
+      }
+      renderSettings();
+    });
+  }
+
+  function forgetTmdb() {
+    postJson('/api/home/search/forget', {}, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      data.tmdb = { configured: false };
       renderSettings();
     });
   }
@@ -2162,7 +2222,7 @@ html.faded #stage{opacity:0}
     finder.commit = false;
     finder.okDown = false;
     $('query').value = '';
-    setStatus(t('home.search.ready', 'Films and series on this TV\u2019s apps, from LG\u2019s search'));
+    setStatus(t('home.search.ready', 'Films and series, in Jellyfin and on the services in Italy'));
     showHits();
     applyFocus();
     startTyping();
@@ -2251,7 +2311,7 @@ html.faded #stage{opacity:0}
     finder.loading = false;
     showHits();
     if (q.length < 2) {
-      return setStatus(t('home.search.ready', 'Films and series on this TV\u2019s apps, from LG\u2019s search'));
+      return setStatus(t('home.search.ready', 'Films and series, in Jellyfin and on the services in Italy'));
     }
     finder.loading = true;
     setStatus(t('home.search.looking', 'Looking for \u201c{query}\u201d', { query: q }));
@@ -2263,7 +2323,7 @@ html.faded #stage{opacity:0}
         finder.query = null;
         finder.results = [];
         showHits();
-        return setStatus(t('home.search.failed', 'LG\u2019s search did not answer. It needs the TV online, and the ad blocker on Ads & telemetry or off.'));
+        return setStatus(t('home.search.failed', 'The search did not answer. It needs the TV online, and TMDB or Jellyfin linked in Settings, Search.'));
       }
       finder.results = r.results;
       finder.row = 0;
@@ -2271,14 +2331,17 @@ html.faded #stage{opacity:0}
       showHits();
       committed();
       var n = r.results.length;
-      if (!n) {
-        setStatus(r.elsewhere ? t('home.search.onlyElsewhere', 'Nothing for \u201c{query}\u201d on this TV\u2019s apps. {n} more on apps it does not have.', { query: q, n: r.elsewhere })
+      // Without TMDB only the library was searched.
+      if (r.tmdb === false) {
+        setStatus(t('home.search.jellyfinOnly', '{n} in Jellyfin. Link TMDB in Settings, Search, for the services in Italy too.', { n: n }));
+      } else if (!n) {
+        setStatus(r.elsewhere ? t('home.search.onlyElsewhere', 'Nothing for \u201c{query}\u201d to watch in Italy, {n} elsewhere', { query: q, n: r.elsewhere })
           : t('home.search.none', 'Nothing for \u201c{query}\u201d', { query: q }));
       } else if (r.elsewhere) {
-        setStatus(n === 1 ? t('home.search.foundOneMore', '1 title on this TV\u2019s apps, {more} more on apps it does not have', { more: r.elsewhere })
-          : t('home.search.foundMore', '{n} titles on this TV\u2019s apps, {more} more on apps it does not have', { n: n, more: r.elsewhere }));
+        setStatus(n === 1 ? t('home.search.foundOneMore', '1 title · {more} not in Italy · JustWatch', { more: r.elsewhere })
+          : t('home.search.foundMore', '{n} titles · {more} not in Italy · JustWatch', { n: n, more: r.elsewhere }));
       } else {
-        setStatus(n === 1 ? t('home.search.foundOne', '1 title on this TV\u2019s apps') : t('home.search.found', '{n} titles on this TV\u2019s apps', { n: n }));
+        setStatus(n === 1 ? t('home.search.foundOne', '1 title · where to watch: JustWatch') : t('home.search.found', '{n} titles · where to watch: JustWatch', { n: n }));
       }
     });
   }
@@ -2309,6 +2372,12 @@ html.faded #stage{opacity:0}
         chips += '<span class="chip" data-c="' + c + '">' + (a.icon ? '<img src="' + esc(a.icon) + '" alt="">' : '<span class="mono">' + esc(String(a.title).charAt(0)) + '</span>') +
           '<span class="nm">' + esc(a.title) + '</span></span>';
       });
+      // AUROR: the services with no app on this TV, and those that rent or sell it.
+      var also = [];
+      if (hit.also && hit.also.length) also.push(t('home.search.alsoOn', 'Also on {names}', { names: hit.also.join(', ') }));
+      if (hit.rent && hit.rent.length) also.push(t('home.search.rent', 'To rent: {names}', { names: hit.rent.join(', ') }));
+      if (hit.buy && hit.buy.length) also.push(t('home.search.buy', 'To buy: {names}', { names: hit.buy.join(', ') }));
+      if (also.length) chips += '<span class="else">' + esc(also.join(' \u00b7 ')) + '</span>';
       html += '<div class="hit" data-r="' + i + '"><div class="poster">' + (hit.poster ? '<img src="' + esc(hit.poster) + '" alt="">' : mono) + '</div>' +
         '<div class="info"><div class="ttl">' + esc(hit.title) + '</div><div class="meta">' + meta.map(function (m) { return m.yr ? '<span class="yr">' + esc(m.yr) + '</span>' : '<span>' + esc(m) + '</span>'; }).join('') + '</div>' +
         '<div class="where">' + chips + '</div></div></div>';
@@ -2357,7 +2426,7 @@ html.faded #stage{opacity:0}
     // the line says what is opening until the app is in front, and is put
     // back for a return to the panel.
     finder.shown = $('status').textContent;
-    setStatus(t('home.search.opening', 'Opening {title} on {app}', { title: hit.title, app: app.title }));
+    setStatus(t('home.search.opening', 'Opening {app}, where {title} is', { title: hit.title, app: app.title }));
     postJson('/api/home/search/open', { id: hit.id, app: app.id }, function (r, status, refused) {
       if (revision !== finder.revision || !finder.open) return;
       finder.opening = false;
