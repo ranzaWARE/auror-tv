@@ -19,7 +19,7 @@
  * first 4096 bytes of a downloaded tvweb.js for this line (up to 0.82.2), and
  * refuses a release where it is further down (#586).
  */
-var TVWEB_VERSION = '0.122.101';
+var TVWEB_VERSION = '0.124.101';
 
 var http = require('http');
 var fs = require('fs');
@@ -1839,7 +1839,8 @@ function startGlasshouseHome() {
       if (on !== homeWatchesForeground) liveState[on ? 'startGroup' : 'stopGroup']('application');
       homeWatchesForeground = on;
     },
-    pictureDetails: function (on) { homePicture.want('details', on); }
+    pictureDetails: function (on) { homePicture.want('details', on); },
+    handOverTileHiding: function (hide) { appsModule.handOverToHome(hide); }
   });
   glasshouseHome.start();
 }

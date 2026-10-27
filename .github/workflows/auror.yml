@@ -43,11 +43,11 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
       # Here as on Glasshouse: check-entity-stability.py and check-upgrade.js
-      # compare with its release tags, which a new repository does not have.
+      # compare with its release tags, which this repository does not have.
+      # Fetched for this run only: a tag on a release not merged yet points at
+      # workflow changes, which GitHub's own token may not push.
       - name: Glasshouse's release tags
-        run: |
-          git fetch -q --no-tags https://github.com/rorygallagher2024/glasshouse.git 'refs/tags/v*:refs/tags/v*'
-          git push -q origin --tags
+        run: git fetch -q --no-tags https://github.com/rorygallagher2024/glasshouse.git 'refs/tags/v*:refs/tags/v*'
 
       - name: merge Glasshouse's latest release
         id: sync
