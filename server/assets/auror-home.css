@@ -398,3 +398,7 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .light #query::placeholder{color:#99a2af}
 .light .hit .poster,.light .chip .mono{background:#eef1f4}
 .light .hit.on .chip.focus{background:#fff;outline-color:#d98c00}
+/* AUROR's search: the services with no app here, and to rent or buy, after the chips. */
+.hit .else{-webkit-align-self:center;align-self:center;margin-left:16px;font-size:20px;color:#99a2af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.typing .hit .else{display:none}
+.light .hit .else{color:#5d6472}

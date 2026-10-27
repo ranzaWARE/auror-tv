@@ -17,6 +17,7 @@ var REQUEST_MS = 4000;
 var SHELF_TTL_MS = 60000;
 var CODE_TTL_MS = 10 * 60000;
 var SHELF_ITEMS = 3;
+var SEARCH_ITEMS = 8;
 var IMAGE_WIDTH = 480;
 var MAX_JSON = 2 * 1024 * 1024;
 var AUTH = 'MediaBrowser Client="Glasshouse", Device="LG TV", DeviceId="glasshouse-home", Version="1"';
@@ -173,6 +174,39 @@ function shelf(cb) {
   });
 }
 
+/*
+ * Films and series in the library whose names match, for the search
+ * (lib/auror-search): { title, kind: 'film'|'series', year, minutes, genre,
+ * tmdb, image }, or null with no server or no answer. Asked at /Items with
+ * ?userId= as 10.9 has it, and at /Users/{id}/Items on a 404.
+ */
+function search(words, cb) {
+  var c = config();
+  if (!c) return cb(null);
+  var uid = encodeURIComponent(c.userId);
+  var q = 'searchTerm=' + encodeURIComponent(words) + '&includeItemTypes=Movie,Series&recursive=true&limit=' + SEARCH_ITEMS +
+    '&fields=ProductionYear,Genres,ProviderIds&enableImageTypes=Primary,Backdrop,Thumb&imageTypeLimit=1';
+  request(c.server, c.key, '/Items?userId=' + uid + '&' + q, false, function (err, status, body) {
+    if (!err && status === 404) return request(c.server, c.key, '/Users/' + uid + '/Items?' + q, false, found);
+    found(err, status, body);
+  });
+  function found(err, status, body) {
+    if (err || status !== 200 || !body || Object.prototype.toString.call(body.Items) !== '[object Array]') return cb(null);
+    cb(body.Items.filter(function (it) { return it && it.Id && it.Name; }).map(function (it) {
+      var pic = picture(it), ids = it.ProviderIds || {};
+      return {
+        title: String(it.Name),
+        kind: it.Type === 'Series' ? 'series' : 'film',
+        year: typeof it.ProductionYear === 'number' ? it.ProductionYear : null,
+        minutes: typeof it.RunTimeTicks === 'number' ? Math.round(it.RunTimeTicks / 600000000) || null : null,
+        genre: Object.prototype.toString.call(it.Genres) === '[object Array]' ? it.Genres.slice(0, 3).join(', ') : null,
+        tmdb: ids.Tmdb || ids.tmdb || null,
+        image: pic ? '/api/home/jellyfin/image?id=' + encodeURIComponent(pic.id) + '&type=' + pic.type + '&tag=' + encodeURIComponent(pic.tag) : null
+      };
+    }));
+  }
+}
+
 // Streams one picture to res, from the server, with the key added here.
 function image(query, res) {
   var c = config();
@@ -270,6 +304,7 @@ function forget(cb) {
 module.exports = {
   init: init,
   shelf: shelf,
+  search: search,
   image: image,
   status: status,
   pair: pair,

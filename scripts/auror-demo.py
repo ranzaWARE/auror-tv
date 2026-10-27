@@ -78,6 +78,7 @@ def main():
     script = '<script src="demo/api.js"></script>\n'
     page('home.html', os.path.join(out, 'home.html'), script)
     page('jellyfin-phone.html', os.path.join(out, 'jellyfin.html'), script)
+    page('search-phone.html', os.path.join(out, 'tmdb.html'), script)
     for name in ('index.html', 'saver.html'):
         shutil.copy(os.path.join(HERE, name), os.path.join(out, name))
     print('AUROR demo in ' + out)

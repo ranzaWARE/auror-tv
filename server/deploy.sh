@@ -75,7 +75,7 @@ assets/fonts/Manrope-Regular.ttf assets/fonts/Manrope-SemiBold.ttf \
 assets/fonts/OFL-Outfit.txt assets/fonts/OFL-Manrope.txt \
 assets/auror-home.css assets/fonts/SpaceGrotesk.ttf assets/fonts/SpaceMono-Regular.ttf \
 assets/fonts/OFL-SpaceGrotesk.txt assets/fonts/OFL-SpaceMono.txt \
-assets/jellyfin-phone.html \
+assets/jellyfin-phone.html assets/search-phone.html \
 assets/banners/LICENSE-simple-icons.txt assets/banners/LICENSE-streamline.txt assets/banners/apple-music.svg assets/banners/apple-tv.svg \
 assets/banners/browser.svg assets/banners/crunchyroll.svg assets/banners/dazn.svg \
 assets/banners/deezer.svg assets/banners/emby.svg assets/banners/glasshouse.svg \
@@ -129,7 +129,7 @@ assets/screensavers/auror/mimus-run-dark.gif assets/screensavers/auror/mimus-run
 assets/screensavers/auror/mimus-sleep-dark.gif assets/screensavers/auror/mimus-sleep-light.gif \
 assets/screensavers/auror/quetza-dark.gif assets/screensavers/auror/quetza-light.gif \
 lib/mqtt.js lib/ha.js lib/updater.js lib/fetch.js lib/repo.js lib/installer.js lib/privacy.js lib/devtools.js lib/oled.js lib/screensavers.js lib/qmlcheck.js lib/saverpoweroff.js lib/idlesaver.js lib/telemetry.js \
-lib/apps.js lib/samrescan.js lib/children.js lib/luna.js lib/piccap.js lib/huesync.js lib/state.js lib/mqtt-state.js lib/notifications.js lib/screentime.js lib/services.js lib/preload.js lib/quickaccess.js lib/remotekeys.js lib/homescreen.js lib/homescreen-webos9.js lib/homescreen-webos10.js lib/say.js lib/controls.js lib/routes.js lib/lgsettings.js lib/game.js lib/topics.js lib/timers.js lib/util.js lib/names.js lib/prometheus.js lib/remotebuttons.js lib/remotebuttons.py lib/logs.js lib/syslog.js lib/ntp.js lib/power.js lib/history.js lib/sshkeys.js lib/remotebattery.js lib/backup.js lib/iconserver.js lib/home.js lib/home-picture.js lib/home-takeover.js lib/home-wallpapers.js lib/home-recent.js lib/home-use.js lib/clock.js lib/home-recent-apps.js lib/home-search.js lib/audio.js lib/home-jellyfin.js lib/auror-autoupdate.js"
+lib/apps.js lib/samrescan.js lib/children.js lib/luna.js lib/piccap.js lib/huesync.js lib/state.js lib/mqtt-state.js lib/notifications.js lib/screentime.js lib/services.js lib/preload.js lib/quickaccess.js lib/remotekeys.js lib/homescreen.js lib/homescreen-webos9.js lib/homescreen-webos10.js lib/say.js lib/controls.js lib/routes.js lib/lgsettings.js lib/game.js lib/topics.js lib/timers.js lib/util.js lib/names.js lib/prometheus.js lib/remotebuttons.js lib/remotebuttons.py lib/logs.js lib/syslog.js lib/ntp.js lib/power.js lib/history.js lib/sshkeys.js lib/remotebattery.js lib/backup.js lib/iconserver.js lib/home.js lib/home-picture.js lib/home-takeover.js lib/home-wallpapers.js lib/home-recent.js lib/home-use.js lib/auror-search.js lib/clock.js lib/home-recent-apps.js lib/home-search.js lib/audio.js lib/home-jellyfin.js lib/auror-autoupdate.js"
 
 for t in tar base64 fold; do
   command -v "$t" >/dev/null 2>&1 && continue

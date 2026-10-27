@@ -36,7 +36,8 @@ var takeover = require('./home-takeover');
 var recent = require('./home-recent');
 var use = require('./home-use');
 var recentApps = require('./home-recent-apps');
-var search = require('./home-search');
+// AUROR's search: Jellyfin and where to watch in Italy, not LG's (lib/home-search).
+var search = require('./auror-search');
 
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
@@ -1708,9 +1709,8 @@ function init(opts) {
   recent.init(stateDir, opts.now);
   use.init(stateDir, opts.now);
   recentApps.init({ luna: lunaFn });
-  search.init({ luna: lunaFn, Subscription: opts.Subscription, apps: launchPoints,
-    opened: function (id) { noteOpened('app', id); }, enabled: function () { return readConfig().search; },
-    blockedBy: opts.blockedBy });
+  search.init({ stateDir: stateDir, now: opts.now, getJson: opts.getJson, jellyfin: jellyfin, apps: launchPoints, launch: launch,
+    opened: function (id) { noteOpened('app', id); }, enabled: function () { return readConfig().search; } });
   takeover.init({
     luna: lunaFn,
     samrescan: opts.samrescan || null,
