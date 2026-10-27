@@ -203,6 +203,12 @@ its ID, and missing or unusable IDs and non-CEC inputs open the port alone.
 
 `test-auror-search.js` answers for TMDB and the Jellyfin library: only Jellyfin without a key, a key tried before it is kept and only with a live code, titles offered on the apps the TV has (Prime Video with Ads is the Prime Video app), the services with no app here and those that rent or sell named, the library's own titles first and one also on TMDB matched by its TMDB id, one on no service in Italy counted, a repeated query answered from what was kept, only an offered app opened, and the library still answered while TMDB is down.
 
+`test-auror-gallery.js` exercises the routes for AUROR's photos: the phone's page refused without the TV's code, only valid JPEGs taken, a small copy only of a photo there, a photo chosen or the next in turn standing in for the wallpapers in what the view is told, only the intervals offered, and the choice kept across a restart while the codes are not.
+
+`test-auror-immich.js` runs a stand-in Immich: a code that links once and a refused key that keeps nothing, the server's address tidied and the key kept readable by root only, the albums newest first, an album from the timeline's columns or, from Immich 1, with the album, pictures passed through only at the view's sizes, and a video's range passed on.
+
+`test-auror-tv.js` covers AUROR's top bar and SSH setting: Wi-Fi, cable or no network and online, limited or off, kept for 15 s; the sleep timer's steps, its toast a minute before and switching off, cancelled when the TV goes off another way and kept across a restart of the server; and SSH's flag, with dropbear started once and only dropbear stopped.
+
 `test-home-recent-apps.js` exercises the recent-app HTTP routes: refused and
 unconfirmed stops retain their cards for retry, unavailable running lists
 report failure, Close all stops web and native apps while preserving Home,

@@ -212,3 +212,5 @@ function addExamples(cb) {
 
 module.exports = { init: init, status: status, image: image, upload: upload, removeUploads: removeUploads,
   addExamples: addExamples, EXAMPLES: EXAMPLES };
+// For AUROR's photos (lib/auror-gallery).
+module.exports.validJpeg = validJpeg;

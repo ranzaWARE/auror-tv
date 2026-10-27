@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title data-t="immichphone.title">Link Immich</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<style>
+/* Opened from the QR code in Glasshouse Home's Immich settings, on a phone on
+   the same network, for the address and API key the TV shows the albums with.
+   As the page for Jellyfin: AUROR's colours, light or dark as the phone is. */
+@font-face{font-family:"Space Grotesk";src:url("/assets/fonts/SpaceGrotesk.ttf") format("truetype");font-weight:300 700}
+@font-face{font-family:"Space Mono";src:url("/assets/fonts/SpaceMono-Regular.ttf") format("truetype");font-weight:400}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#f3f5f7;color:#111827}
+body{font:16px/1.5 "Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:max(28px,env(safe-area-inset-top)) 20px 40px;max-width:480px;margin:0 auto}
+.kick{display:flex;align-items:center;gap:10px;font:14px "Space Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:#374151}
+.kick:before{content:"";width:8px;height:8px;border-radius:2px;background:#f5a000}
+h1{font-weight:300;font-size:34px;line-height:1.1;letter-spacing:-.5px;margin:12px 0 10px}
+.sub{color:#5d6472;font-size:15px;margin-bottom:22px}
+label{display:block;font-size:13px;color:#5d6472;margin:18px 0 6px}
+input,select{width:100%;font:inherit;color:inherit;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px}
+input:focus,select:focus{outline:2px solid #d98c00;outline-offset:2px}
+.note{font-size:13px;color:#5d6472;margin-top:6px}
+button{width:100%;margin-top:28px;font:inherit;font-weight:600;color:#111827;background:#f5a000;border:0;border-radius:10px;padding:14px}
+button:disabled{opacity:.5}
+#msg{margin-top:16px;font-size:15px;min-height:1.5em}
+#msg.err{color:#b42318}
+#userRow[hidden]{display:none}
+.done h1{margin-top:18vh}
+ol{margin:10px 0 0 20px;color:#5d6472;font-size:14px}
+ol li{margin:3px 0}
+@media (prefers-color-scheme:dark){
+  ol{color:#99a2af}
+  html,body{background:#15191f;color:#e0e4ea}
+  .kick{color:#f5a000}
+  .sub,label,.note{color:#99a2af}
+  input,select{background:#1c2028;border-color:rgba(255,255,255,.12)}
+  input:focus,select:focus{outline-color:#f5a000}
+  #msg.err{color:#ff8a80}
+}
+</style>
+</head>
+<body>
+<main id="form">
+  <div class="kick" translate="no">Glasshouse Home</div>
+  <h1 data-t="immichphone.title">Link Immich</h1>
+  <p class="sub" data-t="immichphone.sub">The Immich tile in the Apps row shows the albums, their photos and videos. The key stays on the TV only.</p>
+
+  <label for="server" data-t="immichphone.server">Server address</label>
+  <input id="server" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.20:2283" translate="no">
+
+  <label for="key" data-t="immichphone.key">API key</label>
+  <input id="key" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" translate="no">
+  <ol>
+    <li data-t="immichphone.step1">In Immich: Account settings, API keys, New API key.</li>
+    <li data-t="immichphone.step2">Give it album.read, asset.read and asset.view, or every permission.</li>
+    <li data-t="immichphone.step3">Copy the key here: Immich shows it only once.</li>
+  </ol>
+
+  <button id="save" type="button" data-t="immichphone.link">Link</button>
+  <p id="msg" role="status"></p>
+</main>
+
+<main id="done" class="done" hidden>
+  <div class="kick" translate="no">Glasshouse Home</div>
+  <h1 data-t="immichphone.done">Immich is linked</h1>
+  <p class="sub" id="doneSub"></p>
+</main>
+
+<script src="/assets/i18n.js"></script>
+<script>
+(function () {
+  var code = (location.search.match(/[?&]c=([0-9a-f]+)/) || [])[1] || '';
+  function $(id) { return document.getElementById(id); }
+  var msg = $('msg'), btn = $('save');
+
+  function say(text, err) { msg.textContent = text; msg.className = err ? 'err' : ''; }
+
+  function post(body, cb) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/immich/link', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = function () {
+      var r = {};
+      try { r = JSON.parse(xhr.responseText); } catch (e) {}
+      cb(r);
+    };
+    xhr.onerror = function () { cb(null); };
+    body.c = code;
+    xhr.send(JSON.stringify(body));
+  }
+
+  function expired(r) {
+    if (!r || !r.expired) return false;
+    btn.disabled = true;
+    say(r.error, true);
+    return true;
+  }
+
+  post({ check: true }, expired);
+
+  btn.addEventListener('click', function () {
+    var server = $('server').value.trim(), key = $('key').value.trim();
+    if (!server) { $('server').focus(); return say(t('immichphone.needServer', 'Enter the server address.'), true); }
+    if (!key) { $('key').focus(); return say(t('immichphone.needKey', 'Enter the API key.'), true); }
+    btn.disabled = true;
+    say(t('immichphone.trying', 'Trying the server…'));
+    post({ server: server, key: key }, function (r) {
+      btn.disabled = false;
+      if (!r) return say(t('immichphone.unreachable', 'Could not reach the TV. Check the phone is on the same network.'), true);
+      if (expired(r)) return;
+      if (r.ok) {
+        $('form').hidden = true;
+        $('done').hidden = false;
+        $('doneSub').textContent = r.user ? t('immichphone.doneUser', 'As {user}, {n} albums. The Immich tile is in the Apps row; this page can be closed.', { user: r.user, n: r.albums })
+          : t('immichphone.doneSub', '{n} albums. The Immich tile is in the Apps row; this page can be closed.', { n: r.albums });
+        return;
+      }
+      say(r.error || t('immichphone.failed', 'That did not work. Try again.'), true);
+    });
+  });
+})();
+</script>
+</body>
+</html>
