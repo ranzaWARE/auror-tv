@@ -12,7 +12,7 @@ Glasshouse Home displays a Top Shelf over up to three rows (any row with no visi
 * **Jellyfin**: Continue watching, or Recently added when nothing is under way, or that the server is not answering. It is linked from a phone, in **Settings › Jellyfin** (below).
 * **Glasshouse**: the SoC temperature, CPU, memory in use and Wi-Fi signal, from `/api/stats`, read again every 10 s while it has the focus.
 * **An HDMI input**: the name of the device on it.
-* **Any other app**: its name.
+* **Any other app**: its banner, large, as tvOS shows an app's own picture; its name is under its tile, so it is not repeated above.
 
 Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile. App tiles are 16:9 colour banners that show their name only when focused: well-known apps have their logo in white on the brand's colour, from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0-1.0, the logos remaining their owners' trademarks), and any other app its own icon on a colour. The clock and date sit at the top right with two buttons, reached with **Up**: the theme switch and the settings.
 
