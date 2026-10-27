@@ -402,3 +402,30 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .hit .else{-webkit-align-self:center;align-self:center;margin-left:16px;font-size:20px;color:#99a2af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .typing .hit .else{display:none}
 .light .hit .else{color:#5d6472}
+
+/* ---- More apps: its tile, the first four banners small on a card; its grid, the banners four to a line ---- */
+.app .fold{display:block !important;width:320px !important;height:180px !important;margin:0 !important;padding:12px !important;font-size:0;
+  border-radius:10px !important;background:#1c2028 !important;border:1px solid rgba(255,255,255,.08);outline:3px solid transparent;outline-offset:4px;
+  -webkit-transition:-webkit-transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s;transition:transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s}
+.app .fold i{display:inline-block;vertical-align:top;width:141px !important;height:73px !important;margin:0 8px 8px 0 !important;border-radius:6px !important;
+  background:#23272e !important;overflow:hidden}
+.app .fold i:nth-child(2n){margin-right:0 !important}
+.app .fold i img,.app .fold i .mono,.tile.app.focus .fold i img,.tile.app.focus .fold i .mono{width:141px !important;height:73px !important;padding:0 !important;border:0 !important;
+  border-radius:6px !important;line-height:73px !important;font-size:26px !important;outline:none !important;box-shadow:none !important;
+  -webkit-transform:none !important;transform:none !important}
+.app .fold i img:not(.banner){padding:14px 0 !important}
+.tile.app.focus .fold{background:#23272e !important;outline-color:#f5a000;box-shadow:0 22px 44px rgba(0,0,0,.6);
+  -webkit-transform:translateY(-10px) scale(1.12);transform:translateY(-10px) scale(1.12)}
+.light .app .fold{background:#fff !important;border-color:#e5e7eb}
+.light .app .fold i{background:#eef1f4 !important}
+.light .tile.app.focus .fold{outline-color:#d98c00;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+.tile .fld{font-family:"Space Mono",monospace;text-transform:uppercase;letter-spacing:.04em}
+#folder{background:#15191f !important;padding:96px 80px 0 !important}
+.light #folder{background:#f3f5f7 !important}
+#folder h2{font-family:"Space Grotesk",sans-serif !important;font-size:56px !important;font-weight:300 !important;color:#e0e4ea !important;margin:0 0 8px 40px !important}
+.light #folder h2{color:#111827 !important}
+#folder .gwrap{height:900px !important;padding:40px !important}
+#folderGrid{width:1480px !important}
+#folderGrid .tile{margin:0 48px 64px 0 !important}
+#folderGrid .tile.app .nm{opacity:0}
+#folderGrid .tile.app.focus .nm{opacity:1}
