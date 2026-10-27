@@ -34,14 +34,34 @@ def relative(text):
     return text
 
 
-def page(src, dest, extra):
+def page(src, dest, extra, *swaps):
     with open(os.path.join(ASSETS, src), encoding='utf-8') as f:
         html = relative(f.read())
+    for old, new in swaps:
+        if old not in html:
+            sys.exit('auror-demo: %s no longer has %s' % (src, old))
+        html = html.replace(old, new)
     # The demo's TV goes in first, before the page's own scripts ask it anything.
     first = html.index('<script')
     html = html[:first] + extra + html[first:]
     with open(dest, 'w', encoding='utf-8') as f:
         f.write(html)
+
+
+# Landscapes standing in for the owner's photos behind Home.
+PHOTOS = [('#f6b26b', '#7a4b8f', '#3d2f5a', '#1d1a33', '#ffe3a3'), ('#9fd3e6', '#3b7ea1', '#2f5d50', '#173328', '#ffffff'),
+          ('#c6e2b5', '#5f9c6a', '#2f6b3f', '#163821', '#fff7d6'), ('#0b1d3a', '#1f3b6e', '#18284a', '#0a1222', '#e8eefc')]
+
+
+def photo(sky, low, hill, near, sun):
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">'
+            '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%s"/>'
+            '<stop offset="1" stop-color="%s"/></linearGradient></defs>'
+            '<rect width="1920" height="1080" fill="url(#s)"/>'
+            '<circle cx="1380" cy="360" r="120" fill="%s" fill-opacity=".85"/>'
+            '<path d="M0 700 C300 560 560 640 820 600 S1400 520 1920 640 V1080 H0Z" fill="%s"/>'
+            '<path d="M0 860 C380 760 700 820 1020 780 S1600 740 1920 820 V1080 H0Z" fill="%s"/>'
+            '</svg>\n') % (sky, low, sun, hill, near)
 
 
 def poster(title, c1, c2):
@@ -75,8 +95,15 @@ def main():
     for i, p in enumerate(POSTERS):
         with open(os.path.join(out, 'demo', 'poster%d.svg' % i), 'w', encoding='utf-8') as f:
             f.write(poster(*p))
+    for i, p in enumerate(PHOTOS):
+        with open(os.path.join(out, 'demo', 'photo%d.svg' % i), 'w', encoding='utf-8') as f:
+            f.write(photo(*p))
     script = '<script src="demo/api.js"></script>\n'
-    page('home.html', os.path.join(out, 'home.html'), script)
+    # Images are not requests the demo's TV can answer: the photos are the files beside the page.
+    page('home.html', os.path.join(out, 'home.html'), script,
+         ('"/api/home/photo?id=\' + encodeURIComponent(g.shown) + \'&thumb=1"', '"demo/\' + g.shown + \'.svg"'))
+    page('gallery-phone.html', os.path.join(out, 'photos.html'), script,
+         ("'/photos/thumb?c=' + code + '&id=' + id", "'demo/' + id + '.svg'"))
     page('jellyfin-phone.html', os.path.join(out, 'jellyfin.html'), script)
     page('search-phone.html', os.path.join(out, 'tmdb.html'), script)
     for name in ('index.html', 'saver.html'):

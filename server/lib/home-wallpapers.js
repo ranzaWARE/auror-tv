@@ -157,3 +157,5 @@ function upload(key, req, cb) {
 }
 
 module.exports = { init: init, status: status, image: image, upload: upload, removeUploads: removeUploads };
+// For AUROR's photos (lib/auror-gallery).
+module.exports.validJpeg = validJpeg;

@@ -48,6 +48,12 @@
   var update = { auto: true, installed: '0.122.101', latest: '0.122.101', available: false };
   var jellyfin = { linked: true };
   var tmdb = { linked: true };
+  // The top bar's network, sleep timer and the SSH settings, as lib/auror-tv answers.
+  var net = { ok: true, kind: 'wifi', state: 'online', ssid: 'Casa', ip: '192.168.1.42' };
+  var sleepAt = 0;
+  var ssh = { ok: true, enabled: false, running: false, keys: 1, passwordNow: false, passwordAfterReboot: false };
+  // AUROR's photos, as lib/auror-gallery keeps them: four landscapes made by the build.
+  var gallery = { mode: 'off', photo: null, every: 30, ids: ['photo0', 'photo1', 'photo2', 'photo3'] };
   // Most used, as the server keeps it: opens, here only those made in the demo.
   var opens = {};
   var version = 1;
@@ -71,11 +77,32 @@
     }
     return ids.concat('lg-home');
   }
+  function sleepStatus() {
+    var left = Math.max(0, sleepAt - Date.now());
+    if (!left) sleepAt = 0;
+    return { ok: true, minutes: Math.ceil(left / 60000), left: left, at: sleepAt || null };
+  }
+  function galleryShown() {
+    var ids = gallery.ids;
+    if (gallery.mode === 'off' || !ids.length) return null;
+    if (gallery.mode === 'one') return ids.indexOf(gallery.photo) !== -1 ? gallery.photo : ids[ids.length - 1];
+    return ids[Math.floor(Date.now() / (gallery.every * 60000)) % ids.length];
+  }
+  function galleryStatus() {
+    return { ok: true, mode: gallery.mode, photo: gallery.photo, every: gallery.every, shown: galleryShown(),
+      count: gallery.ids.length, max: 60, ids: gallery.ids.slice() };
+  }
+  function wallpapers() {
+    var shown = galleryShown();
+    if (!shown) return { available: false };
+    return { available: true, uploading: false, revision: 'p-' + shown, src: 'demo/' + shown + '.svg',
+      slots: { morning: true, afternoon: true, evening: true, night: true } };
+  }
   function catalogue() {
     return { ok: true, apps: apps, devices: devices, channels: [],
       order: { app: appOrder(), dev: devices.map(function (d) { return d.id; }), ch: [] },
       sources: { apps: true, devices: true, channels: 0 }, layout: copy(layout), enabled: true,
-      wallpapers: { available: false }, layoutVersion: 'v' + version,
+      wallpapers: wallpapers(), layoutVersion: 'v' + version,
       jellyfin: jellyfin.linked ? { ok: true, configured: true, server: 'jellyfin.example.org', user: 'Demo' } : { ok: true, configured: false },
       saver: saver, update: update, tmdb: { ok: true, configured: tmdb.linked } };
   }
@@ -112,7 +139,31 @@
     switch (path) {
       case '/api/home/catalogue': return catalogue();
       case '/api/home/now': return { kind: 'app', appId: 'youtube.leanback.v4', title: 'YouTube', since: Date.now() - 600000 };
-      case '/api/home/beat': return { ok: true, enabled: true, build: 'demo', wallpapers: { available: false }, layoutVersion: 'v' + version };
+      case '/api/home/beat': return { ok: true, enabled: true, build: 'demo', wallpapers: wallpapers(), layoutVersion: 'v' + version };
+      case '/api/home/network': return net;
+      case '/api/home/sleep':
+        if (method === 'GET') return sleepStatus();
+        var steps = [30, 60, 90, 120], left = sleepStatus().minutes, next = 0;
+        for (var s = 0; s < steps.length; s++) if (steps[s] > left) { next = steps[s]; break; }
+        sleepAt = next ? Date.now() + next * 60000 : 0;
+        return sleepStatus();
+      case '/api/home/poweroff': return { ok: false, error: 'Nella demo la TV resta accesa.' };
+      case '/api/home/ssh':
+        if (method === 'POST') { ssh.enabled = ssh.running = b.on === true; ssh.delay = 600; }
+        return ssh;
+      case '/api/home/gallery':
+      case '/photos/list':
+      case '/photos/settings':
+      case '/photos/use':
+      case '/photos/remove':
+        if (path === '/photos/use') { gallery.mode = 'one'; gallery.photo = b.id; }
+        if (path === '/photos/remove') gallery.ids = gallery.ids.filter(function (id) { return id !== b.id; });
+        if (method === 'POST') ['mode', 'photo', 'every'].forEach(function (k) { if (b[k] !== undefined) gallery[k] = b[k]; });
+        var st = galleryStatus();
+        st.wallpapers = wallpapers();
+        return st;
+      case '/api/home/gallery/pair': return { ok: true, url: location.href.replace(/[^/]*$/, '') + 'photos.html?c=demo' };
+      case '/photos/upload': return { ok: false, error: 'Nella demo le foto non si caricano: sulla TV finirebbero qui.', status: 400 };
       case '/api/home/guide': return { ok: true, guide: {} };
       case '/api/home/picture': return { ok: false };
       case '/api/home/jellyfin': return shelf();
@@ -169,7 +220,7 @@
   DemoRequest.prototype.open = function (method, url, async) {
     this._method = method;
     this._url = String(url);
-    this._fake = /^\/(api|jellyfin|tmdb)\//.test(this._url);
+    this._fake = /^\/(api|jellyfin|tmdb|photos)\//.test(this._url);
     if (this._fake) return;
     var self = this, r = this._real = new Real();
     r.open(method, this._url.replace(/^\/assets\//, 'assets/'), async !== false);

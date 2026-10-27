@@ -38,6 +38,8 @@ var use = require('./home-use');
 var recentApps = require('./home-recent-apps');
 // AUROR's search: Jellyfin and where to watch in Italy, not LG's (lib/home-search).
 var search = require('./auror-search');
+// AUROR's photos from a phone, in place of the wallpapers when chosen.
+var gallery = require('./auror-gallery');
 
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
@@ -290,6 +292,11 @@ function normaliseLook(raw) {
   if (THEMES.indexOf(raw.theme) !== -1) d.theme = raw.theme;
   if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;
   if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
+  // AUROR: the owner's name for the greeting on the Top Shelf.
+  if (typeof raw.name === 'string') {
+    var name = raw.name.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30);
+    if (name) d.name = name;
+  }
   if (raw.shelf && typeof raw.shelf === 'object') {
     for (var k in d.shelf) if (typeof raw.shelf[k] === 'boolean') d.shelf[k] = raw.shelf[k];
   }
@@ -487,12 +494,12 @@ function layoutOf(c) {
     searchBlocked: search.blocked() };
 }
 
-// From the view's settings: any of theme, mascots, saverBright and shelf, the rest kept.
+// From the view's settings: any of theme, mascots, saverBright, name and shelf, the rest kept.
 function setLook(body, cb) {
   var c = readConfig();
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
   var merged = JSON.parse(JSON.stringify(c.look));
-  ['theme', 'mascots', 'saverBright'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  ['theme', 'mascots', 'saverBright', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
   if (body.shelf && typeof body.shelf === 'object') {
     for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
   }
@@ -1460,11 +1467,14 @@ function watchBeat(ms) {
   }, ms);
 }
 
+// What the view is told of its background: AUROR's photo when one is chosen, else Glasshouse's wallpapers.
+function viewWallpapers() { return gallery.wall() || wallpapers.status(); }
+
 function beat() {
   lastBeatAt = nowMs();
   beats++;
   if (viewInFront()) watchBeat(BEAT_GRACE_MS);
-  return { ok: true, enabled: readConfig().enabled, build: buildId, wallpapers: wallpapers.status(),
+  return { ok: true, enabled: readConfig().enabled, build: buildId, wallpapers: viewWallpapers(),
            layoutVersion: layoutVersion(), sleeps: sleeps };
 }
 
@@ -1705,6 +1715,7 @@ function init(opts) {
   historyModule = opts.history || null;
   if (opts.stateDir) stateDir = opts.stateDir;
   wallpapers.init(stateDir);
+  gallery.init({ stateDir: stateDir, now: opts.now });
   jellyfin.init(stateDir, opts.now);
   recent.init(stateDir, opts.now);
   use.init(stateDir, opts.now);
@@ -1871,6 +1882,9 @@ module.exports = {
   jellyfin: jellyfin,
   // The view's search: films and series on the TV's apps (lib/home-search).
   search: search,
+  // AUROR's backgrounds (lib/auror-gallery).
+  gallery: gallery,
+  viewWallpapers: viewWallpapers,
   wallpaperPath: wallpapers.image,
   uploadWallpaper: function (slot, req, cb) {
     var sup = supported();
