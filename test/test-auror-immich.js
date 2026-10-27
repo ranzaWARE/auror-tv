@@ -16,7 +16,7 @@ var P1 = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', P2 = 'bbbbbbbb-bbbb-4bbb-8bbb-b
 var dir = path.join(os.tmpdir(), 'auror-immich-' + process.pid);
 fs.mkdirSync(dir);
 
-var asked = [], old = false;
+var asked = [], old = false, noMemories = false, randomAsked = null;
 var stand = http.createServer(function (req, res) {
   asked.push(req.method + ' ' + req.url + (req.headers.range ? ' ' + req.headers.range : ''));
   function json(code, body) { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); }
@@ -30,6 +30,22 @@ var stand = http.createServer(function (req, res) {
     ]);
   }
   if (u === '/api/users/me') return json(200, { name: 'Marco' });
+  if (/^\/api\/memories\?for=2026-10-27&type=on_this_day$/.test(u)) {
+    if (noMemories) return json(403, { message: 'Missing required permission: memory.read' });
+    return json(200, [
+      { type: 'on_this_day', data: { year: 2023 }, assets: [{ id: P1, type: 'IMAGE', exifInfo: { city: 'Garda' } }] },
+      { type: 'on_this_day', data: { year: 2025 }, assets: [{ id: V1, type: 'VIDEO' }, { id: P2, type: 'IMAGE', exifInfo: { country: 'Italia' } }] },
+      { type: 'on_this_day', data: { year: 2020 }, assets: [{ id: V1, type: 'VIDEO' }] }
+    ]);
+  }
+  if (u === '/api/search/random' && req.method === 'POST') {
+    var sent = '';
+    req.on('data', function (d) { sent += d; });
+    return req.on('end', function () {
+      randomAsked = JSON.parse(sent);
+      json(200, [{ id: P1, type: 'IMAGE', localDateTime: '2024-05-01T10:00:00.000Z', exifInfo: { city: 'Verona' } }, { id: V1, type: 'VIDEO' }]);
+    });
+  }
   if (u === '/api/albums/' + A1) {
     var info = { id: A1, albumName: 'Lago', order: 'desc' };
     if (old) info.assets = [
@@ -168,6 +184,44 @@ step('a video passes the player\'s range on', function (done) {
     assert.ok(asked.indexOf('GET /api/assets/' + V1 + '/video/playback bytes=4-') !== -1);
     done();
   }));
+});
+
+step('this day in years past: the most recent first, photos only, none without memory.read', function (done) {
+  immich.memories('2026-10-27', function (r) {
+    assert.ok(r.ok);
+    assert.deepEqual(r.memories, [
+      { year: 2025, count: 2, cover: P2, place: 'Italia' },
+      { year: 2023, count: 1, cover: P1, place: 'Garda' }
+    ], 'a year with only a video is left out');
+    noMemories = true;
+    immich.init(dir);
+    immich.memories('2026-10-27', function (r2) {
+      assert.ok(r2.ok);
+      assert.deepEqual(r2.memories, []);
+      assert.ok(r2.unavailable);
+      done();
+    });
+  });
+});
+
+step('the screen saver: the library at random, or the album chosen, photos only', function (done) {
+  old = false;
+  immich.saverPhotos(function (r) {
+    assert.ok(r.ok, r.error);
+    assert.deepEqual(r.items, [{ id: P1, date: '2024-05-01', place: 'Verona' }]);
+    assert.strictEqual(randomAsked.type, 'IMAGE');
+    immich.setSaverAlbum('nope', function (bad) {
+      assert.strictEqual(bad.ok, false);
+      immich.setSaverAlbum(A1, function (st) {
+        assert.strictEqual(st.saverAlbum, A1);
+        assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'immich.json'), 'utf8')).key, KEY, 'the key is kept with it');
+        immich.saverPhotos(function (r2) {
+          assert.deepEqual(r2.items.map(function (x) { return x.id; }).sort(), [P1, P2].sort());
+          done();
+        });
+      });
+    });
+  });
 });
 
 step('unlinking removes the key', function (done) {

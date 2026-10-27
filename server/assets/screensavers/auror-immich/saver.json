@@ -1,0 +1,20 @@
+{
+  "manifest": 1,
+  "version": "1.0.0",
+  "name": {
+    "en": "AUROR · Immich",
+    "es": "AUROR · Immich",
+    "it": "AUROR · Immich"
+  },
+  "description": {
+    "en": "Photos from Immich, one at a time, slowly drawing nearer, with the time in a corner. Needs Immich linked on Glasshouse Home.",
+    "es": "Fotos de Immich, una a una, acercándose despacio, con la hora en una esquina. Necesita Immich enlazado en Glasshouse Home.",
+    "it": "Foto da Immich, una alla volta, che si avvicinano piano, con l’ora in un angolo. Serve Immich collegato su Glasshouse Home."
+  },
+  "license": "MIT",
+  "uses": [
+    "level",
+    "stats"
+  ],
+  "order": 16
+}
