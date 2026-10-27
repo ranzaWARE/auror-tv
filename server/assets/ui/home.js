@@ -242,6 +242,9 @@ function renderHomeColours() {
   const box = q('home-looks');
   if (!box || !homeStatus) return;
   const presets = homeStatus.colourPresets || [];
+  // None when the view keeps its own colours.
+  q('home-colours').hidden = !presets.length;
+  if (!presets.length) return;
   const names = HOME_LOOK_NAMES();
   const now = homeLookNow();
   const can = homeWritable() && !homeSaving;

@@ -85,7 +85,7 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 
     ---
 
-    Seven built-in colour presets (including **Pure white** with white text and white accent) plus custom **Text** and **Accent** colour pickers in the web dashboard (or preset cycling in the TV app). The accent colour highlights the focused tile and the last active source.
+    AUROR's view has its own colours: light from 06:00 to 17:00 and dark after, with the switch at its top right keeping the other until the next change. Neither dashboard offers Glasshouse's colour presets.
 
 </div>
 
