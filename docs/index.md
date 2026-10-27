@@ -51,9 +51,9 @@ Use it for remote control, app installation and removal, OLED panel care, privac
 === "Glasshouse Home"
 
     <p align="center">
-      <a href="screenshots/home.jpg"><img src="screenshots/home.jpg" alt="Glasshouse Home on the TV screen with apps and inputs" width="440"></a>
+      <a href="screenshots/auror-home.jpg"><img src="screenshots/auror-home.jpg" alt="AUROR's Glasshouse Home: Jellyfin's Continue watching on the Top Shelf over the Apps row's banners" width="440"></a>
       &nbsp;
-      <a href="screenshots/home-evening.jpg"><img src="screenshots/home-evening.jpg" alt="Glasshouse Home with an evening colour theme" width="440"></a>
+      <a href="screenshots/auror-home-photo.jpg"><img src="screenshots/auror-home-photo.jpg" alt="AUROR's Glasshouse Home in the light theme over a photo of the owner's" width="440"></a>
       <br>
       <sub><a href="dashboard/home/">Glasshouse Home</a> replaces LG's ad-heavy launcher with a clean, instant app and input row on the TV.</sub>
     </p>

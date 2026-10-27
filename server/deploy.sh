@@ -125,6 +125,7 @@ assets/screensavers/vitals/saver.json assets/screensavers/vortex/main.qml \
 assets/screensavers/vortex/saver.json \
 screensavers/pigs/main.qml screensavers/pigs/saver.json \
 assets/screensavers/auror/main.qml assets/screensavers/auror/saver.json \
+assets/screensavers/auror-immich/main.qml assets/screensavers/auror-immich/saver.json \
 assets/screensavers/auror/mimus-run-dark.gif assets/screensavers/auror/mimus-run-light.gif \
 assets/screensavers/auror/mimus-sleep-dark.gif assets/screensavers/auror/mimus-sleep-light.gif \
 assets/screensavers/auror/quetza-dark.gif assets/screensavers/auror/quetza-light.gif \

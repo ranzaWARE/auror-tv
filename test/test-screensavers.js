@@ -148,7 +148,8 @@ console.log('Running test-screensavers.js ...');
   assert.ok(ids.indexOf('veils') !== -1, 'catalog must include veils');
   assert.ok(ids.indexOf('tesseract') !== -1, 'catalog must include tesseract');
   assert.ok(ids.indexOf('auror') !== -1, 'catalog must include auror');
-  assert.strictEqual(ids.length, 16, 'catalog must have exactly 16 entries');
+  assert.ok(ids.indexOf('auror-immich') !== -1, 'catalog must include auror-immich');
+  assert.strictEqual(ids.length, 17, 'catalog must have exactly 17 entries');
 
   // Each of Glasshouse's own reads cleanly from its folder
   for (var i = 0; i < all.length; i++) {

@@ -310,7 +310,7 @@ function defaults() {
 function sidebarIds() { return LG_SIDEBAR_APPS.map(function (a) { return a.id; }); }
 
 function normaliseLook(raw) {
-  var d = { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } };
+  var d = { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true } };
   if (!raw || typeof raw !== 'object') return d;
   if (THEMES.indexOf(raw.theme) !== -1) d.theme = raw.theme;
   if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;

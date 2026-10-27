@@ -3,7 +3,7 @@
 > [!NOTE]
 > **Experimental (webOS 7, 9 & 10):** Glasshouse Home replaces LG's built-in launcher when pressing **Home** or **Back** on the remote, or when the TV turns on. It is available on webOS 7, 9 and 10 (and on webOS 11 when `"allowExperimentalHome": true` is set in `config.json`), and works on whichever port the dashboard is on.
 
-![Glasshouse Home on an OLED55G36LA (webOS 9.2): clock and the Apps, Inputs and Channels rows over an uploaded afternoon wallpaper](../screenshots/home.jpg)
+![AUROR's Glasshouse Home, in its demo: the greeting, the clock and the top bar's buttons, and Jellyfin's Continue watching on the Top Shelf over the Apps row's banners](../screenshots/auror-home.jpg)
 
 ## What is on screen
 
@@ -28,8 +28,11 @@ The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand
 
 The gear opens Glasshouse Home's own settings, worked with the remote:
 
-* **Look**: the owner's name for the greeting, typed on the TV's keyboard, the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza.
-* **Top Shelf**: what Jellyfin, Glasshouse and the HDMI inputs show there.
+![Glasshouse Home's settings on the TV, Look open: the owner's name, the theme, the AUROR screen saver and its options](../screenshots/auror-settings.jpg)
+
+
+* **Look**: the owner's name for the greeting, typed on the TV's keyboard, the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza. With Immich linked, the screen saver can show Immich's photos instead, from an album or the whole library.
+* **Top Shelf**: what Jellyfin, Glasshouse, Immich and the HDMI inputs show there.
 * **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), then hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
 * **Tiles**: which apps show. LG's Home always does.
 * **Backgrounds**: photos behind Home, one of them or all in turn, added from a phone or computer (see [Backgrounds](#backgrounds)).
@@ -112,9 +115,15 @@ TMDB needs an API key, free from themoviedb.org (**Settings › API**). **Settin
 
 ## Immich
 
+![Immich's albums over Home: covers four to a line with each album's count and months](../screenshots/auror-immich.jpg)
+
 Once an [Immich](https://immich.app) server is linked, an **Immich** tile joins the Apps row, arranged, hidden or put in More apps like any app. **OK** opens the albums the key can read, owned or shared, the one added to last first, four to a line with their covers. **OK** on an album shows its photos and videos, six to a line, and **OK** on one shows it full screen: **Left** and **Right** go through the album, **OK** plays a video or starts and stops a slideshow of a photo every six seconds, and the date and place show for a few seconds after each change. **Back** goes back a step at a time.
 
-**Settings › Immich** on the TV shows a QR code: scanned with a phone on the same network, it opens a page for the server's address (its port is usually 2283) and an API key, made in Immich under **Account settings › API keys** with `album.read`, `asset.read` and `asset.view`. The key is tried on the albums before it is kept, on the TV only, in `/var/lib/tvweb/immich.json`; the view never has it, as the server passes the pictures and videos on with the key added. Albums come from the timeline on current Immich releases, and with the album itself from Immich 1.
+![The Immich tile focused: this day in years past on the Top Shelf](../screenshots/auror-memories.jpg)
+
+With the Immich tile focused, the Top Shelf shows this day in years past from Immich's memories, up to three years with how many photos and where, when the key has `memory.read`; without memories it shows the tile's name.
+
+**Settings › Immich** on the TV shows a QR code: scanned with a phone on the same network, it opens a page for the server's address (its port is usually 2283) and an API key, made in Immich under **Account settings › API keys** with `album.read`, `asset.read` and `asset.view`, and `memory.read` for the memories. The key is tried on the albums before it is kept, on the TV only, in `/var/lib/tvweb/immich.json`; the view never has it, as the server passes the pictures and videos on with the key added. Albums come from the timeline on current Immich releases, and with the album itself from Immich 1.
 
 ## Backgrounds
 
@@ -133,17 +142,13 @@ The web dashboard's **Wallpaper** section shows the day as a strip from midnight
 * **Add example pictures** fills every time of day without a picture from an example set, a loch at four times of day, and leaves the ones already chosen. The set is downloaded to the TV only when the button is pressed, about 820 KB in all, from [glasshouse-wallpapers](https://github.com/rorygallagher2024/glasshouse-wallpapers). The button is hidden once every time of day has a picture.
 * **Remove all** puts the plain background back for every time of day.
 
-=== "Afternoon wallpaper"
+=== "A photo behind Home"
 
-    ![Glasshouse Home with an uploaded afternoon wallpaper](../screenshots/home.jpg)
+    ![AUROR's Glasshouse Home in the light theme with a photo behind it, the Top Shelf letting it through](../screenshots/auror-home-photo.jpg)
 
-=== "Evening wallpaper"
+=== "Plain (default)"
 
-    ![Glasshouse Home with an uploaded evening wallpaper](../screenshots/home-evening.jpg)
-
-=== "Pure black (default)"
-
-    ![Glasshouse Home on its default pure black background](../screenshots/home-black.jpg)
+    ![AUROR's Glasshouse Home on its plain dark background](../screenshots/auror-home.jpg)
 
 === "Upload controls"
 
@@ -178,7 +183,7 @@ Rows and tiles can be arranged from the **web dashboard**, the **TV app**, or **
 
 === "Arranging on the TV (hold OK)"
 
-    ![Arranging on the TV: Sky News focused in the Channels row, with the bar for removing it, resetting and finishing](../screenshots/home-arrange.jpg)
+    ![Arranging on the TV: YouTube held in the Apps row, a hidden tile beside it, and the bar for hiding, More apps, resetting and finishing](../screenshots/auror-arrange.jpg)
 
 === "Web dashboard"
 

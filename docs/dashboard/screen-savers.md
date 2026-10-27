@@ -17,6 +17,7 @@ The **Screensaver** tab, `/?tab=screensaver`, provides fifteen alternatives to L
 * Tesseract, a four-dimensional cube turning through the fourth dimension, in fine lines of light that dim and turn violet with depth
 * Panel vitals, showing the TV's own panel hours and refresher countdown
 * AUROR, black for the OLED panel: Mimus asleep in the middle with the time beneath him, dimmed, the pair drifting up to 90 px from the middle so no pixel stays lit in one place. With the mascots switched off in Glasshouse Home's settings, the time is left alone. It can also be switched on from those settings, on the TV.
+* AUROR · Immich, an option of AUROR's in Glasshouse Home's **Settings › Look** once [Immich](home.md#immich) is linked: photos from an album chosen there, or from the whole library at random, one at a time, crossfading every half minute and drawing slowly nearer, with the time and the photo's date and place in the lower corners, dimmed unless set bright. Glasshouse's server lists the photos and passes them on with Immich's key added; while Immich is not linked or not answering, it shows the time alone.
 
 Each mode offers dim and bright variants, and visual elements continuously drift across the screen to prevent OLED burn-in or image retention. The clock and the time on Panel vitals draw 12-hour or 24-hour time as the TV's own time setting has it, and pick up a change the next time the screen saver starts.
 
