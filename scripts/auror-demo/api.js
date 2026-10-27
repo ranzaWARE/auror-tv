@@ -15,7 +15,7 @@
   var scenario = (/[?&]scenario=(\w+)/.exec(Q) || [])[1] || 'apps';
   var POSTER = function (i) { return 'demo/poster' + i + '.svg'; };
 
-  // As a TV with AUROR lists them: the streaming services are hidden when first seen.
+  // As a TV with AUROR lists them: the streaming services and Glasshouse's own app are hidden when first seen.
   var apps = [
     { id: 'com.webos.app.browser', title: 'Web Browser' },
     { id: 'org.jellyfin.webos', title: 'Jellyfin' },
@@ -39,7 +39,7 @@
   ];
   var layout = {
     rows: ['app', 'dev', 'ch'], sort: { app: 'custom', dev: 'custom', ch: 'custom' },
-    hidden: { app: ['netflix', 'amazon', 'com.disney.disneyplus-prod', 'dazn', 'it.sky.now', 'com.webos.app.lgchannels'], dev: [], ch: [] },
+    hidden: { app: ['netflix', 'amazon', 'com.disney.disneyplus-prod', 'dazn', 'it.sky.now', 'com.webos.app.lgchannels', 'com.tvweb.dashboard'], dev: [], ch: [] },
     order: { app: [], dev: [], ch: [] }, folder: [], channels: [], hintSeen: true, searchHintSeen: true, search: true,
     hideUnused: true, picture: false, colours: null,
     look: { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } }

@@ -193,6 +193,7 @@ function luna(uri, p, cb) {
       { id: 'com.webos.app.music', title: 'Music', icon: '/x/music.png', visible: false },
       { id: 'com.webos.app.hdmi1', title: 'HDMI 1', lptype: 'bookmark' }
     ];
+    if (tv.withGlasshouse) r.launchPoints.push({ id: 'com.tvweb.dashboard', title: 'Glasshouse', icon: '/x/gh.png' });
   } else if (uri === 'com.webos.service.eim/getAllInputStatus') {
     // As a G3 reports them: a receiver with a console behind it on HDMI 2, HDMI 1 empty.
     r.devices = tv.devices || [
@@ -359,10 +360,12 @@ step('LG\'s notifications and search start hidden, once, and stay as arranged af
   });
 });
 
-step('streaming apps start hidden the first time they are seen, and stay as arranged after', function (done) {
+step('streaming apps and Glasshouse start hidden the first time they are seen, and stay as arranged after', function (done) {
   start(null);
+  tv.withGlasshouse = true;
   home.catalogue(function () {
     assert.ok(home.layout().hidden.app.indexOf('netflix') !== -1, 'Netflix is hidden when first seen');
+    assert.ok(home.layout().hidden.app.indexOf('com.tvweb.dashboard') !== -1, 'Glasshouse too: it opens from the settings');
     assert.ok(home.layout().hidden.app.indexOf('youtube.leanback.v4') === -1, 'YouTube is not');
     home.setLayout({ hidden: { app: [] } }, function () {
       home.catalogue(function () {
@@ -370,6 +373,7 @@ step('streaming apps start hidden the first time they are seen, and stay as arra
         home.setLayout({ reset: true }, function () {
           home.catalogue(function () {
             assert.ok(home.layout().hidden.app.indexOf('netflix') !== -1, 'a reset hides it again');
+            tv.withGlasshouse = false;
             done();
           });
         });
