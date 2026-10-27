@@ -49,21 +49,34 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 
 #shelfBody{position:absolute;left:120px;right:120px;top:208px}
 #shelfBody.none{visibility:hidden}
-#shelfBody .sh-title,#shelfBody .sh-cards,#shelfBody .sh-stats,#shelfBody .sh-hero{display:none}
-#shelfBody.title .sh-title,#shelfBody.cards .sh-cards,#shelfBody.stats .sh-stats{display:block}
-#shelfBody.hero .sh-hero{display:-webkit-flex;display:flex;-webkit-align-items:flex-end;align-items:flex-end}
-/* An app with nothing to show: its picture large, its name only under its tile. */
-#shelfBody.hero{top:96px}
-#heroArt{position:relative;width:800px;height:450px;-webkit-flex:0 0 auto;flex:0 0 auto;border-radius:10px;overflow:hidden;
-  box-shadow:0 22px 44px rgba(0,0,0,.45)}
-#heroArt img,#heroArt .mono{display:block;width:100%;height:100%;object-fit:cover}
-#heroArt img.tinted{object-fit:contain;padding:110px 0;box-sizing:border-box}
-#heroArt .mono{line-height:450px;text-align:center;font-size:160px;font-weight:600;color:#fff}
-.hero-text{margin-left:64px;padding-bottom:6px}
-#heroSub{font-size:24px;color:#99a2af;margin-top:14px}
-.light #heroArt{box-shadow:0 16px 36px rgba(17,24,39,.18)}
-.light #heroSub{color:#5d6472}
-.inputs #shelfBody.hero{top:80px}
+#shelfBody .sh-title,#shelfBody .sh-cards,#shelfBody .sh-stats,#shelfBody .sh-brand{display:none}
+#shelfBody.title .sh-title,#shelfBody.cards .sh-cards,#shelfBody.stats .sh-stats,#shelfBody.brand .sh-brand{display:block}
+/*
+ * An app with nothing of its own to show: its colours as a glow across the
+ * shelf, its symbol large and faint at the right, and at the left its logo,
+ * name and a line saying what it is.
+ */
+#shelfGlow{position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;opacity:0;
+  -webkit-transition:opacity .45s ease-out;transition:opacity .45s ease-out}
+#shelfGlow.on{opacity:1}
+#shelfMark{position:absolute;right:-60px;bottom:-150px;width:620px;height:620px;opacity:.07}
+.light #shelfMark{opacity:.08}
+.arranging #shelfGlow,.recents #shelfGlow{display:none}
+#shelfBody.brand{top:150px}
+.inputs #shelfBody.brand{top:130px}
+.lockup{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;margin-top:30px;height:104px}
+#brandLogo{-webkit-flex:0 0 auto;flex:0 0 auto;width:96px;height:96px;margin-right:32px}
+#brandLogo img{display:block;width:96px;height:96px}
+#brandLogo img.own{border-radius:20px;object-fit:cover}
+#brandLogo .mono{display:block;width:96px;height:96px;border-radius:20px;background:rgba(255,255,255,.12);
+  line-height:96px;text-align:center;font-size:44px;font-weight:600}
+.light #brandLogo .mono{background:rgba(17,24,39,.08)}
+#brandName{font-size:84px;font-weight:500;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#brandAbout{max-width:1000px;margin-top:30px;font-size:32px;line-height:1.35;color:#c3cad4}
+#brandAbout:empty{display:none}
+#brandHint{margin-top:26px;font-size:22px;color:#99a2af}
+.light #brandAbout{color:#374151}
+.light #brandHint{color:#5d6472}
 #shelfBody.cards{top:148px}
 #shelfBody.stats{top:188px}
 #shelfBody.fade{-webkit-animation:auror-fade .22s cubic-bezier(.2,.7,.2,1);animation:auror-fade .22s cubic-bezier(.2,.7,.2,1)}
@@ -154,6 +167,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .tile.app.focus img,.tile.app.focus .mono{background:#23272e !important;outline-color:#f5a000;box-shadow:0 22px 44px rgba(0,0,0,.6);
   -webkit-transform:translateY(-10px) scale(1.12);transform:translateY(-10px) scale(1.12)}
 .tile.app.focus .nm{opacity:1}
+/* With the app's name in the shelf above, it is not said again under its tile. */
+#stage:not(.arranging) #shelf.brand ~ #rowsView .tile.app.focus .nm{opacity:0}
 .arranging .tile.app.held{-webkit-transform:none !important;transform:none !important}
 .arranging .tile.app.held img,.arranging .tile.app.held .mono{outline-style:dashed;-webkit-transform:translateY(-18px) scale(1.12);transform:translateY(-18px) scale(1.12)}
 .light .app img,.light .app .mono{background:#fff !important;border-color:#e5e7eb}

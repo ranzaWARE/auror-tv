@@ -186,6 +186,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   <div id="scrim"></div>
 
   <section id="shelf">
+    <div id="shelfGlow"><img id="shelfMark" alt=""></div>
     <div id="topbar">
       <div id="when">
         <div id="clock">&mdash;</div>
@@ -214,12 +215,11 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         <div class="kick" id="shelfStatsKind">&mdash;</div>
         <div id="shelfStats"></div>
       </div>
-      <div class="sh-hero">
-        <div id="heroArt"></div>
-        <div class="hero-text">
-          <div class="kick" id="heroKind">&mdash;</div>
-          <div id="heroSub">&mdash;</div>
-        </div>
+      <div class="sh-brand">
+        <div class="kick" id="brandKind">&mdash;</div>
+        <div class="lockup"><span id="brandLogo"></span><span id="brandName">&mdash;</span></div>
+        <div id="brandAbout"></div>
+        <div id="brandHint">&mdash;</div>
       </div>
     </div>
     <div id="plate" class="none">
@@ -321,6 +321,66 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     [/paramount/i, 'paramount-plus'], [/vimeo/i, 'vimeo'], [/soundcloud/i, 'soundcloud'], [/rakuten/i, 'rakuten-tv'],
     [/^sky\b/i, 'sky'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser']
   ];
+  /*
+   * An app with nothing of its own to show gets its colours as a glow across
+   * the Top Shelf, its logo and name, and a line saying what it is, for
+   * someone on the sofa. The glow is the banner's two colours, or a brighter
+   * one where the banner is near black.
+   */
+  var BRAND_GLOW = {
+    'jellyfin': ['#AA5CC3', '#00A4DC'],
+    'youtube': ['#FF1A1A', '#C40000'],
+    'youtube-music': ['#FF2A2A', '#A8001C'],
+    'spotify': ['#1ED760', '#139A44'],
+    'netflix': ['#E50914', '#7A0010'],
+    'plex': ['#EBAF00', '#7A5A00'],
+    'kodi': ['#2BC0F0', '#0E7FB0'],
+    'twitch': ['#A970FF', '#6A2CD9'],
+    'apple-tv': ['#8E8E93', '#3A3A3C'],
+    'crunchyroll': ['#FF8A3D', '#F25C00'],
+    'emby': ['#62C55B', '#3A8A35'],
+    'tidal': ['#9AA0A6', '#3C4043'],
+    'deezer': ['#B65CFF', '#7B1FE0'],
+    'apple-music': ['#FB5C74', '#E3132D'],
+    'steam': ['#66C0F4', '#1B2838'],
+    'playstation': ['#1A86E8', '#003791'],
+    'dazn': ['#F7FF1A', '#4A5A10'],
+    'paramount-plus': ['#2F7DFF', '#0039B3'],
+    'vimeo': ['#3CC5F0', '#1391BB'],
+    'soundcloud': ['#FF7A1A', '#F24E00'],
+    'rakuten-tv': ['#D61A1A', '#8C0000'],
+    'sky': ['#1E73E8', '#C2185B'],
+    'glasshouse': ['#F5A000', '#B06400'],
+    'lg-home': ['#C2004A', '#6E0024'],
+    'browser': ['#3B82F6', '#1E40AF']
+  };
+  var APP_ABOUT = {
+    'browser': t('home.app.browser', 'The web on the big screen: sites, videos, recipes, timetables, whatever is needed in a hurry.'),
+    'jellyfin': t('home.app.jellyfin', 'The films, series and music on the server at home, ready to pick up where they were left.'),
+    'youtube': t('home.app.youtube', 'Videos of every kind, the channels followed, music and live streams.'),
+    'youtube-music': t('home.app.youtubeMusic', 'Albums, playlists and music videos, with the lyrics on screen.'),
+    'spotify': t('home.app.spotify', 'Music and podcasts: playlists, favourite artists and radio that never ends.'),
+    'netflix': t('home.app.netflix', 'Films, series and documentaries, Netflix’s own productions among them.'),
+    'plex': t('home.app.plex', 'The films and series on a Plex server, and free channels besides.'),
+    'kodi': t('home.app.kodi', 'The media centre: films, music and photos from discs and network folders.'),
+    'twitch': t('home.app.twitch', 'Live streams of games, music and talk, with the chat beside them.'),
+    'apple-tv': t('home.app.appleTv', 'Apple TV+ films and series, and the films bought or rented from Apple.'),
+    'crunchyroll': t('home.app.crunchyroll', 'Anime, many series shortly after they air in Japan.'),
+    'emby': t('home.app.emby', 'The films, series and music on the Emby server at home.'),
+    'tidal': t('home.app.tidal', 'Music in high quality: albums, playlists and videos.'),
+    'deezer': t('home.app.deezer', 'Music, playlists and podcasts, with Flow learning what is liked.'),
+    'apple-music': t('home.app.appleMusic', 'Apple Music’s songs, playlists and radio, with the lyrics as they are sung.'),
+    'steam': t('home.app.steam', 'The Steam games running on the PC, played here on the TV with a controller.'),
+    'playstation': t('home.app.playstation', 'Games and entertainment from PlayStation.'),
+    'dazn': t('home.app.dazn', 'Live and on-demand sport: football, motor racing, basketball and more.'),
+    'paramount-plus': t('home.app.paramountPlus', 'Paramount+ films and series, from the cinema to original shows.'),
+    'vimeo': t('home.app.vimeo', 'Videos from independent makers: short films, documentaries and more.'),
+    'soundcloud': t('home.app.soundcloud', 'Music from new artists, remixes and DJ sets.'),
+    'rakuten-tv': t('home.app.rakutenTv', 'Films and series to rent or buy, and free channels besides.'),
+    'sky': t('home.app.sky', 'Sky’s channels and programmes, streamed.'),
+    'glasshouse': t('home.app.glasshouse', 'The TV’s control room: its state, advanced settings and care for the OLED panel.'),
+    'lg-home': t('home.app.lgHome', 'LG’s own home screen, with every app and the TV’s settings.')
+  };
   // Brands Simple Icons leaves out, by their own colours.
   var BRAND_COLOURS = [
     [/prime ?video|amazon/i, '#1AB4F0', '#0067A8'], [/disney/i, '#1B4FD8', '#0B1F5C'], [/xbox/i, '#1DA31D', '#0B5C0B'],
@@ -459,15 +519,24 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     applyFocus(true);
   }
 
-  function bannerFor(a) {
+  // The banners' name for an app, or null.
+  function brandFile(a) {
     var own = a.id === DASHBOARD_APP || a.id === LG_HOME_TILE || a.id === 'com.webos.app.browser';
     var name = own ? a.id : a.title || a.id;
-    for (var i = 0; i < BANNERS.length; i++) if (BANNERS[i][0].test(name)) return '/assets/banners/' + BANNERS[i][1] + '.svg';
+    for (var i = 0; i < BANNERS.length; i++) if (BANNERS[i][0].test(name)) return BANNERS[i][1];
     return null;
+  }
+  function bannerFor(a) {
+    var file = brandFile(a);
+    return file ? '/assets/banners/' + file + '.svg' : null;
   }
 
   // The colour behind an app with no banner, as an inline style the skin's !important rules give way to.
   function tint(a) {
+    var c = tintColours(a);
+    return ' style="background:linear-gradient(135deg,' + c[0] + ',' + c[1] + ') !important"';
+  }
+  function tintColours(a) {
     var title = a.title || a.id, from = null, to = null;
     for (var i = 0; i < BRAND_COLOURS.length; i++) {
       if (BRAND_COLOURS[i][0].test(title)) { from = BRAND_COLOURS[i][1]; to = BRAND_COLOURS[i][2]; }
@@ -478,7 +547,16 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       from = 'hsl(' + h + ',62%,52%)';
       to = 'hsl(' + ((h + 28) % 360) + ',68%,32%)';
     }
-    return ' style="background:linear-gradient(135deg,' + from + ',' + to + ') !important"';
+    return [from, to];
+  }
+
+  // A colour, #rrggbb or hsl(), at an opacity: Chromium 38 has no #rrggbbaa.
+  function withAlpha(c, a) {
+    if (c.charAt(0) === '#') {
+      var n = parseInt(c.slice(1), 16);
+      return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    return c.replace(/^hsl\((.*)\)$/, 'hsla($1,' + a + ')');
   }
 
   // An app's banner, or its icon or initial on a colour: the tile, and the Top Shelf's picture of it.
@@ -618,21 +696,21 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (kind === 'app') {
       // An app with nothing of its own to show gets its picture, large, like tvOS's
       // static Top Shelf image: its name is already under its tile.
-      if (it.lg) return { mode: 'hero', art: appArt(it), kind: it.title, sub: t('home.shelf.lgHome', 'Back to LG’s Home') };
+      if (it.lg) return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.shelf.lgHome', 'Back to LG’s Home'));
       if (isJellyfin(it) && shelfOn('jellyfin')) {
         var jf = shelfData.jellyfin;
         if (jf && (jf.state === 'resume' || jf.state === 'latest')) {
           return { mode: 'cards', items: jf.items.slice(0, 3),
             kind: jf.state === 'resume' ? t('home.jf.resume', 'Jellyfin · Continue watching') : t('home.jf.latest', 'Jellyfin · Recently added') };
         }
-        if (jf && jf.state === 'offline') return { mode: 'hero', art: appArt(it), kind: it.title, sub: t('home.jf.offline', 'Server not reachable · Press OK to open the app') };
-        if (jf && jf.state === 'empty') return { mode: 'hero', art: appArt(it), kind: it.title, sub: t('home.jf.empty', 'Nothing new on the server · Press OK to open') };
+        if (jf && jf.state === 'offline') return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.jf.offline', 'Server not reachable · Press OK to open the app'));
+        if (jf && jf.state === 'empty') return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.jf.empty', 'Nothing new on the server · Press OK to open'));
       }
       if (it.id === DASHBOARD_APP && shelfOn('glasshouse') && shelfData.stats) {
         return { mode: 'stats', kind: t('home.stats.title', 'Glasshouse · The TV now'), stats: shelfData.stats };
       }
       var lastApp = lastOn.kind === 'app' && lastOn.appId === it.id;
-      return { mode: 'hero', art: appArt(it), kind: lastApp ? t('home.now.lastOpened', 'Last opened') : t('home.now.app', 'App on this TV'), sub: open };
+      return brandShelf(it, lastApp ? t('home.now.lastOpened', 'Last opened') : t('home.now.app', 'App on this TV'), open);
     }
     if (kind === 'dev') {
       var lastDev = lastOn.kind === 'input' && lastOn.port === it.port;
@@ -652,6 +730,32 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       sub: shows.length ? shows[0].title + ' · ' + hm(new Date(shows[0].start)) + '–' + hm(new Date(shows[0].end))
         : t('home.shelf.watch', 'Press OK to watch')
     };
+  }
+
+  function brandShelf(it, kind, hint) {
+    var file = brandFile(it);
+    return { mode: 'brand', theme: themeName, kind: kind, name: it.title, hint: hint, file: file,
+      about: file && APP_ABOUT[file] || '', glow: file && BRAND_GLOW[file] || tintColours(it),
+      icon: file ? null : it.icon, initial: it.lg ? 'LG' : String(it.title).charAt(0) };
+  }
+
+  // The glow changes only with the app's colours, so Jellyfin's news coming in does not flash it.
+  var glowShown = '';
+  function renderGlow(s) {
+    var glow = $('shelfGlow'), mark = $('shelfMark');
+    var key = s && s.mode === 'brand' ? s.glow.join() + s.file + s.theme : '';
+    if (key === glowShown) return;
+    glowShown = key;
+    if (!key) { glow.className = ''; return; }
+    var light = s.theme === 'light';
+    glow.style.backgroundImage =
+      'radial-gradient(ellipse 55% 95% at 16% 34%,' + withAlpha(s.glow[0], light ? 0.24 : 0.42) + ',' + withAlpha(s.glow[0], 0) + ' 72%),' +
+      'radial-gradient(ellipse 48% 85% at 86% 72%,' + withAlpha(s.glow[1], light ? 0.2 : 0.4) + ',' + withAlpha(s.glow[1], 0) + ' 72%)';
+    if (s.file) { mark.src = '/assets/banners/logo/' + s.file + (light ? '-ink' : '') + '.svg'; mark.style.display = ''; }
+    else mark.style.display = 'none';
+    glow.className = '';
+    void glow.offsetWidth;
+    glow.className = 'on';
   }
 
   function cardLine(c) {
@@ -689,15 +793,20 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     var sameMode = s && shelfShown && JSON.parse(shelfShown).mode === s.mode && s.mode === 'stats';
     shelfShown = key;
     var body = $('shelfBody');
+    renderGlow(s);
+    $('shelf').className = s && s.mode === 'brand' ? 'brand' : '';
     if (!s) { body.className = 'none'; return; }
     if (s.mode === 'title') {
       $('shelfKind').textContent = s.kind;
       $('shelfTitle').textContent = s.title;
       $('shelfSub').textContent = s.sub;
-    } else if (s.mode === 'hero') {
-      $('heroArt').innerHTML = s.art;
-      $('heroKind').textContent = s.kind;
-      $('heroSub').textContent = s.sub;
+    } else if (s.mode === 'brand') {
+      $('brandKind').textContent = s.kind;
+      $('brandLogo').innerHTML = s.file ? '<img src="/assets/banners/logo/' + s.file + (s.theme === 'light' ? '-ink' : '') + '.svg" alt="">'
+        : s.icon ? '<img class="own" src="' + esc(s.icon) + '" alt="">' : '<span class="mono">' + esc(s.initial) + '</span>';
+      $('brandName').textContent = s.name;
+      $('brandAbout').textContent = s.about;
+      $('brandHint').textContent = s.hint;
     } else if (s.mode === 'cards') {
       $('shelfCardsKind').textContent = s.kind;
       $('shelfCards').innerHTML = shelfHtml(s);
@@ -793,6 +902,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (cur.name === themeName) return;
     themeName = cur.name;
     stageClass();
+    renderShelf();
 
   }
 

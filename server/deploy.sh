@@ -92,6 +92,23 @@ assets/banners/plex.svg assets/banners/rakuten-tv.svg assets/banners/sky.svg \
 assets/banners/soundcloud.svg assets/banners/spotify.svg assets/banners/steam.svg \
 assets/banners/tidal.svg assets/banners/twitch.svg assets/banners/vimeo.svg \
 assets/banners/youtube-music.svg assets/banners/youtube.svg \
+assets/banners/logo/apple-music-ink.svg assets/banners/logo/apple-music.svg assets/banners/logo/apple-tv-ink.svg \
+assets/banners/logo/apple-tv.svg assets/banners/logo/browser-ink.svg assets/banners/logo/browser.svg \
+assets/banners/logo/crunchyroll-ink.svg assets/banners/logo/crunchyroll.svg assets/banners/logo/dazn-ink.svg \
+assets/banners/logo/dazn.svg assets/banners/logo/deezer-ink.svg assets/banners/logo/deezer.svg \
+assets/banners/logo/emby-ink.svg assets/banners/logo/emby.svg assets/banners/logo/glasshouse-ink.svg \
+assets/banners/logo/glasshouse.svg assets/banners/logo/jellyfin-ink.svg assets/banners/logo/jellyfin.svg \
+assets/banners/logo/kodi-ink.svg assets/banners/logo/kodi.svg assets/banners/logo/lg-home-ink.svg \
+assets/banners/logo/lg-home.svg assets/banners/logo/netflix-ink.svg assets/banners/logo/netflix.svg \
+assets/banners/logo/paramount-plus-ink.svg assets/banners/logo/paramount-plus.svg assets/banners/logo/playstation-ink.svg \
+assets/banners/logo/playstation.svg assets/banners/logo/plex-ink.svg assets/banners/logo/plex.svg \
+assets/banners/logo/rakuten-tv-ink.svg assets/banners/logo/rakuten-tv.svg assets/banners/logo/sky-ink.svg \
+assets/banners/logo/sky.svg assets/banners/logo/soundcloud-ink.svg assets/banners/logo/soundcloud.svg \
+assets/banners/logo/spotify-ink.svg assets/banners/logo/spotify.svg assets/banners/logo/steam-ink.svg \
+assets/banners/logo/steam.svg assets/banners/logo/tidal-ink.svg assets/banners/logo/tidal.svg \
+assets/banners/logo/twitch-ink.svg assets/banners/logo/twitch.svg assets/banners/logo/vimeo-ink.svg \
+assets/banners/logo/vimeo.svg assets/banners/logo/youtube-ink.svg assets/banners/logo/youtube-music-ink.svg \
+assets/banners/logo/youtube-music.svg assets/banners/logo/youtube.svg \
 lib/mqtt.js lib/ha.js lib/updater.js lib/fetch.js lib/repo.js lib/installer.js lib/privacy.js lib/devtools.js lib/oled.js lib/screensavers.js lib/telemetry.js \
 lib/apps.js lib/samrescan.js lib/children.js lib/luna.js lib/piccap.js lib/state.js lib/mqtt-state.js lib/notifications.js lib/screentime.js lib/services.js lib/preload.js lib/quickaccess.js lib/remotekeys.js lib/homescreen.js lib/homescreen-webos9.js lib/homescreen-webos10.js lib/say.js lib/controls.js lib/routes.js lib/lgsettings.js lib/game.js lib/topics.js lib/timers.js lib/util.js lib/names.js lib/prometheus.js lib/remotebuttons.js lib/remotebuttons.py lib/logs.js lib/syslog.js lib/ntp.js lib/power.js lib/history.js lib/sshkeys.js lib/remotebattery.js lib/backup.js lib/iconserver.js lib/home.js lib/home-picture.js lib/home-takeover.js lib/home-wallpapers.js lib/home-recent.js lib/home-recent-apps.js lib/home-jellyfin.js"
 
