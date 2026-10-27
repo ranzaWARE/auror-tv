@@ -319,7 +319,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     [/crunchyroll/i, 'crunchyroll'], [/emby/i, 'emby'], [/tidal/i, 'tidal'], [/deezer/i, 'deezer'],
     [/apple ?music/i, 'apple-music'], [/steam/i, 'steam'], [/playstation/i, 'playstation'], [/dazn/i, 'dazn'],
     [/paramount/i, 'paramount-plus'], [/vimeo/i, 'vimeo'], [/soundcloud/i, 'soundcloud'], [/rakuten/i, 'rakuten-tv'],
-    [/^sky\b/i, 'sky'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser']
+    [/^sky\b/i, 'sky'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser']
   ];
   /*
    * An app with nothing of its own to show gets its colours as a glow across
@@ -352,6 +352,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     'sky': ['#1E73E8', '#C2185B'],
     'glasshouse': ['#F5A000', '#B06400'],
     'lg-home': ['#C2004A', '#6E0024'],
+    'lg-channels': ['#E4003A', '#A50034'],
     'browser': ['#3B82F6', '#1E40AF']
   };
   var APP_ABOUT = {
@@ -379,7 +380,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     'rakuten-tv': t('home.app.rakutenTv', 'Films and series to rent or buy, and free channels besides.'),
     'sky': t('home.app.sky', 'Sky’s channels and programmes, streamed.'),
     'glasshouse': t('home.app.glasshouse', 'The TV’s control room: its state, advanced settings and care for the OLED panel.'),
-    'lg-home': t('home.app.lgHome', 'LG’s own home screen, with every app and the TV’s settings.')
+    'lg-home': t('home.app.lgHome', '“All hope abandon, ye who enter in.” Adverts, unasked-for suggestions and apps never opened.'),
+    'lg-channels': t('home.app.lgChannels', 'Free channels over the internet: films, news and series from years ago. The price is the adverts.')
   };
   // Brands Simple Icons leaves out, by their own colours.
   var BRAND_COLOURS = [
