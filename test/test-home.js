@@ -339,6 +339,25 @@ step('LG\'s notifications and search start hidden, once, and stay as arranged af
   });
 });
 
+step('streaming apps start hidden the first time they are seen, and stay as arranged after', function (done) {
+  start(null);
+  home.catalogue(function () {
+    assert.ok(home.layout().hidden.app.indexOf('netflix') !== -1, 'Netflix is hidden when first seen');
+    assert.ok(home.layout().hidden.app.indexOf('youtube.leanback.v4') === -1, 'YouTube is not');
+    home.setLayout({ hidden: { app: [] } }, function () {
+      home.catalogue(function () {
+        assert.ok(home.layout().hidden.app.indexOf('netflix') === -1, 'shown by hand, it stays shown');
+        home.setLayout({ reset: true }, function () {
+          home.catalogue(function () {
+            assert.ok(home.layout().hidden.app.indexOf('netflix') !== -1, 'a reset hides it again');
+            done();
+          });
+        });
+      });
+    });
+  });
+});
+
 step('the view\'s look is kept apart from the layout, and survives a layout save', function (done) {
   start(null);
   assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } });

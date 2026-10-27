@@ -34,7 +34,7 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 
     ---
 
-    Every app from LG's launcher. LG's promotional tiles (LG Channels, Sports, Always Ready, Alexa, Camera) and LG's **Notifications** and **Search** start hidden, and apps hidden under [Hide home screen system apps](apps.md) stay hidden here. An always-present **LG Home** tile comes at the end.
+    Every app from LG's launcher. LG's promotional tiles (LG Channels, Sports, Always Ready, Alexa, Camera) LG's **Notifications** and **Search**, and Netflix, Prime Video, Disney+, DAZN and NOW start hidden (each the first time it is seen, so one shown again stays shown), and apps hidden under [Hide home screen system apps](apps.md) stay hidden here. An always-present **LG Home** tile comes at the end.
 
 -   **Inputs & HDMI-CEC devices**
 

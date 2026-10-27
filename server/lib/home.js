@@ -53,6 +53,12 @@ var TILE_OPEN_MS = 15000;
  */
 var PROMO_APPS = ['com.webos.app.lgchannels', 'com.webos.app.sportsteamsettings',
   'com.webos.app.lifeonscreen', 'amazon.alexa.view', 'com.webos.app.camera'];
+/*
+ * Paid streaming services and LG Channels, preinstalled or installed for
+ * someone else: hidden the first time each is seen, then as arranged. Known
+ * by name, since each region's store lists them under its own ids.
+ */
+var STREAMING_TITLES = /^(netflix|(amazon )?prime video|disney ?(\+|plus)|dazn|now( tv)?|lg channels)$/i;
 // The view's own way back to LG's Home: last in the Apps row, and never hidden.
 var LG_HOME_TILE = 'lg-home';
 /*
@@ -206,6 +212,8 @@ function defaults() {
     // Set once LG's notifications and search have started hidden: a file from
     // before they did gets them hidden once, and they stay as arranged after.
     sidebarHidden: true,
+    // The streaming apps already hidden once, so one shown by hand stays shown.
+    streamingSeen: [],
     channels: [],
     hintSeen: false,
     // The plate describing the picture of what was last on: detail many
@@ -276,6 +284,7 @@ function normalise(raw) {
   if (raw.sidebarHidden !== true) {
     sidebarIds().forEach(function (id) { if (d.hidden.app.indexOf(id) === -1) d.hidden.app.push(id); });
   }
+  d.streamingSeen = stringList(raw.streamingSeen);
   if (typeof raw.hideLgHomeAtStart === 'boolean') d.hideLgHomeAtStart = raw.hideLgHomeAtStart;
   if (typeof raw.lgAutoLaunch === 'string' && raw.lgAutoLaunch) d.lgAutoLaunch = raw.lgAutoLaunch;
   if (typeof raw.lgAutoLaunchCheck === 'string' && raw.lgAutoLaunchCheck) d.lgAutoLaunchCheck = raw.lgAutoLaunchCheck;
@@ -371,6 +380,7 @@ function setLayout(body, cb) {
     lgAutoLaunch: c.lgAutoLaunch,
     lgAutoLaunchCheck: c.lgAutoLaunchCheck,
     sidebarHidden: true,
+    streamingSeen: c.streamingSeen,
     look: c.look,
     rows: body.rows !== undefined ? body.rows : c.rows,
     order: perRow(body.order, c.order),
@@ -390,6 +400,7 @@ function setLayout(body, cb) {
     next.order = d.order;
     next.sort = d.sort;
     next.hidden = d.hidden;
+    next.streamingSeen = d.streamingSeen;
   }
   config = next;
   if (!saveConfig()) {
@@ -575,6 +586,7 @@ function rows(cb) {
     devices(function (devs) {
       channelList(function (chans) {
         var appList = byUse(apps || []);
+        hideStreamingOnce(c, appList);
         var appIds = appList.map(function (a) { return a.id; }).concat([LG_HOME_TILE]);
         var devIds = (devs || []).map(function (d) { return d.id; });
         var picked = [];
@@ -598,6 +610,16 @@ function rows(cb) {
       });
     });
   });
+}
+
+function hideStreamingOnce(c, apps) {
+  var fresh = apps.filter(function (a) { return STREAMING_TITLES.test(a.title) && c.streamingSeen.indexOf(a.id) === -1; });
+  if (!fresh.length) return;
+  fresh.forEach(function (a) {
+    c.streamingSeen.push(a.id);
+    if (c.hidden.app.indexOf(a.id) === -1) c.hidden.app.push(a.id);
+  });
+  saveConfig();
 }
 
 /*
