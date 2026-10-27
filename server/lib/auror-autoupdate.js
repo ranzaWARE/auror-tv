@@ -58,6 +58,26 @@ function status() {
   return { auto: autoOn(), installed: s.installed || null, latest: s.latest || null, available: !!s.available };
 }
 
+/*
+ * From Home's settings: GitHub asked now, and a newer release installed at
+ * once, whatever the hour. The server restarts once it is in, which the view
+ * rides out as it does any restart.
+ */
+function updateNow(cb) {
+  if (!updater) return cb({ ok: false, error: 'no updater' });
+  if (updater.isBusy()) return cb({ ok: false, error: msg('srv.update.busy', 'an update is already running') });
+  updater.checkForUpdate(true, function (err, summary) {
+    if (err) return cb({ ok: false, error: err.message, update: status() });
+    if (!summary || !summary.available) return cb({ ok: true, installing: false, update: status() });
+    log('update: installing v' + summary.latest + ' from Home\'s settings');
+    control('update', null, function (r) {
+      if (!r || !r.ok) return cb({ ok: false, error: (r && r.error) || 'the install failed', update: status() });
+      failedAt = 0;
+      cb({ ok: true, installing: true, version: summary.latest, update: status() });
+    });
+  });
+}
+
 function setAuto(on, cb) {
   if (!writeSettings) return cb({ ok: false, error: 'no writeSettings handler configured' });
   writeSettings({ update: { auto: on } }, function (err) {
@@ -103,5 +123,6 @@ module.exports = {
   tick: tick,
   status: status,
   setAuto: setAuto,
+  updateNow: updateNow,
   autoOn: autoOn
 };

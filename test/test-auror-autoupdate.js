@@ -92,6 +92,25 @@ step('the view\'s switch is kept in config.json', function () {
   assert.strictEqual(reply.update.latest, '0.122.201');
 });
 
+step('Update now installs a newer release at once, by day with the TV on', function () {
+  reset();
+  var reply;
+  auto.updateNow(function (r) { reply = r; });
+  assert.strictEqual(installs, 1);
+  assert.strictEqual(reply.installing, true);
+  assert.strictEqual(reply.version, '0.122.201');
+});
+
+step('Update now with nothing newer says so and installs nothing', function () {
+  reset();
+  summary.available = false;
+  var reply;
+  auto.updateNow(function (r) { reply = r; });
+  assert.strictEqual(installs, 0);
+  assert.strictEqual(reply.ok, true);
+  assert.strictEqual(reply.installing, false);
+});
+
 steps.forEach(function (s) {
   s[1]();
   console.log('  ✓ ' + s[0]);

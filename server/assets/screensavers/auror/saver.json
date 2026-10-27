@@ -7,9 +7,9 @@
     "it": "AUROR"
   },
   "description": {
-    "en": "Glasshouse Home's clock, dimmed on black and wandering slowly, with Mimus and Quetza now and then.",
-    "es": "El reloj de Glasshouse Home, atenuado sobre negro y moviéndose despacio, con Mimus y Quetza de vez en cuando.",
-    "it": "L’orologio della Glasshouse Home, attenuato su nero e che vaga piano, con Mimus e Quetza ogni tanto."
+    "en": "Black, for the OLED panel: Mimus asleep in the middle with the time beneath him, drifting a little.",
+    "es": "Negro, para el panel OLED: Mimus dormido en el centro con la hora debajo, moviéndose un poco.",
+    "it": "Nero, per il pannello OLED: Mimus che dorme al centro con l’ora sotto, che si sposta appena."
   },
   "license": "MIT",
   "uses": [

@@ -893,7 +893,8 @@ async function visitHomeOrder(browser, base, problems) {
   await page.route('**/api/home**', async route => {
     const pathname = new URL(route.request().url()).pathname;
     // The server sends a Last opened row in that order: here, YouTube was opened last.
-    const order = { app: layout.sort.app === 'recent' ? ['two', 'one', 'lg-home'] : ['one', 'two', 'lg-home'], dev: [], ch: [] };
+    // AUROR's view switches a row to Most used, which orders it here as Last opened would.
+    const order = { app: layout.sort.app !== 'custom' ? ['two', 'one', 'lg-home'] : ['one', 'two', 'lg-home'], dev: [], ch: [] };
     const catalogue = { ok: true, apps: [{ id: 'one', title: 'One' }, { id: 'two', title: 'Two' }], devices: [], channels: [],
       sources: { channels: 0 }, order, layout };
     let body = { ok: true };
@@ -944,7 +945,7 @@ async function visitHomeOrder(browser, base, problems) {
     releaseCatalogue();
     await saved;
     await page.waitForTimeout(200);
-    if (!saves.length || !saves[0].sort || saves[0].sort.app !== 'recent') problems.push('Home order: the Apps row\'s Order did not save Last opened');
+    if (!saves.length || !saves[0].sort || ['recent', 'use'].indexOf(saves[0].sort.app) === -1) problems.push('Home order: the Apps row\'s Order did not save Last opened');
     if (await appTiles() !== 'Two,One,LG Home') problems.push('Home order: arranging did not show the row in last opened order');
     // Picking a tile up keeps the order shown, now the row's own.
     await page.keyboard.press('ArrowRight');
@@ -1350,8 +1351,10 @@ async function visitHomeSearch(browser, base, problems) {
   });
   const result = title => ({ ok: true, elsewhere: 0,
     results: [{ id: title, title, kind: 'film', apps: [{ id: 'amazon', title: 'Prime Video' }] }] });
+  // AUROR's view has Search over the Top Shelf, up from the rows, where Glasshouse's has a rail at their left.
+  const towardSearch = async () => page.keyboard.press(await page.locator('#btnSearch').count() ? 'ArrowUp' : 'ArrowLeft');
   const enterSearch = async () => {
-    await page.keyboard.press('ArrowLeft');
+    await towardSearch();
     await page.keyboard.press('Enter');
     await page.waitForSelector('#stage.typing');
   };
@@ -1421,7 +1424,7 @@ async function visitHomeSearch(browser, base, problems) {
     layout.search = false;
     await page.evaluate(() => document.dispatchEvent(new Event('webOSRelaunch')));
     await page.waitForSelector('#stage.no-search');
-    await page.keyboard.press('ArrowLeft');
+    await towardSearch();
     await page.keyboard.press('Enter');
     if (await page.locator('#stage.finding').count()) problems.push('Home search: the disabled rail opened the panel');
   } finally { await page.close(); }

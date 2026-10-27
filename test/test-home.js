@@ -485,6 +485,32 @@ step('a refused device tile leaves the next remote input switch recorded', funct
   });
 });
 
+step('a row set to Most used puts the tile opened most first, and forgets once back in its own order', function (done) {
+  clock = 1000;
+  start({ enabled: true, order: { app: ['cdp-30', 'youtube.leanback.v4', 'netflix'] } }, { now: function () { return clock; } });
+  home.setLayout({ sort: { app: 'use' } }, function (r) {
+    assert.strictEqual(r.layout.sort.app, 'use');
+    at('netflix'); at(LG_HOME);
+    at('youtube.leanback.v4'); at(LG_HOME);
+    at('youtube.leanback.v4'); at(LG_HOME);
+    home.catalogue(function (c) {
+      assert.deepEqual(c.order.app, ['youtube.leanback.v4', 'netflix', 'cdp-30', 'lg-home'], 'most opened first, never opened in the row\'s order, LG Home last');
+      // Three weeks on, YouTube's two opens count as one: a fresh one for Netflix puts it level, and ahead by the row's order.
+      clock += 21 * 24 * 3600000;
+      at('netflix'); at(LG_HOME);
+      home.catalogue(function (c2) {
+        assert.deepEqual(c2.order.app.slice(0, 2), ['netflix', 'youtube.leanback.v4'], 'old opens count for less');
+        home.flush();
+        assert.ok(fs.existsSync(path.join(dir, 'home-use.json')));
+        home.setLayout({ sort: { app: 'custom' } }, function () {
+          assert.ok(!fs.existsSync(path.join(dir, 'home-use.json')), 'a row back in its own order forgets its use');
+          done();
+        });
+      });
+    });
+  });
+});
+
 step('Last opened records nothing while Glasshouse Home is off', function (done) {
   start({ enabled: false, sort: { app: 'recent' } });
   foreground('netflix');

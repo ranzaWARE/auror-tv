@@ -292,7 +292,7 @@ function renderHomeRows() {
   box.innerHTML = homeLayout.rows.map((kind, ri) => {
     const order = homeCat.order[kind] || [];
     // A Last opened row is in the order the server sends; moving a tile means choosing Your order first.
-    const recent = homeSort(kind) === 'recent';
+    const recent = homeSort(kind) !== 'custom';
     const movable = usable && !recent;
     const tiles = order.map((id, i) => {
       const it = homeItem(kind, id);
@@ -339,7 +339,10 @@ function homeUnusedRow(usable) {
   </div>`;
 }
 
-function homeSort(kind) { return homeLayout.sort && homeLayout.sort[kind] === 'recent' ? 'recent' : 'custom'; }
+function homeSort(kind) {
+  const s = homeLayout.sort && homeLayout.sort[kind];
+  return s === 'recent' || s === 'use' ? s : 'custom';
+}
 
 function homeSortRow(kind, usable) {
   const sort = homeSort(kind);
@@ -347,10 +350,13 @@ function homeSortRow(kind, usable) {
     <div class="prot-main"><div class="prot-title"><label for="home-sort-${kind}">${esc(t('home.sort', 'Order'))}</label></div>
       <div class="prot-desc">${esc(sort === 'recent'
         ? t('home.sortRecentDesc', 'The tile opened last comes first, whether it was opened from Glasshouse Home or not. Tiles not yet opened follow in this row’s own order.')
+        : sort === 'use'
+        ? t('home.sortUseDesc', 'The tiles opened most come first, whether opened from Glasshouse Home or not, with old opens counting for less and less. Tiles not yet opened follow in this row’s own order.')
         : t('home.sortCustomDesc', 'As arranged here, or by holding OK on Glasshouse Home.'))}</div></div>
     <div class="prot-status"><select id="home-sort-${kind}" class="pill-sel" ${usable ? '' : 'disabled'} onchange="homeSetSort('${kind}', this.value)">
       <option value="custom"${sort === 'custom' ? ' selected' : ''}>${esc(t('home.sortCustom', 'Your order'))}</option>
       <option value="recent"${sort === 'recent' ? ' selected' : ''}>${esc(t('home.sortRecent', 'Last opened'))}</option>
+      <option value="use"${sort === 'use' ? ' selected' : ''}>${esc(t('home.sortUse', 'Most used'))}</option>
     </select></div></div>`;
 }
 

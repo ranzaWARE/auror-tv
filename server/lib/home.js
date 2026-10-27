@@ -34,6 +34,7 @@ var wallpapers = require('./home-wallpapers');
 var jellyfin = require('./home-jellyfin');
 var takeover = require('./home-takeover');
 var recent = require('./home-recent');
+var use = require('./home-use');
 var recentApps = require('./home-recent-apps');
 var search = require('./home-search');
 
@@ -44,8 +45,8 @@ var LIVE_TV = 'com.webos.app.livetv';
 var SETTINGS = 'com.webos.service.settings/';
 
 var ROWS = ['app', 'dev', 'ch'];
-// How a row is ordered: as arranged ('custom'), or the tile opened last first ('recent').
-var SORTS = ['custom', 'recent'];
+// How a row is ordered: as arranged ('custom'), the tile opened last first ('recent'), or the most used first ('use').
+var SORTS = ['custom', 'recent', 'use'];
 var SHOW_KEYS = ['showLastOn', 'showAppCount', 'showCec'];
 // An input opened from its tile is recorded as that device, not as the whole input.
 var TILE_OPEN_MS = 15000;
@@ -470,7 +471,10 @@ function setLayout(body, cb) {
   }
   if (c.picture !== config.picture) pictureDetailsFn(config.picture);
   // A row back in its own order keeps no record of what was opened.
-  ROWS.forEach(function (r) { if (config.sort[r] !== 'recent') recent.forget(r); });
+  ROWS.forEach(function (r) {
+    if (config.sort[r] !== 'recent') recent.forget(r);
+    if (config.sort[r] !== 'use') use.forget(r);
+  });
   cb({ ok: true, layout: layoutOf(config), layoutVersion: layoutVersion() });
 }
 
@@ -662,7 +666,10 @@ function rows(cb) {
           dev: ordered(c.order.dev, devIds),
           ch: picked.map(function (p) { return p.id; })
         };
-        ROWS.forEach(function (r) { if (c.sort[r] === 'recent') order[r] = lastOpenedFirst(r, order[r]); });
+        ROWS.forEach(function (r) {
+          if (c.sort[r] === 'recent') order[r] = lastOpenedFirst(r, order[r]);
+          else if (c.sort[r] === 'use') order[r] = mostUsedFirst(r, order[r]);
+        });
         cb({
           apps: appList.map(function (a) {
             var app = { id: a.id, title: a.title, icon: a.icon ? '/api/home/icon?id=' + encodeURIComponent(a.id) : null };
@@ -695,8 +702,12 @@ function hideStreamingOnce(c, apps) {
  * stays last. An input opened from the TV rather than from its tile counts
  * for every device on it.
  */
-function lastOpenedFirst(row, ids) {
-  var times = recent.of(row);
+function lastOpenedFirst(row, ids) { return byWeight(row, ids, recent.of(row)); }
+
+// The same, by how much each was used: opens, counting less as they age.
+function mostUsedFirst(row, ids) { return byWeight(row, ids, use.of(row)); }
+
+function byWeight(row, ids, times) {
   var timeOf = function (id) {
     var t = times[id] || 0;
     if (row === 'dev') t = Math.max(t, times[id.split(':')[0]] || 0);
@@ -710,10 +721,11 @@ function lastOpenedFirst(row, ids) {
   return sorted;
 }
 
-// Recorded only for a row set to Last opened, and only while Glasshouse Home is on.
+// Recorded only for a row set to Last opened or Most used, and only while Glasshouse Home is on.
 function noteOpened(row, id) {
   var c = readConfig();
   if (c.enabled && c.sort[row] === 'recent') recent.stamp(row, id);
+  if (c.enabled && c.sort[row] === 'use') use.count(row, id);
 }
 
 /*
@@ -742,7 +754,7 @@ function noteForeground(was, id) {
 function noteLiveChannel(cb) {
   if (channelReading) return channelReading.push(cb);
   var c = readConfig();
-  if (!c.enabled || c.sort.ch !== 'recent') return cb();
+  if (!c.enabled || (c.sort.ch !== 'recent' && c.sort.ch !== 'use')) return cb();
   channelReading = [cb];
   luna('com.webos.service.utp.boot/getLastChannelId', {}, function (r) {
     if (r && typeof r.channelId === 'string') noteOpened('ch', r.channelId);
@@ -1694,6 +1706,7 @@ function init(opts) {
   wallpapers.init(stateDir);
   jellyfin.init(stateDir, opts.now);
   recent.init(stateDir, opts.now);
+  use.init(stateDir, opts.now);
   recentApps.init({ luna: lunaFn });
   search.init({ luna: lunaFn, Subscription: opts.Subscription, apps: launchPoints,
     opened: function (id) { noteOpened('app', id); }, enabled: function () { return readConfig().search; },
@@ -1826,6 +1839,7 @@ function stop() {
   holdTimer = null;
   homeKeysFn(false);
   recent.flush();
+  use.flush();
 }
 
 module.exports = {
@@ -1834,7 +1848,7 @@ module.exports = {
   start: start,
   stop: stop,
   // What was opened, written now rather than after its short delay, as the server stops.
-  flush: recent.flush,
+  flush: function () { recent.flush(); use.flush(); },
   status: status,
   catalogue: catalogue,
   channelList: channelList,
