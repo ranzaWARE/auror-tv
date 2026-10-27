@@ -1149,6 +1149,7 @@ function handleHomeRoute(req, res, u, pathname) {
           // For the view's own settings.
           c.jellyfin = homeModule.jellyfin.status();
           c.tmdb = homeModule.search.status();
+          c.immich = homeModule.immich.status();
           c.update = aurorUpdate.status();
           c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
             available: !screensaversModule.heldBack() } : null;
@@ -1183,6 +1184,12 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/photo') return sendPhoto(req, res, u);
     if (pathname === '/api/home/gallery') return reply(homeModule.gallery.status());
+    // Immich (lib/auror-immich): what the view shows, through this server with the key added.
+    if (pathname === '/api/home/immich/status') return reply(homeModule.immich.status());
+    if (pathname === '/api/home/immich/albums') return homeModule.immich.albums(reply);
+    if (pathname === '/api/home/immich/album') return homeModule.immich.album(String(u.query && u.query.id || ''), reply);
+    if (pathname === '/api/home/immich/thumb') return homeModule.immich.thumb(u.query || {}, res);
+    if (pathname === '/api/home/immich/video') return homeModule.immich.video(u.query || {}, req, res);
     if (pathname === '/api/home/recents') return homeModule.recentApps.list(reply);
     if (pathname === '/api/home/recents/image') {
       var snapshot = homeModule.recentApps.imagePath(u.query && u.query.id);
@@ -1249,6 +1256,8 @@ function handleHomeRoute(req, res, u, pathname) {
         return reply(galleryNow);
       }
       if (pathname === '/api/home/gallery/pair') return reply(homeModule.gallery.pair(lanOrigin()));
+      if (pathname === '/api/home/immich/pair') return reply(homeModule.immich.pair(lanOrigin()));
+      if (pathname === '/api/home/immich/forget') return homeModule.immich.forget(reply);
       if (pathname === '/api/home/recents') {
         var recentApps = homeModule.recentApps, recentId = body && typeof body.id === 'string' ? body.id : '';
         if (body && body.action === 'open') return recentApps.open(recentId, reply);
@@ -1327,6 +1336,24 @@ function handlePhotosPhone(req, res, u, pathname) {
       if (pathname === '/photos/remove') return answer(gallery.remove(body.id));
       if (pathname === '/photos/use') return answer(gallery.setSettings({ mode: 'one', photo: body.id }));
       answer(gallery.setSettings({ mode: body.mode, every: body.every }));
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+// The phone's page for Immich's address and key (lib/auror-immich), as for Jellyfin.
+function handleImmichPhone(req, res, pathname) {
+  if (pathname === '/immich' && req.method === 'GET') {
+    var page = assetPath('immich-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (pathname === '/immich/link' && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      homeModule.immich.link(body, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
     });
   }
   send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
@@ -1417,10 +1444,11 @@ function handleRequest(req, res) {
     }));
   }
 
-  // Jellyfin, TMDB and AUROR's photos from a phone: the one-time code in the TV's QR code stands in for the token.
+  // Jellyfin, TMDB, Immich and AUROR's photos from a phone: the one-time code in the TV's QR code stands in for the token.
   if ((pathname === '/jellyfin' || pathname === '/jellyfin/link') && homeModule) return handleJellyfinPhone(req, res, u, pathname);
   if ((pathname === '/tmdb' || pathname === '/tmdb/link') && homeModule) return handleTmdbPhone(req, res, pathname);
   if ((pathname === '/photos' || pathname.indexOf('/photos/') === 0) && homeModule) return handlePhotosPhone(req, res, u, pathname);
+  if ((pathname === '/immich' || pathname === '/immich/link') && homeModule) return handleImmichPhone(req, res, pathname);
 
   if (pathname.indexOf('/api/') === 0 && !authed(u.query, req)) {
     return send(res, 401, JSON.stringify({ ok: false, error: 'bad or missing token' }));

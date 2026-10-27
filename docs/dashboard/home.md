@@ -35,6 +35,7 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 * **Backgrounds**: photos behind Home, one of them or all in turn, added from a phone or computer (see [Backgrounds](#backgrounds)).
 * **Search**: the switch, and TMDB's key, linked from a phone by a QR code (see [Search](#search)).
 * **Jellyfin**: the server and user linked, and a QR code. Scanned with a phone on the same network, it opens a page for the server's address and an API key (Jellyfin's **Dashboard › API Keys**), so neither is typed with the remote. The code lasts ten minutes and links once; the details are tried before they are kept, and the key is kept on the TV only, in `/var/lib/tvweb/jellyfin.json`.
+* **Immich**: the server and user linked, and a QR code, as for Jellyfin (see [Immich](#immich)).
 * **SSH**: the Homebrew Channel's SSH server, on or off. Switched on, it starts at once and at every start of the TV, as the Homebrew Channel's own setting; off, it stops, ending the sessions open. The rows say whether it is listening on port 22, whether a key or the root password lets in (the Homebrew Channel's `alpine` until changed, while there are no keys) and the address to connect to.
 * **Glasshouse**: AUROR's automatic updates, **Update now**, which asks for AUROR's latest release and installs it at once, the version installed, and Glasshouse's TV app, for everything else.
 
@@ -108,6 +109,12 @@ When switched on, in **Settings › Search** on the TV or under **Home** on the 
 Each title says where it is to watch in Italy. Those in the Jellyfin library come first, with Jellyfin to open them; the others follow with the apps on this TV that stream them (Netflix, Prime Video, Disney+, NOW and the like, hidden or not), then the services that stream it with no app here (**Also on**), and those that rent or sell it. A title on no service in Italy is counted, not listed. OK opens the app chosen at its start: TMDB knows where a title is, not its address in the app. The titles and where they are come from TMDB, which has the services from [JustWatch](https://www.justwatch.com); this product uses the TMDB API but is not endorsed or certified by TMDB.
 
 TMDB needs an API key, free from themoviedb.org (**Settings › API**). **Settings › Search** on the TV shows a QR code: scanned with a phone on the same network, it opens a page that says how to get the key and takes it. The key is tried before it is kept, on the TV only, in `/var/lib/tvweb/tmdb.json`. Without it, only Jellyfin is searched.
+
+## Immich
+
+Once an [Immich](https://immich.app) server is linked, an **Immich** tile joins the Apps row, arranged, hidden or put in More apps like any app. **OK** opens the albums the key can read, owned or shared, the one added to last first, four to a line with their covers. **OK** on an album shows its photos and videos, six to a line, and **OK** on one shows it full screen: **Left** and **Right** go through the album, **OK** plays a video or starts and stops a slideshow of a photo every six seconds, and the date and place show for a few seconds after each change. **Back** goes back a step at a time.
+
+**Settings › Immich** on the TV shows a QR code: scanned with a phone on the same network, it opens a page for the server's address (its port is usually 2283) and an API key, made in Immich under **Account settings › API keys** with `album.read`, `asset.read` and `asset.view`. The key is tried on the albums before it is kept, on the TV only, in `/var/lib/tvweb/immich.json`; the view never has it, as the server passes the pictures and videos on with the key added. Albums come from the timeline on current Immich releases, and with the album itself from Immich 1.
 
 ## Backgrounds
 
