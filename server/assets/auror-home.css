@@ -30,7 +30,9 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 
 #topbar{position:absolute;top:56px;right:120px;display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start}
 #when{width:auto !important;margin-right:28px;text-align:right}
-#clock{font-size:40px !important;line-height:1.15 !important;font-weight:400 !important;letter-spacing:-1px !important}
+/* Figures of one width, so the clock keeps its place as the minutes change. */
+#clock{font-size:40px !important;line-height:1.15 !important;font-weight:400 !important;letter-spacing:-1px !important;
+  -webkit-font-feature-settings:"tnum";font-feature-settings:"tnum"}
 #date{font-size:20px !important;color:#99a2af !important;margin-top:2px !important}
 #themeNote{font-family:"Space Mono",monospace;font-size:15px;color:#99a2af;margin-top:6px}
 #themeNote:empty{display:none}
