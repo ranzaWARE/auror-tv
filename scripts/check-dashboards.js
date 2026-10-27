@@ -471,7 +471,8 @@ async function visitHomeMotion(browser, base, problems) {
       })();
     });
     let at = await mark();
-    await page.mouse.move(1880, rowY);
+    // At the screen's very side: AUROR's rows run to it, so 1880 is still inside their end.
+    await page.mouse.move(1915, rowY);
     await page.waitForTimeout(400);
     let d = await steps(at);
     if (d.length < 3) problems.push('Home motion: a flick to the screen\'s side did not glide the row');
