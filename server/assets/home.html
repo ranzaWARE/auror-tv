@@ -319,7 +319,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     [/crunchyroll/i, 'crunchyroll'], [/emby/i, 'emby'], [/tidal/i, 'tidal'], [/deezer/i, 'deezer'],
     [/apple ?music/i, 'apple-music'], [/steam/i, 'steam'], [/playstation/i, 'playstation'], [/dazn/i, 'dazn'],
     [/paramount/i, 'paramount-plus'], [/vimeo/i, 'vimeo'], [/soundcloud/i, 'soundcloud'], [/rakuten/i, 'rakuten-tv'],
-    [/^sky\b/i, 'sky'], [/^now( tv)?$/i, 'now'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser']
+    [/^sky\b/i, 'sky'], [/^now( tv)?$/i, 'now'], [/prime ?video|amazon/i, 'prime-video'], [/disney/i, 'disney-plus'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser']
   ];
   /*
    * An app with nothing of its own to show gets its colours as a glow across
@@ -354,6 +354,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     'lg-home': ['#C2004A', '#6E0024'],
     'lg-channels': ['#E4003A', '#A50034'],
     'now': ['#8E9AA6', '#2B3138'],
+    'prime-video': ['#1AB4F0', '#0067A8'],
+    'disney-plus': ['#2A6BFF', '#0B1F5C'],
     'browser': ['#3B82F6', '#1E40AF']
   };
   var APP_ABOUT = {
@@ -389,7 +391,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   };
   // Brands Simple Icons leaves out, by their own colours.
   var BRAND_COLOURS = [
-    [/prime ?video|amazon/i, '#1AB4F0', '#0067A8'], [/disney/i, '#1B4FD8', '#0B1F5C'], [/xbox/i, '#1DA31D', '#0B5C0B'],
+    [/xbox/i, '#1DA31D', '#0B5C0B'],
     [/rai ?play/i, '#1A6FE0', '#0A2E73'], [/mediaset|infinity/i, '#2F62D9', '#172F72']
   ];
   var build = null;
@@ -533,13 +535,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     return null;
   }
   // Logos that are the name written out, shown in place of it.
-  var WORDMARKS = ['now'];
-  // Brands with no logo among the banners: their own icon, with their line.
-  var ICONLESS = [[/prime ?video|amazon/i, 'prime-video'], [/disney/i, 'disney-plus']];
-  function iconlessBrand(a) {
-    for (var i = 0; i < ICONLESS.length; i++) if (ICONLESS[i][0].test(a.title || a.id)) return ICONLESS[i][1];
-    return null;
-  }
+  var WORDMARKS = ['now', 'prime-video'];
   function bannerFor(a) {
     var file = brandFile(a);
     return file ? '/assets/banners/' + file + '.svg' : null;
@@ -747,9 +743,9 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   }
 
   function brandShelf(it, kind, hint) {
-    var file = brandFile(it), brand = file || iconlessBrand(it);
+    var file = brandFile(it);
     return { mode: 'brand', theme: themeName, kind: kind, name: it.title, hint: hint, file: file,
-      about: brand && APP_ABOUT[brand] || '', glow: file && BRAND_GLOW[file] || tintColours(it),
+      about: file && APP_ABOUT[file] || '', glow: file && BRAND_GLOW[file] || tintColours(it),
       icon: file ? null : it.icon, initial: it.lg ? 'LG' : String(it.title).charAt(0) };
   }
 
