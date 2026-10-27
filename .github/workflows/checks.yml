@@ -45,7 +45,7 @@ jobs:
 
       # An entity that goes or is renamed breaks the automations that used it.
       - name: no Home Assistant entity from the last release gone without a reason
-        run: ./scripts/check-entity-stability.py
+        run: git fetch -q --no-tags https://github.com/rorygallagher2024/glasshouse.git '+refs/tags/v*:refs/tags/v*' && ./scripts/check-entity-stability.py
 
       # Preinstalled on ubuntu-latest.
       - name: shell scripts
