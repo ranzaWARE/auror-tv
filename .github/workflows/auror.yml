@@ -1,0 +1,107 @@
+# AUROR's releases, which the TVs install on their own
+# (server/lib/auror-autoupdate.js). Every morning Glasshouse's latest release
+# is merged into main: when it merges clean and every check passes, main
+# moves on and an AUROR release is published; when it does not, a pull request
+# is opened to merge it by hand. A push to main that changes the server gets
+# a release too. scripts/auror-release.py has the version rules.
+name: AUROR releases
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# One at a time, so two runs cannot both push main or tag one version.
+concurrency:
+  group: auror-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # GitHub's own token cannot push a commit that changes a workflow, which
+      # a Glasshouse release often does: the AUROR_TOKEN secret, a token with
+      # Contents, Pull requests and Workflows write on this repository, can.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0   # the tags, for the next version and the entity check
+          token: ${{ secrets.AUROR_TOKEN || github.token }}
+
+      - name: git identity
+        run: |
+          git config user.name 'AUROR releases'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      # Here as on Glasshouse: check-entity-stability.py and check-upgrade.js
+      # compare with its release tags, which a new repository does not have.
+      - name: Glasshouse's release tags
+        run: |
+          git fetch -q --no-tags https://github.com/rorygallagher2024/glasshouse.git 'refs/tags/v*:refs/tags/v*'
+          git push -q origin --tags
+
+      - name: merge Glasshouse's latest release
+        id: sync
+        if: github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ secrets.AUROR_TOKEN || github.token }}
+        run: ./scripts/auror-release.py sync >> "$GITHUB_OUTPUT"
+
+      - name: next version
+        id: version
+        if: steps.sync.outputs.sync != 'conflict'
+        run: ./scripts/auror-release.py version >> "$GITHUB_OUTPUT"
+
+      # What CI runs (checks.yml and dashboards.yml), since a release goes
+      # onto TVs without anyone trying it first.
+      - name: checks
+        if: steps.version.outputs.release == 'yes'
+        run: |
+          ./scripts/check-es5.py
+          node --check server/tvweb.js && for f in server/lib/*.js; do node --check "$f"; done
+          ./scripts/check-ui-ids.py
+          ./scripts/check-module-calls.py
+          ./scripts/check-strings.py
+          ./scripts/check-screensavers.py
+          ./scripts/check-drift.py
+          ./scripts/check-entity-stability.py
+          shellcheck server/deploy.sh server/tvwebctl server/50-tvweb.sh tvstats.sh
+          npm ci && npx tsc
+          ./scripts/check-entities.py --stats test/fixtures/stats-b8-webos4.json
+          node test/run-all.js
+          node scripts/check-upgrade.js
+          npm install --no-save playwright-core
+          BROWSER_CHANNEL=chrome node scripts/check-dashboards.js
+
+      - name: push main
+        if: steps.version.outputs.release == 'yes'
+        run: git push origin HEAD:main
+
+      - name: release notes
+        if: steps.version.outputs.release == 'yes'
+        run: ./scripts/auror-release.py notes
+
+      # The package and its manifest, as homebrew-channel.yml attaches to a
+      # release: a Homebrew Channel install updates from them. That workflow
+      # does not run for a release made here, by this run's token.
+      - name: package
+        if: steps.version.outputs.release == 'yes'
+        run: npm install -g @webos-tools/cli@3.2.6 && python3 scripts/build-ipk.py
+
+      - name: publish
+        if: steps.version.outputs.release == 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.AUROR_TOKEN || github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" --target "$(git rev-parse HEAD)" --title "AUROR v$VERSION" --notes-file dist/notes.md
+          gh release upload "v$VERSION" dist/*.ipk dist/*.manifest.json --clobber

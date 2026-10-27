@@ -1,0 +1,20 @@
+{
+  "manifest": 1,
+  "version": "1.0.0",
+  "name": {
+    "en": "AUROR",
+    "es": "AUROR",
+    "it": "AUROR"
+  },
+  "description": {
+    "en": "Black, for the OLED panel: Mimus asleep in the middle with the time beneath him, drifting a little.",
+    "es": "Negro, para el panel OLED: Mimus dormido en el centro con la hora debajo, moviéndose un poco.",
+    "it": "Nero, per il pannello OLED: Mimus che dorme al centro con l’ora sotto, che si sposta appena."
+  },
+  "license": "MIT",
+  "uses": [
+    "level",
+    "stats"
+  ],
+  "order": 15
+}

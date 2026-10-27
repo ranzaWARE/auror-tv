@@ -1,0 +1,404 @@
+/* Skin AUROR per Glasshouse Home, in the style of Apple TV: a Top Shelf showing
+   the focused tile over a row of 16:9 banners. Dark by default, .light on
+   #stage from 06:00 to 17:00. Values from auror/css/tokens.css. No custom
+   properties: the TV pages keep to Chromium 38 (check-es5.py). */
+@font-face{font-family:"Space Grotesk";src:url("/assets/fonts/SpaceGrotesk.ttf") format("truetype");font-weight:300 700}
+@font-face{font-family:"Space Mono";src:url("/assets/fonts/SpaceMono-Regular.ttf") format("truetype");font-weight:400}
+
+html,body{background:#15191f !important}
+body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
+#stage{background:#15191f !important;color:#e0e4ea;
+  -webkit-transition:background-color .22s,color .22s;transition:background-color .22s,color .22s}
+#stage.light{background:#f3f5f7 !important;color:#111827}
+#plMode,.dev .nm,.ch .num,#recents h2,.app .mono,#clock,#shelfTitle{font-family:"Space Grotesk",sans-serif !important}
+#scrim{display:none}
+.row h2,.tile,#shelf{text-shadow:none !important}
+
+/* Anti burn-in: the whole page wanders a few pixels, slowly and without stopping,
+   so no text or edge stays on the same pixels. Kept under reduced motion: 4 px
+   in two minutes cannot be seen. */
+#drift{position:absolute;left:0;top:0;width:1920px;height:1080px;
+  -webkit-animation:auror-drift 480s ease-in-out infinite alternate;animation:auror-drift 480s ease-in-out infinite alternate}
+@-webkit-keyframes auror-drift{0%{-webkit-transform:translate(0,0)}25%{-webkit-transform:translate(4px,-3px)}50%{-webkit-transform:translate(-3px,4px)}75%{-webkit-transform:translate(-4px,-2px)}100%{-webkit-transform:translate(3px,3px)}}
+@keyframes auror-drift{0%{transform:translate(0,0)}25%{transform:translate(4px,-3px)}50%{transform:translate(-3px,4px)}75%{transform:translate(-4px,-2px)}100%{transform:translate(3px,3px)}}
+
+/* ---- Top Shelf: 600 px, a little wider than the stage so the drift never shows its edge ---- */
+#shelf{position:absolute;left:-8px;right:-8px;top:-8px;height:608px;background:#1c2028;border-bottom:1px solid rgba(255,255,255,.08);
+  -webkit-transition:background-color .22s,opacity .32s;transition:background-color .22s,opacity .32s}
+.light #shelf{background:#fff;border-bottom-color:#e5e7eb}
+.recents #shelf{opacity:.25}
+
+#topbar{position:absolute;top:56px;right:120px;display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start}
+#when{width:auto !important;margin-right:28px;text-align:right}
+/* Figures of one width, so the clock keeps its place as the minutes change. */
+#clock{font-size:40px !important;line-height:1.15 !important;font-weight:400 !important;letter-spacing:-1px !important;
+  -webkit-font-feature-settings:"tnum";font-feature-settings:"tnum"}
+#date{font-size:20px !important;color:#99a2af !important;margin-top:2px !important}
+#themeNote{font-family:"Space Mono",monospace;font-size:15px;color:#99a2af;margin-top:6px}
+#themeNote:empty{display:none}
+.light #date,.light #themeNote{color:#5d6472 !important}
+
+.topbtn{width:56px;height:56px;margin-left:16px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#1c2028;
+  display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;
+  outline:3px solid transparent;outline-offset:4px;
+  -webkit-transition:outline-color .12s,background-color .12s,-webkit-transform .12s;transition:outline-color .12s,background-color .12s,transform .12s}
+.topbtn svg{display:block;width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.topbtn.focus{background:#23272e;outline-color:#f5a000;box-shadow:0 22px 44px rgba(0,0,0,.6);-webkit-transform:scale(1.08);transform:scale(1.08)}
+.light .topbtn{background:#fff;border-color:#e5e7eb}
+.light .topbtn.focus{background:#fff;outline-color:#d98c00;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+#btnTheme .sun,.light #btnTheme .moon{display:none}
+.light #btnTheme .sun{display:block}
+
+#shelfBody{position:absolute;left:120px;right:120px;top:208px}
+#shelfBody.none{visibility:hidden}
+#shelfBody .sh-title,#shelfBody .sh-cards,#shelfBody .sh-stats,#shelfBody .sh-brand{display:none}
+#shelfBody.title .sh-title,#shelfBody.cards .sh-cards,#shelfBody.stats .sh-stats,#shelfBody.brand .sh-brand{display:block}
+/*
+ * An app with nothing of its own to show: its colours as a glow across the
+ * shelf, its symbol large and faint at the right, and at the left its logo,
+ * name and a line saying what it is.
+ */
+#shelfGlow{position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;opacity:0;
+  -webkit-transition:opacity .45s ease-out;transition:opacity .45s ease-out}
+#shelfGlow.on{opacity:1}
+#shelfMark{position:absolute;right:-60px;bottom:-150px;width:620px;height:620px;opacity:.07}
+.light #shelfMark{opacity:.08}
+.arranging #shelfGlow,.recents #shelfGlow{display:none}
+#shelfBody.brand{top:150px}
+.inputs #shelfBody.brand{top:130px}
+.lockup{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;margin-top:30px;height:104px}
+#brandLogo{-webkit-flex:0 0 auto;flex:0 0 auto;width:96px;height:96px;margin-right:32px}
+#brandLogo img{display:block;width:96px;height:96px}
+#brandLogo img.own{border-radius:20px;object-fit:cover}
+#brandLogo .mono{display:block;width:96px;height:96px;border-radius:20px;background:rgba(255,255,255,.12);
+  line-height:96px;text-align:center;font-size:44px;font-weight:600}
+.light #brandLogo .mono{background:rgba(17,24,39,.08)}
+.lockup.word #brandLogo{width:auto;margin-right:0}
+.lockup.word #brandLogo img{width:auto;height:76px;margin-top:10px}
+.lockup.word #brandName{display:none}
+#brandName{font-size:84px;font-weight:500;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#brandAbout{max-width:1000px;margin-top:30px;font-size:32px;line-height:1.35;color:#c3cad4}
+#brandAbout:empty{display:none}
+#brandHint{margin-top:26px;font-size:22px;color:#99a2af}
+.light #brandAbout{color:#374151}
+.light #brandHint{color:#5d6472}
+#shelfBody.cards{top:148px}
+#shelfBody.stats{top:188px}
+#shelfBody.fade{-webkit-animation:auror-fade .22s cubic-bezier(.2,.7,.2,1);animation:auror-fade .22s cubic-bezier(.2,.7,.2,1)}
+@-webkit-keyframes auror-fade{from{opacity:0;-webkit-transform:translateY(8px)}to{opacity:1;-webkit-transform:none}}
+@keyframes auror-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* The kicker: an amber square and a line of Space Mono capitals. */
+.kick{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;font-family:"Space Mono",monospace;font-size:20px;
+  color:#f5a000;text-transform:uppercase;letter-spacing:.06em}
+.kick:before{content:"";width:10px;height:10px;border-radius:2px;background:#f5a000;margin-right:12px;-webkit-flex:0 0 auto;flex:0 0 auto}
+.light .kick{color:#374151}
+#shelfTitle{font-size:96px;font-weight:300;letter-spacing:-2px;line-height:1.1;margin-top:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#shelfSub{font-size:24px;color:#99a2af;margin-top:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.light #shelfSub{color:#5d6472}
+
+/* Jellyfin's cards: 16:9 pictures with how far each has been watched. */
+#shelfCards{margin-top:28px;white-space:nowrap}
+#shelfCards .card{display:inline-block;vertical-align:top;width:400px;margin-right:32px;white-space:normal}
+#shelfCards .pic{position:relative;width:400px;height:225px;border-radius:10px;overflow:hidden;background:#23272e;border:1px solid rgba(255,255,255,.08)}
+#shelfCards .pic img{display:block;width:100%;height:100%;object-fit:cover}
+#shelfCards .bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.12)}
+#shelfCards .bar i{display:block;height:4px;background:#f5a000}
+#shelfCards .ct{margin-top:14px;font-size:24px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#shelfCards .cs{margin-top:4px;font-size:18px;color:#99a2af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.light #shelfCards .pic{background:#eef1f4;border-color:#e5e7eb}
+.light #shelfCards .bar{background:rgba(17,24,39,.1)}
+.light #shelfCards .cs{color:#5d6472}
+
+/* Glasshouse: the TV's readings. */
+#shelfStats{margin-top:36px;white-space:nowrap}
+#shelfStats .stat{display:inline-block;vertical-align:top;margin-right:96px}
+#shelfStats .sl{font-family:"Space Mono",monospace;font-size:18px;color:#99a2af;text-transform:uppercase}
+#shelfStats .sv{font-size:72px;font-weight:300;margin-top:8px;letter-spacing:-1px}
+#shelfStats .sv small{font-size:36px;color:#99a2af;letter-spacing:0}
+.light #shelfStats .sl,.light #shelfStats .sv small{color:#5d6472}
+
+/* With the Inputs row, the shelf gives it room, as in the mockup. */
+.inputs #shelf{height:568px}
+.inputs #rowsView{top:560px}
+/* Arranging, the bar along the bottom keeps its own space. */
+.arranging #rowsView{bottom:124px}
+/* Arranging is about the rows: the shelf folds to its top bar and gives them the room. */
+.arranging #shelf{height:208px}
+.arranging #shelfBody,.arranging #plate{display:none}
+.arranging #rowsView{top:200px}
+
+/* The picture details plate, when switched on: the shelf's bottom right. */
+#plate{position:absolute;right:120px;bottom:48px;margin:0 !important}
+#plSig,#plStrip{color:#99a2af !important}
+#plMode{font-size:40px !important}
+.light #plSig,.light #plStrip{color:#5d6472 !important}
+
+/* ---- Rows under the shelf ---- */
+#rowsView{position:absolute;left:0;right:0;top:600px;bottom:0;overflow:hidden}
+#rows{top:0 !important;bottom:0 !important;
+  -webkit-transition:-webkit-transform .28s cubic-bezier(.2,.7,.2,1),opacity .32s;transition:transform .28s cubic-bezier(.2,.7,.2,1),opacity .32s}
+.row{margin-bottom:8px !important}
+.row h2{font-family:"Space Mono",monospace;font-size:18px !important;font-weight:400 !important;color:#99a2af !important;
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:0 !important}
+.row h2 span{display:none}
+.arranging .row h2 span{display:inline;color:#5d6472 !important;text-transform:none;letter-spacing:0;font-size:18px}
+.row[data-key="app"] h2{display:none}
+.arranging .row[data-key="app"] h2{display:block}
+.arranging .row h2{color:#e0e4ea !important}
+.arranging .row.held-row h2{color:#f5a000 !important}
+.light .row h2{color:#5d6472 !important}
+.light .arranging .row h2,.light.arranging .row h2{color:#111827 !important}
+/* Room above and around for the focused tile, which lifts and grows. */
+/* Room above for the focused tile, which lifts and grows: a held one goes
+   18 px up and its ring sits 7 px out, so 40 px keeps it whole. */
+#rows .wrap{margin:0;padding:40px 112px 24px}
+.track{position:relative}
+
+.tile{border-radius:10px !important;margin-right:48px !important;opacity:.7 !important;background:none;outline:3px solid transparent !important;outline-offset:4px}
+.light .tile{opacity:.8 !important}
+.tile.focus{opacity:1 !important}
+.row .tile.hidden,.row .dev.unused{opacity:.3 !important}
+.row .tile.hidden.focus,.row .dev.unused.focus{opacity:.6 !important}
+
+/* Banners 16:9 with no name: the focused one shows its name, lifts and grows. */
+.tile.app{width:320px !important;padding:0 !important;text-align:center !important;background:none !important;outline:none !important;box-shadow:none !important}
+.app img,.app .mono{display:block;width:320px !important;height:180px !important;margin:0 !important;border-radius:10px !important;
+  object-fit:contain;padding:40px 0 !important;background:#1c2028 !important;border:1px solid rgba(255,255,255,.08);
+  outline:3px solid transparent;outline-offset:4px;
+  -webkit-transition:-webkit-transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s;transition:transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s}
+.app .mono{padding:0 !important;line-height:178px !important;font-size:56px !important;font-weight:400 !important;color:#e0e4ea !important;text-align:center}
+.app .nm{margin:30px 0 0 !important;font-size:24px !important;font-weight:600 !important;color:inherit !important;opacity:0;
+  -webkit-transition:opacity .12s;transition:opacity .12s}
+.tile.app.focus img,.tile.app.focus .mono{background:#23272e !important;outline-color:#f5a000;box-shadow:0 22px 44px rgba(0,0,0,.6);
+  -webkit-transform:translateY(-10px) scale(1.12);transform:translateY(-10px) scale(1.12)}
+.tile.app.focus .nm{opacity:1}
+/* With the app's name in the shelf above, it is not said again under its tile. */
+#stage:not(.arranging) #shelf.brand ~ #rowsView .tile.app.focus .nm{opacity:0}
+.arranging .tile.app.held{-webkit-transform:none !important;transform:none !important}
+.arranging .tile.app.held img,.arranging .tile.app.held .mono{outline-style:dashed;-webkit-transform:translateY(-18px) scale(1.12);transform:translateY(-18px) scale(1.12)}
+.light .app img,.light .app .mono{background:#fff !important;border-color:#e5e7eb}
+.light .app .mono{color:#111827 !important}
+.light .tile.app.focus img,.light .tile.app.focus .mono{background:#fff !important;outline-color:#d98c00;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+
+/* Colour banners fill their tile; an icon without one sits on a colour, and a letter is white on it. */
+.app img.banner{padding:0 !important;object-fit:cover;background:none !important;border-color:transparent !important}
+.app .tinted{border-color:transparent !important}
+.app .mono.tinted{color:#fff !important;font-weight:600 !important}
+/* Colour reads better a little less dimmed than the plain tiles were. */
+.tile.app{opacity:.82 !important}
+.tile.app.focus{opacity:1 !important}
+.row .tile.app.hidden{opacity:.3 !important}
+.row .tile.app.hidden.focus{opacity:.6 !important}
+/* Hidden, while arranging: the label sits on the banner, not on the name under it. */
+.app .hid{top:90px !important}
+.tile .hid{background:#15191f !important;color:#e0e4ea !important;border-radius:10px !important;font-size:18px !important;font-weight:600;padding:4px 12px !important}
+.light .tile .hid{background:#f3f5f7 !important;color:#111827 !important}
+
+/* Inputs, only those with something plugged in, and channels: cards in the same surfaces. */
+.dev,.ch{width:320px !important;height:auto !important;padding:0 20px !important;background:#1c2028 !important;border:1px solid rgba(255,255,255,.08);
+  -webkit-transition:-webkit-transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s !important;transition:transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s !important}
+.dev{height:96px !important;display:-webkit-flex !important;display:flex !important;-webkit-flex-direction:column;flex-direction:column;
+  -webkit-justify-content:center !important;justify-content:center !important}
+.ch{min-height:150px;padding:16px 20px !important}
+.dev .nm{font-size:24px !important;font-weight:600 !important}
+/* Two lines: the name, then where it is on the left and its state or CEC address on the right. */
+.dev{position:relative}
+.dev .path,.dev .st{font-family:"Space Mono",monospace;font-size:16px !important;color:#99a2af !important;margin-top:6px !important}
+.dev .path{max-width:150px}
+.dev .path:empty{display:none}
+.dev .st{position:absolute;left:20px;right:20px;bottom:14px;margin:0 !important;-webkit-justify-content:flex-end !important;justify-content:flex-end !important}
+.dev .st em{font-style:normal}
+.dev:not(.last):not(.unused) .st em{display:none}
+.dev.last .st span{display:none}
+.dev.unused .st{position:static;margin-top:6px !important;-webkit-justify-content:flex-start !important;justify-content:flex-start !important}
+.dev.last .st em{color:#f5a000 !important}
+.dev.last .st em:before{display:none}
+.ch .num{font-size:40px !important}
+.ch .nm,.ch .next{color:#99a2af !important}
+.ch .bar{background:rgba(255,255,255,.12) !important}
+.ch .bar i{background:#f5a000 !important}
+.dev.focus,.ch.focus{background:#23272e !important;outline-color:#f5a000 !important;box-shadow:0 22px 44px rgba(0,0,0,.6);
+  -webkit-transform:translateY(-6px) scale(1.06);transform:translateY(-6px) scale(1.06)}
+.arranging .dev.held,.arranging .ch.held{outline-style:dashed !important}
+.light .dev,.light .ch{background:#fff !important;border-color:#e5e7eb}
+.light .dev .path,.light .dev .st,.light .ch .nm,.light .ch .next{color:#5d6472 !important}
+.light .dev.last .st em{color:#b47400 !important}
+.light .ch .bar{background:rgba(17,24,39,.1) !important}
+.light .dev.focus,.light .ch.focus{background:#fff !important;outline-color:#d98c00 !important;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+#rows .row[data-key="dev"] .wrap{padding-top:24px;padding-bottom:20px}
+
+/* ---- Arranging: the row's order as a chip, and a bar along the bottom ---- */
+.slot{border-color:rgba(255,255,255,.12) !important;color:#99a2af !important;border-radius:10px !important}
+.arranging .row.active .slot{border-color:#f5a000 !important;color:#e0e4ea !important}
+.row h2 .sort{background:#1c2028 !important;border:1px solid rgba(255,255,255,.08);border-radius:10px !important;color:#99a2af !important;
+  font-family:"Space Grotesk",sans-serif;text-transform:none;letter-spacing:0;font-size:18px !important;padding:4px 12px !important;margin-left:16px !important}
+.arranging .row .sort.focus{color:#e0e4ea !important;outline:3px solid #f5a000 !important;outline-offset:4px}
+.light .slot{border-color:#e5e7eb !important;color:#5d6472 !important}
+.light .row h2 .sort{background:#fff !important;border-color:#e5e7eb;color:#5d6472 !important}
+.light.arranging .row .sort.focus{color:#111827 !important;outline-color:#d98c00 !important}
+
+#banner{left:112px !important;right:112px !important;bottom:40px !important;height:76px;padding:0 16px 0 24px !important;
+  background:#1c2028 !important;border:1px solid rgba(255,255,255,.08);border-left:1px solid rgba(255,255,255,.08) !important;border-radius:10px !important;
+  box-shadow:0 22px 44px rgba(0,0,0,.6);color:#99a2af !important}
+#banner .mark{display:block;width:10px;height:10px;border-radius:2px;background:#f5a000;margin-right:24px;-webkit-flex:0 0 auto;flex:0 0 auto}
+#banner b{color:#e0e4ea !important;font-size:22px;font-weight:600;white-space:nowrap;margin:0 !important}
+#banner .keys{font-family:"Space Mono",monospace;font-size:16px !important;margin-left:24px !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#banner .btn{font-size:19px;background:#1c2028 !important;border:1px solid rgba(255,255,255,.08);color:#e0e4ea !important;border-radius:10px !important;
+  padding:10px 18px !important;outline:3px solid transparent !important;outline-offset:4px}
+#banner .btn.focus{outline-color:#f5a000 !important}
+#banner #btnDone{background:#f5a000 !important;border-color:#f5a000;color:#111827 !important;font-weight:600;padding:10px 22px !important}
+.light #banner{background:#fff !important;border-color:#e5e7eb;color:#5d6472 !important;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+.light #banner b{color:#111827 !important}
+.light #banner .btn{background:#fff !important;border-color:#e5e7eb;color:#111827 !important}
+.light #banner .btn.focus{outline-color:#d98c00 !important}
+.light #banner #btnDone{background:#f5a000 !important;color:#111827 !important}
+
+#toast{background:#23272e !important;color:#e0e4ea !important;border-radius:10px !important;border-left:3px solid #f5a000 !important;z-index:3 !important}
+#toast small{color:#99a2af !important}
+.arranging #toast{bottom:136px !important}
+.light #toast{background:#fff !important;color:#111827 !important;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+.light #toast small{color:#5d6472 !important}
+
+/* ---- Recents (Back): a panel from the bottom in the shelf's surface ---- */
+#recents{height:560px !important;padding:64px 0 0 !important;background:#1c2028 !important;border-top:1px solid rgba(255,255,255,.08);
+  box-shadow:0 -16px 40px rgba(0,0,0,.25)}
+.recents #shelf,.recents #rowsView{opacity:.25}
+.recents #rows .tile.focus img,.recents #rows .tile.focus .mono{outline-color:transparent;box-shadow:none;-webkit-transform:none;transform:none}
+#recents .head{margin-bottom:32px !important}
+#recents h2{font-family:"Space Grotesk",sans-serif !important;font-size:40px !important;font-weight:300 !important;letter-spacing:-.5px !important;color:#e0e4ea !important}
+#btnCloseAll{font-size:21px !important;color:#99a2af !important;border:1px solid rgba(255,255,255,.08);border-radius:10px !important;padding:8px 18px !important;
+  margin-right:0 !important;outline:3px solid transparent !important;outline-offset:4px;background:transparent !important}
+#btnCloseAll.focus{color:#e0e4ea !important;outline-color:#f5a000 !important}
+#recents .wrap{margin:0 !important;padding:6px 112px 24px !important}
+#recents .tile.rc{width:400px !important;margin-right:40px !important;opacity:.6 !important}
+#recents .tile.rc.focus{opacity:1 !important}
+.rc .shot{width:400px !important;height:225px !important;background:#23272e !important;border-radius:10px !important;border:1px solid rgba(255,255,255,.08);
+  outline:3px solid transparent !important;outline-offset:4px}
+.rc.focus .shot{outline-color:#f5a000 !important;box-shadow:0 22px 44px rgba(0,0,0,.6)}
+.rc.on-x .shot{outline-color:rgba(255,255,255,.18) !important}
+.rc .shot .mono{line-height:225px !important;font-family:"Space Mono",monospace !important;font-size:64px !important;color:#99a2af !important}
+.rc .nm{display:inline-block;max-width:240px;vertical-align:middle;font-size:22px !important;font-weight:600 !important;margin-top:18px !important;color:#e0e4ea !important}
+.rc .x{float:right;margin:14px 0 0 !important;font-size:18px !important;color:#e0e4ea !important;background:#1c2028 !important;
+  border:1px solid rgba(255,255,255,.08);border-radius:10px !important;padding:6px 14px !important;outline:3px solid transparent !important;outline-offset:3px}
+.rc.on-x .x{outline-color:#f5a000 !important;background:#23272e !important}
+.light #recents{background:#fff !important;border-top-color:#e5e7eb;box-shadow:0 -16px 40px rgba(17,24,39,.12)}
+.light #recents h2,.light .rc .nm,.light #recents .empty b,.light .rc .x{color:#111827 !important}
+.light #btnCloseAll,.light #recents .empty{color:#5d6472 !important;border-color:#e5e7eb}
+.light #btnCloseAll.focus{color:#111827 !important;outline-color:#d98c00 !important}
+.light .rc .shot{background:#eef1f4 !important;border-color:#e5e7eb}
+.light .rc.focus .shot{outline-color:#d98c00 !important;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+.light .rc .x{background:#fff !important;border-color:#e5e7eb}
+.light .rc.on-x .x{outline-color:#d98c00 !important}
+
+/* ---- The server not answering: nothing but the message ---- */
+.fault #shelf,.fault #rowsView,.fault #banner{display:none}
+#fault{top:390px !important;width:1180px !important}
+#fault h1{font-family:"Space Grotesk",sans-serif !important;font-size:80px !important;font-weight:300 !important;letter-spacing:-2px;line-height:1;margin:22px 0 0 !important}
+#fault p{font-size:30px !important;line-height:1.4;color:#99a2af !important;margin-top:28px}
+.light #fault h1{color:#111827}
+.light #fault p{color:#5d6472 !important}
+
+/* ---- Settings, from the gear ---- */
+#settings{display:none;position:absolute;left:0;top:0;width:1920px;height:1080px;
+  -webkit-animation:auror-fade .22s cubic-bezier(.2,.7,.2,1);animation:auror-fade .22s cubic-bezier(.2,.7,.2,1)}
+.settings #settings{display:block}
+.settings #shelf,.settings #rowsView,.settings #recents,.settings #banner{display:none}
+#setWhen{position:absolute;top:48px;right:112px;text-align:right}
+#setClock{font-size:40px;letter-spacing:-1px;line-height:1.15}
+#setDate{font-size:20px;color:#99a2af;margin-top:2px}
+#setSide{position:absolute;left:112px;top:64px;width:600px}
+#setBack{display:inline-block;font-size:22px;line-height:44px;color:#99a2af}
+#setSide .kick{margin-top:52px}
+#setTitle{margin-top:18px;font-size:80px;font-weight:300;letter-spacing:-2px;line-height:1}
+#setDesc{margin-top:22px;font-size:24px;line-height:1.45;color:#99a2af;min-height:105px}
+#setNav{margin-top:36px}
+.setcat{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:64px;margin-bottom:6px;padding:0 20px;border-radius:10px;
+  border:1px solid transparent;font-size:28px;color:#99a2af;outline:3px solid transparent;outline-offset:4px}
+.setcat:before{content:"";width:10px;height:10px;border-radius:2px;margin-right:16px;background:transparent}
+.setcat.current{background:#23272e;border-color:rgba(255,255,255,.08);color:#e0e4ea;font-weight:600}
+.setcat.current:before{background:#f5a000}
+.setcat.focus{outline-color:#f5a000}
+#setRows{position:absolute;left:820px;top:236px;width:988px}
+.setrow{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;
+  min-height:80px;margin-bottom:10px;padding:12px 28px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#1c2028;opacity:.75;
+  outline:3px solid transparent;outline-offset:4px;
+  -webkit-transition:-webkit-transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s;transition:transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s}
+.setrow.focus{opacity:1;background:#23272e;outline-color:#f5a000;box-shadow:0 18px 36px rgba(0,0,0,.55);-webkit-transform:scale(1.02);transform:scale(1.02)}
+.setrow.locked{opacity:.6}
+.setrow.locked.focus{opacity:1}
+.setrow .sl{min-width:0}
+.setrow .lb{display:block;font-size:30px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.setrow .hp{display:block;margin-top:4px;font-size:20px;color:#99a2af}
+.setrow .sv{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-flex:0 0 auto;flex:0 0 auto;margin-left:24px;font-size:26px;color:#99a2af}
+.setrow .sw{position:relative;display:block;width:60px;height:34px;margin-left:16px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#15191f}
+.setrow .sw b{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:10px;background:#99a2af;-webkit-transition:left .12s;transition:left .12s}
+.setrow .sw.on{background:#f5a000;border-color:#f5a000}
+.setrow .sw.on b{left:30px;background:#fff}
+.setrow .cy{font-style:normal;font-size:30px;margin-left:16px}
+.qrbox{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;margin-top:22px;padding:28px;border-radius:10px;background:#1c2028;border:1px solid rgba(255,255,255,.08)}
+.qrbox .qr{width:200px;height:200px;-webkit-flex:0 0 auto;flex:0 0 auto;margin-right:36px;border-radius:10px;overflow:hidden;background:#fff;
+  display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;
+  font-family:"Space Mono",monospace;font-size:16px;color:#5d6472;text-align:center;padding:8px}
+.qrbox .qr svg{display:block;width:184px;height:184px}
+.qrbox .qt{font-size:30px;font-weight:500}
+.qrbox .qd{margin-top:10px;font-size:22px;line-height:1.45;color:#99a2af}
+.light #setDate,.light #setBack,.light #setDesc,.light .setcat,.light .setrow .hp,.light .setrow .sv,.light .qrbox .qd{color:#5d6472}
+.light .setcat.current{background:#fff;border-color:#e5e7eb;color:#111827}
+.light .setcat.focus,.light .setrow.focus{outline-color:#d98c00}
+.light .setrow{background:#fff;border-color:#e5e7eb;opacity:.85}
+.light .setrow.focus{opacity:1;background:#fff;box-shadow:0 14px 30px rgba(17,24,39,.16)}
+.light .setrow .sw{background:#eef1f4;border-color:rgba(17,24,39,.12)}
+.light .setrow .sw b{background:#5d6472}
+.light .setrow .sw.on{background:#f5a000;border-color:#f5a000}
+.light .setrow .sw.on b{background:#fff}
+.light .qrbox{background:#fff;border-color:#e5e7eb}
+
+/* ---- Mimus and Quetza: pixel art crossing now and then, never in the way ---- */
+#mascot{position:absolute;left:0;top:0;pointer-events:none;display:none;z-index:2}
+#mascot img{display:block;width:100%;height:100%;image-rendering:pixelated}
+#mascot.mimus{display:block;top:920px;width:192px;height:147px;opacity:.9;
+  -webkit-animation:mimus-run 9s linear forwards;animation:mimus-run 9s linear forwards}
+.inputs #mascot.mimus{top:400px}
+#mascot.quetza{display:block;top:24px;width:295px;height:160px;opacity:.9;
+  -webkit-animation:quetza-fly 14s ease-in-out forwards;animation:quetza-fly 14s ease-in-out forwards}
+.light #mascot.mimus,.light #mascot.quetza{opacity:.85}
+@-webkit-keyframes mimus-run{from{-webkit-transform:translateX(-240px)}to{-webkit-transform:translateX(2160px)}}
+@keyframes mimus-run{from{transform:translateX(-240px)}to{transform:translateX(2160px)}}
+@-webkit-keyframes quetza-fly{0%{-webkit-transform:translate(-340px,50px)}50%{-webkit-transform:translate(800px,0)}100%{-webkit-transform:translate(2240px,40px)}}
+@keyframes quetza-fly{0%{transform:translate(-340px,50px)}50%{transform:translate(800px,0)}100%{transform:translate(2240px,40px)}}
+
+/* ---- Search: a button beside the theme and the settings, and its panel over the right of the screen ---- */
+#rail{display:none !important}
+.no-search #btnSearch{display:none}
+#finder{z-index:5;left:auto;right:0;width:1040px;padding:120px 120px 0 72px;background:#1c2028;
+  border-left:1px solid rgba(255,255,255,.08);box-shadow:-24px 0 60px rgba(0,0,0,.35);
+  -webkit-transform:translateX(100%);transform:translateX(100%)}
+.finding #finder{-webkit-transform:none;transform:none}
+.light #finder{background:#fff;border-left-color:#e5e7eb;box-shadow:-24px 0 60px rgba(17,24,39,.12)}
+.finding #shelf,.finding #rowsView{opacity:.25}
+#ask{border-bottom-color:rgba(255,255,255,.12)}
+.typing #ask{border-bottom-color:#f5a000}
+#ask svg{color:#99a2af}
+#query{font-family:"Space Grotesk",sans-serif !important;font-size:72px;font-weight:300;color:#e0e4ea;caret-color:#f5a000}
+#query::-webkit-input-placeholder{color:#5d6472}
+#query::placeholder{color:#5d6472}
+#status{font-family:"Space Mono",monospace;font-size:18px;color:#99a2af;text-transform:uppercase;letter-spacing:.04em}
+.hit .poster{border-radius:10px;background:#23272e}
+.hit .ttl,.hit .poster .mono,.chip .mono{font-family:"Space Grotesk",sans-serif !important}
+.hit .ttl{font-weight:500;font-size:36px}
+.hit .meta{color:#99a2af}
+.chip{border-radius:10px}
+.chip .mono{background:#23272e}
+.hit.on .chip.focus{background:#23272e;outline:3px solid #f5a000}
+.light #ask{border-bottom-color:#e5e7eb}
+.light .typing #ask,.light.typing #ask{border-bottom-color:#d98c00}
+.light #ask svg,.light #status,.light .hit .meta{color:#5d6472}
+.light #query{color:#111827}
+.light #query::-webkit-input-placeholder{color:#99a2af}
+.light #query::placeholder{color:#99a2af}
+.light .hit .poster,.light .chip .mono{background:#eef1f4}
+.light .hit.on .chip.focus{background:#fff;outline-color:#d98c00}
+/* AUROR's search: the services with no app here, and to rent or buy, after the chips. */
+.hit .else{-webkit-align-self:center;align-self:center;margin-left:16px;font-size:20px;color:#99a2af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.typing .hit .else{display:none}
+.light .hit .else{color:#5d6472}

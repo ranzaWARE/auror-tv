@@ -5,7 +5,7 @@ name: Docs publish
 on:
   push:
     branches: [main]
-    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs-publish.yml']
+    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs-publish.yml', 'server/assets/**', 'scripts/auror-demo.py', 'scripts/auror-demo/**']
   workflow_dispatch:
 
 permissions:
@@ -29,6 +29,8 @@ jobs:
       - run: mkdocs build
         env:
           NO_MKDOCS_2_WARNING: '1'
+      # AUROR's demo: the real view in a browser, at /demo/ beside the docs.
+      - run: ./scripts/auror-demo.py site/demo
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
