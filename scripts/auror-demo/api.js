@@ -85,12 +85,13 @@
       { title: 'Casa sul lago', kind: 'episode', season: 1, episode: 7, name: 'Inverno', year: null, progress: 35, image: POSTER(1) },
       { title: 'Nebbia d’agosto', kind: 'movie', season: null, episode: null, name: '', year: 2022, progress: 15, image: POSTER(2) }] };
   }
+  // As LG's catalogue answers: titles on the streaming services the TV has, never a Jellyfin server's.
   function search(q) {
     var all = [
-      { title: 'Orbite basse', kind: 'series', year: 2025, genre: 'Fantascienza, Dramma', poster: POSTER(0), app: 'org.jellyfin.webos' },
-      { title: 'Il faro del nord', kind: 'film', year: 2024, minutes: 112, genre: 'Giallo', poster: POSTER(3), app: 'youtube.leanback.v4' },
-      { title: 'Cronache di vetro', kind: 'series', year: 2023, genre: 'Documentario', poster: POSTER(4), app: 'org.jellyfin.webos' },
-      { title: 'La valle lenta', kind: 'film', year: 2021, minutes: 98, genre: 'Commedia', poster: POSTER(5), app: 'youtube.leanback.v4' }
+      { title: 'Orbite basse', kind: 'series', year: 2025, genre: 'Fantascienza, Dramma', poster: POSTER(0), app: 'netflix' },
+      { title: 'Il faro del nord', kind: 'film', year: 2024, minutes: 112, genre: 'Giallo', poster: POSTER(3), app: 'amazon' },
+      { title: 'Cronache di vetro', kind: 'series', year: 2023, genre: 'Documentario', poster: POSTER(4), app: 'com.disney.disneyplus-prod' },
+      { title: 'La valle lenta', kind: 'film', year: 2021, minutes: 98, genre: 'Commedia', poster: POSTER(5), app: 'netflix' }
     ];
     var words = String(q || '').toLowerCase();
     var hits = all.filter(function (h) { return !words || h.title.toLowerCase().indexOf(words) !== -1 || h.genre.toLowerCase().indexOf(words) !== -1; });
