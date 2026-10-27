@@ -1189,6 +1189,9 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/immich/albums') return homeModule.immich.albums(reply);
     if (pathname === '/api/home/immich/album') return homeModule.immich.album(String(u.query && u.query.id || ''), reply);
     if (pathname === '/api/home/immich/thumb') return homeModule.immich.thumb(u.query || {}, res);
+    if (pathname === '/api/home/immich/memories') return homeModule.immich.memories(String(u.query && u.query.day || ''), reply);
+    // For the AUROR · Immich screen saver, which asks from the TV itself.
+    if (pathname === '/api/home/immich/saver') return homeModule.immich.saverPhotos(reply);
     if (pathname === '/api/home/immich/video') return homeModule.immich.video(u.query || {}, req, res);
     if (pathname === '/api/home/recents') return homeModule.recentApps.list(reply);
     if (pathname === '/api/home/recents/image') {
@@ -1231,10 +1234,12 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/look') return homeModule.setLook(body, reply);
       if (pathname === '/api/home/jellyfin/pair') return reply(homeModule.jellyfin.pair(lanOrigin()));
       if (pathname === '/api/home/jellyfin/forget') return homeModule.jellyfin.forget(reply);
-      // The view's AUROR screen saver switch, with its brightness.
+      // The view's AUROR screen saver switch, with its brightness and, as an option, Immich's photos.
       if (pathname === '/api/home/screensaver') {
         if (!screensaversModule) return reply({ ok: false, error: 'screen savers unavailable' });
-        return screensaversModule.setScreensaver(body && body.on === true ? 'auror' : 'stock', body && body.bright === true ? 'bright' : 'dim', reply);
+        // With photos, AUROR's with Immich's photos (assets/screensavers/auror-immich).
+        var saverMode = body && body.on === true ? (body.photos === true ? 'auror-immich' : 'auror') : 'stock';
+        return screensaversModule.setScreensaver(saverMode, body && body.bright === true ? 'bright' : 'dim', reply);
       }
       if (pathname === '/api/home/autoupdate') return aurorUpdate.setAuto(!!(body && body.auto === true), reply);
       if (pathname === '/api/home/updatenow') return aurorUpdate.updateNow(reply);
@@ -1258,6 +1263,7 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/gallery/pair') return reply(homeModule.gallery.pair(lanOrigin()));
       if (pathname === '/api/home/immich/pair') return reply(homeModule.immich.pair(lanOrigin()));
       if (pathname === '/api/home/immich/forget') return homeModule.immich.forget(reply);
+      if (pathname === '/api/home/immich/saver') return homeModule.immich.setSaverAlbum(body && body.album !== undefined ? body.album : null, reply);
       if (pathname === '/api/home/recents') {
         var recentApps = homeModule.recentApps, recentId = body && typeof body.id === 'string' ? body.id : '';
         if (body && body.action === 'open') return recentApps.open(recentId, reply);

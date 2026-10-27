@@ -403,10 +403,10 @@ step('apps in More apps are saved, kept by a layout that does not name them, and
 
 step('the view\'s look is kept apart from the layout, and survives a layout save', function (done) {
   start(null);
-  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true } });
+  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true } });
   home.setLook({ theme: 'dark', mascots: false, shelf: { hdmi: false, bogus: true }, saverBright: 'yes' }, function (r) {
     assert.ok(r.ok, r.error);
-    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: false } });
+    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: false, immich: true } });
     home.setLayout({ hidden: { dev: [] } }, function (r2) {
       assert.strictEqual(r2.layout.look.theme, 'dark');
       home.setLook({ theme: 'sepia' }, function (r3) {
