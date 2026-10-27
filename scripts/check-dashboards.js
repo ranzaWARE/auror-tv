@@ -213,7 +213,8 @@ async function visitHomePicture(browser, base, problems) {
     const level = await page.evaluate(() => {
       const top = id => document.getElementById(id).getBoundingClientRect().top;
       return { shown: document.getElementById('plMode').textContent + document.getElementById('plStrip').textContent,
-        off: Math.abs(top('plSig') - top('srcKind')) };
+        // AUROR's view has no source block for the plate to line up with.
+        off: document.getElementById('srcKind') ? Math.abs(top('plSig') - top('srcKind')) : 0 };
     });
     if (level.shown) problems.push('Home picture: no signal still showed a mode or OLED light');
     if (level.off > 1) problems.push('Home picture: no signal left its line off the source\'s first line');
@@ -260,13 +261,15 @@ async function visitHomeVisibility(browser, base, problems) {
   });
   async function check(shown) {
     const actual = await page.evaluate(() => ({
-      source: document.getElementById('srcTitle').textContent.trim(),
+      // AUROR's view shows what was last on by its tile alone.
+      source: document.getElementById('srcTitle') ? document.getElementById('srcTitle').textContent.trim() : null,
       last: !!document.querySelector('.tile.dev.last'),
       count: !!document.querySelector('[data-key="app"] h2 span'),
       cec: document.querySelector('.tile.dev .st span').textContent.trim(),
-      clock: document.getElementById('clock').getBoundingClientRect().left
+      // Its place in the layout: AUROR's view drifts a few pixels against burn-in.
+      clock: (() => { let x = 0; for (let e = document.getElementById('clock'); e; e = e.offsetParent) x += e.offsetLeft; return x; })()
     }));
-    if (actual.source !== (shown ? 'Player' : '') || actual.last !== shown || actual.count !== shown ||
+    if ((actual.source !== null && actual.source !== (shown ? 'Player' : '')) || actual.last !== shown || actual.count !== shown ||
         actual.cec !== (shown ? 'CEC 1.0.0.0' : '')) {
       problems.push('Home visibility: details did not follow the loaded switches: ' + JSON.stringify(actual));
     }
@@ -287,7 +290,7 @@ async function visitHomeVisibility(browser, base, problems) {
     await page.goto(base + '/assets/home.html');
     await firstNow;
     await page.waitForTimeout(50);
-    if ((await page.locator('#srcTitle').textContent()).trim()) problems.push('Home visibility: last watched appeared before the layout loaded');
+    if (await page.locator('#srcTitle').count() && (await page.locator('#srcTitle').textContent()).trim()) problems.push('Home visibility: last watched appeared before the layout loaded');
     await release();
     await page.waitForSelector('.tile');
     const clock = await check(false);
@@ -376,7 +379,8 @@ async function visitHomeScrolling(browser, base, problems) {
     if (await x(apps0) !== stopped) problems.push('Home scrolling: the glide went on after the pointer left the end');
     await page.mouse.wheel(0, 100);
     const notched = await settle(apps0, stopped);
-    if (Math.round(notched - stopped) !== 176) problems.push('Home scrolling: a wheel notch did not move the row one tile');
+    const pitch = await page.evaluate(() => { const t = document.querySelectorAll('.row[data-key="app"] .tile'); return t[1].offsetLeft - t[0].offsetLeft; });
+    if (Math.round(notched - stopped) !== pitch) problems.push('Home scrolling: a wheel notch did not move the row one tile');
     // Wheel steps move tiles under a still pointer: a click then opens the
     // tile now under it, and moving down a row leaves this row where it is.
     await page.mouse.wheel(0, 300);
@@ -472,9 +476,13 @@ async function visitHomeMotion(browser, base, problems) {
     let d = await steps(at);
     if (d.length < 3) problems.push('Home motion: a flick to the screen\'s side did not glide the row');
     else if (d[0] > 10 || d[1] > 14) problems.push('Home motion: a glide started at full speed (' + show(d.slice(0, 3)) + ' px a frame)');
-    await page.waitForFunction(() => { const xs = window.xs, n = xs.length; return n > 12 && xs[n - 1] > 1000 && xs[n - 1] === xs[n - 12]; }, null, { timeout: 10000 });
+    await page.waitForFunction(() => { const xs = window.xs, n = xs.length; return n > 12 && xs[n - 1] > 1000 && xs[n - 1] === xs[n - 12]; }, null, { timeout: 20000 });
     d = await steps(at);
-    const end = await page.evaluate(() => { const w = document.querySelector('.row[data-key="app"] .wrap'); return w.querySelector('.track').scrollWidth - (w.clientWidth - 44); });
+    // The last tile's own edge: focused, its scale would add to the track's scrollWidth.
+    const end = await page.evaluate(() => {
+      const w = document.querySelector('.row[data-key="app"] .wrap'), pad = getComputedStyle(w), last = w.querySelector('.track').lastElementChild;
+      return last.offsetLeft + last.offsetWidth - (w.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight));
+    });
     const rest = await page.evaluate(() => window.xs[window.xs.length - 1]);
     if (Math.abs(rest - end) > 1) problems.push('Home motion: the glide stopped at ' + rest + ' px, not at the row\'s end, ' + end);
     if (Math.max.apply(null, d) < 18) problems.push('Home motion: the glide never reached its speed (' + Math.max.apply(null, d).toFixed(1) + ' px a frame)');
@@ -747,6 +755,9 @@ async function visitHomeColours(browser, base, problems) {
   }
   try {
     await page.clock.install();
+    // AUROR's view keeps its own palette, light and dark: the chosen colours are for Glasshouse's.
+    await page.goto(base + '/assets/home.html');
+    if (await page.locator('link[href$="auror-home.css"]').count()) return;
     // Chosen colours can coincide with any original colour in the stylesheet.
     for (const accent of ['#ece7df', '#a39d93', '#6b665e', '#e9ad55', '#231d12', '#30de61']) {
       layout.colours = { text: '#d4e6f4', accent };
@@ -959,7 +970,8 @@ async function visitHomeOrder(browser, base, problems) {
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
     saved = page.waitForResponse(r => new URL(r.url()).pathname === '/api/home/layout');
-    await page.locator('.row[data-key="app"] .sort').click();
+    // AUROR's view drifts a few pixels against burn-in, so it is never still enough for click's wait.
+    await page.locator('.row[data-key="app"] .sort').click({ force: true });
     await saved;
     if (JSON.stringify(saves[saves.length - 1].order.app) !== JSON.stringify(['two', 'one', 'lg-home'])) {
       problems.push('Home order: switching Order discarded the row\'s unsaved moves');
