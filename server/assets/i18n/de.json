@@ -11,6 +11,14 @@
     "text": "Diese Reihe ist leer",
     "from": "This row is empty"
   },
+  "home.arrange.folder": {
+    "text": "In „Weitere Apps“ oder heraus",
+    "from": "Into or out of More apps"
+  },
+  "home.arrange.folderAppsOnly": {
+    "text": "Nur Apps kommen in „Weitere Apps“",
+    "from": "Only apps go into More apps"
+  },
   "home.arrange.hide": {
     "text": "Aus- oder einblenden",
     "from": "Hide or show"
@@ -18,6 +26,10 @@
   "home.arrange.isHidden": {
     "text": "(ausgeblendet)",
     "from": "(hidden)"
+  },
+  "home.arrange.isInFolder": {
+    "text": "{name} (in „Weitere Apps“)",
+    "from": "{name} (in More apps)"
   },
   "home.arrange.moving": {
     "text": "{name} wird verschoben",
@@ -247,6 +259,14 @@
     "text": "Glasshouse antwortet nicht",
     "from": "Glasshouse is not answering"
   },
+  "home.folder.label": {
+    "text": "In „Weitere Apps“",
+    "from": "In More apps"
+  },
+  "home.folder.title": {
+    "text": "Weitere Apps",
+    "from": "More apps"
+  },
   "home.hidden": {
     "text": "Ausgeblendet",
     "from": "Hidden"
@@ -338,6 +358,10 @@
   "home.pictureDesc": {
     "text": "Oben rechts auf Glasshouse Home: Auflösung, Bildwiederholrate und HDR des zuletzt Gesehenen sowie Bildmodus und Helligkeit.",
     "from": "In the top right of Glasshouse Home: the resolution, refresh rate and HDR of what was last on, and the picture mode and brightness it gets."
+  },
+  "home.place": {
+    "text": "Wo sie erscheint",
+    "from": "Where it shows"
   },
   "home.plate.allm": {
     "text": "Geringe Latenz",
@@ -438,6 +462,10 @@
   "home.row.appsNote": {
     "text": "{n} von {total} sichtbar",
     "from": "{n} of {total} shown"
+  },
+  "home.row.appsNoteFolder": {
+    "text": "{n} von {total} sichtbar, {folder} in „Weitere Apps“",
+    "from": "{n} of {total} shown, {folder} in More apps"
   },
   "home.row.channels": {
     "text": "Sender",
@@ -614,5 +642,17 @@
   "srv.home.wallSlot": {
     "text": "unbekannte Tageszeit für das Hintergrundbild",
     "from": "unknown wallpaper slot"
+  },
+  "home.wall.examples": {
+    "text": "Beispielbilder hinzufügen",
+    "from": "Add example pictures"
+  },
+  "home.wall.examplesBusy": {
+    "text": "Wird heruntergeladen…",
+    "from": "Downloading…"
+  },
+  "home.wall.examplesDone": {
+    "text": "Beispielbilder hinzugefügt. Home aktualisiert sich in wenigen Sekunden.",
+    "from": "Example pictures added. Home updates within a few seconds."
   }
 }
