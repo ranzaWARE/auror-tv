@@ -1669,7 +1669,8 @@ function status(cb) {
         hideLgHomeAtStartAvailable: startLayoutAvailable(),
         history: !!(historyModule && historyModule.enabled && historyModule.enabled()),
         wallpapers: wallpapers.status(),
-        colourPresets: COLOUR_PRESETS,
+        // AUROR's view keeps its own palette, light and dark, so neither dashboard offers colours.
+        colourPresets: [],
         layout: layoutOf(c)
       };
       if (c.lgAutoLaunch === 'on' || hal === 'on' || hal === 'off') {
