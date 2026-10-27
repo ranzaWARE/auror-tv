@@ -279,6 +279,7 @@ html.faded #stage{opacity:0}
 
   <section id="shelf">
     <div id="shelfGlow"><img id="shelfMark" alt=""></div>
+    <div id="greet"></div>
     <div id="topbar">
       <div id="when">
         <div id="clock"><span id="hm">&mdash;</span><span id="mer" hidden></span></div>
@@ -288,12 +289,25 @@ html.faded #stage{opacity:0}
       <span class="topbtn" id="btnSearch" role="button" aria-label="Search" data-t-aria-label="home.search.rail">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
       </span>
+      <span class="topbtn" id="btnNet" role="button" aria-label="Network" data-t-aria-label="home.net.button">
+        <svg class="wifi" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9.2a14 14 0 0 1 19 0"/><path d="M5.6 12.6a9.5 9.5 0 0 1 12.8 0"/><path d="M8.8 15.9a5 5 0 0 1 6.4 0"/><path d="M12 19.4h.01"/></svg>
+        <svg class="wired" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="11" rx="2"/><path d="M9 14.5v3h6v-3M12 17.5v3.5M8.5 7.5v2.5M12 7.5v2.5M15.5 7.5v2.5"/></svg>
+        <svg class="nonet" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9.2a14 14 0 0 1 19 0"/><path d="M5.6 12.6a9.5 9.5 0 0 1 12.8 0"/><path d="M8.8 15.9a5 5 0 0 1 6.4 0"/><path d="M12 19.4h.01"/><path d="M3.5 3.5l17 17"/></svg>
+        <i class="dot"></i>
+      </span>
+      <span class="topbtn" id="btnTimer" role="button" aria-label="Sleep timer" data-t-aria-label="home.timer.button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.6 2.2M9.5 2.8h5M12 2.8V6"/></svg>
+        <b class="left" id="timerLeft"></b>
+      </span>
       <span class="topbtn" id="btnTheme" role="button" aria-label="Light or dark theme" data-t-aria-label="home.theme.toggle">
         <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
       </span>
       <span class="topbtn" id="btnSettings" role="button" aria-label="Settings" data-t-aria-label="home.settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </span>
+      <span class="topbtn" id="btnPower" role="button" aria-label="Switch off" data-t-aria-label="home.power.button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8.5"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>
       </span>
     </div>
     <div id="shelfBody" class="none">
@@ -403,8 +417,11 @@ html.faded #stage{opacity:0}
   // rail: the search mark in the left gutter has the focus.
   var state = { row: 0, col: {}, arranging: false, held: false, bar: -1, top: -1, last: null, rail: false };
   var BAR = ['btnHide', 'btnReset', 'btnDone'];
-  // Search, the theme and the settings, over the Top Shelf's right: Search only while it is switched on.
-  var TOP = ['btnSearch', 'btnTheme', 'btnSettings'];
+  // Over the Top Shelf's right: Search (only while it is switched on), the
+  // network, the sleep timer, the theme, the settings and switching off.
+  var TOP = ['btnSearch', 'btnNet', 'btnTimer', 'btnTheme', 'btnSettings', 'btnPower'];
+  // Classes a button keeps beside its focus: the network's state, the timer running.
+  var topExtra = {};
   function topShown(i) { return TOP[i] !== 'btnSearch' || searchOn(); }
   function topStep(from, dc) {
     for (var i = from + dc; i >= 0 && i < TOP.length; i += dc) if (topShown(i)) return i;
@@ -512,7 +529,8 @@ html.faded #stage{opacity:0}
   // was changed elsewhere, such as from a dashboard, and the layout is reloaded.
   var layoutVersion = null;
   var loadRetry = null, wallAvailable = false, initialEscape = false;
-  var wallSlots = null, wallRevision = '';
+  // wallSrc: AUROR's photo, when one stands in for the wallpapers (lib/auror-gallery).
+  var wallSlots = null, wallRevision = '', wallSrc = '';
 
   function $(id) { return document.getElementById(id); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -802,7 +820,7 @@ html.faded #stage{opacity:0}
     }
     shelfFocusMoved();
     for (var b = 0; b < BAR.length; b++) $(BAR[b]).className = 'btn' + (state.bar === b ? ' focus' : '');
-    for (var tb = 0; tb < TOP.length; tb++) $(TOP[tb]).className = 'topbtn' + (state.top === tb ? ' focus' : '');
+    paintTop();
     $('rail').className = state.rail && !finder.open ? 'focus' : '';
     scrollRows(instant);
     if (state.bar < 0 && state.top < 0) {
@@ -1382,10 +1400,147 @@ html.faded #stage{opacity:0}
     applyTheme();
   }
 
+  function paintTop() {
+    for (var tb = 0; tb < TOP.length; tb++) $(TOP[tb]).className = 'topbtn' + (topExtra[TOP[tb]] || '') + (state.top === tb ? ' focus' : '');
+  }
+
   function pressTop(i) {
     if (TOP[i] === 'btnSearch') return searchOn() && openSearch();
+    if (TOP[i] === 'btnNet') return showNetwork();
+    if (TOP[i] === 'btnTimer') return nextSleep();
     if (TOP[i] === 'btnTheme') return toggleTheme();
+    if (TOP[i] === 'btnPower') return pressPower();
     openSettings();
+  }
+
+  // ---------------------------------------------------------------- network, timer, power
+
+  /*
+   * The network button's icon is Wi-Fi, cable or neither, its dot green
+   * online, amber connected with no internet, red with no network; OK says
+   * which network and the TV's address. The server asks the TV (lib/auror-tv).
+   */
+  var net = null;
+  function refreshNet() {
+    getJson('/api/home/network', function (r) {
+      if (!r || !r.ok) return;
+      net = r;
+      topExtra.btnNet = ' net-' + r.kind + ' st-' + r.state;
+      paintTop();
+    });
+  }
+  function showNetwork() {
+    if (!net) return refreshNet();
+    var where = net.ip ? ' · ' + net.ip : '';
+    var how = net.state === 'online' ? t('home.net.online', 'Online{ip}', { ip: where })
+      : t('home.net.limited', 'Connected, but no internet{ip}', { ip: where });
+    if (net.kind === 'wifi') toast(net.ssid ? t('home.net.wifi', 'Wi-Fi: {ssid}', { ssid: net.ssid }) : 'Wi-Fi', how);
+    else if (net.kind === 'wired') toast(t('home.net.wired', 'Wired network'), how);
+    else toast(t('home.net.none', 'No network'), t('home.net.noneDesc', 'Neither Wi-Fi nor a cable is connected'));
+    refreshNet();
+  }
+
+  /*
+   * The sleep timer runs on the server, so it goes on in an app. OK goes
+   * 30, 60, 90 and 120 minutes, then off; the button shows what is left.
+   */
+  var sleepEnds = 0;
+  function takeSleep(r) {
+    if (!r || !r.ok) return;
+    sleepEnds = r.left ? Date.now() + r.left : 0;
+    paintSleep();
+  }
+  function paintSleep() {
+    var left = sleepEnds ? Math.ceil((sleepEnds - Date.now()) / 60000) : 0;
+    if (left <= 0) sleepEnds = 0;
+    $('timerLeft').textContent = left > 0 ? left + '′' : '';
+    topExtra.btnTimer = left > 0 ? ' wide' : '';
+    paintTop();
+  }
+  function refreshSleep() { getJson('/api/home/sleep', takeSleep); }
+  function nextSleep() {
+    postJson('/api/home/sleep', { next: true }, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      takeSleep(r);
+      if (r.minutes) toast(t('home.timer.set', 'The TV switches off in {n} minutes', { n: r.minutes }),
+        t('home.timer.setDesc', 'OK again for longer; after two hours, the timer goes off'));
+      else toast(t('home.timer.off', 'Sleep timer off'));
+    });
+  }
+
+  // Switching off takes OK twice within three seconds, so a stray press does not.
+  var powerArmed = 0, powerTimer = null;
+  function pressPower() {
+    clearTimeout(powerTimer);
+    if (powerArmed && Date.now() - powerArmed < 3000) {
+      powerArmed = 0;
+      topExtra.btnPower = '';
+      paintTop();
+      return postJson('/api/home/poweroff', {}, function (r) {
+        if (!r || !r.ok) toast(t('home.power.failed', 'The TV did not switch off'), r && r.error);
+      });
+    }
+    powerArmed = Date.now();
+    topExtra.btnPower = ' armed';
+    paintTop();
+    toast(t('home.power.again', 'OK again to switch off'), t('home.power.againDesc', 'The TV switches off as from the remote'));
+    powerTimer = setTimeout(function () { powerArmed = 0; topExtra.btnPower = ''; paintTop(); }, 3000);
+  }
+
+  // ---------------------------------------------------------------- greeting
+
+  /*
+   * A line over the Top Shelf's left, a new one each time Home comes back:
+   * by the time of day, with the owner's name from the Look settings where
+   * given. {name} is ", Marco" or nothing, so the line reads either way.
+   */
+  var greetShown = '';
+  function greetings(h, v) {
+    if (h >= 5 && h < 12) return [
+      t('home.greet.m1', 'Good morning{name}.', v),
+      t('home.greet.m2', 'Coffee first, then TV{name}?', v),
+      t('home.greet.m3', 'Up already{name}? Impressive.', v),
+      t('home.greet.m4', 'Morning{name}. Mimus is still asleep.', v),
+      t('home.greet.m5', 'The day is young{name}.', v)
+    ];
+    if (h >= 12 && h < 18) return [
+      t('home.greet.a1', 'Good afternoon{name}.', v),
+      t('home.greet.a2', 'A little break{name}?', v),
+      t('home.greet.a3', 'A sofa afternoon{name}?', v),
+      t('home.greet.a4', 'Lunch settling nicely{name}?', v),
+      t('home.greet.a5', 'Here we are again{name}.', v)
+    ];
+    if (h >= 18 && h < 23) return [
+      t('home.greet.e1', 'Good evening{name}.', v),
+      t('home.greet.e2', 'Popcorn ready{name}?', v),
+      t('home.greet.e3', 'What are we watching tonight{name}?', v),
+      t('home.greet.e4', 'Sofa, blanket, remote. Perfect{name}.', v),
+      t('home.greet.e5', 'Just one episode{name}. Promise?', v)
+    ];
+    return [
+      t('home.greet.n1', 'No sleep tonight{name}?', v),
+      t('home.greet.n2', 'One more, then bed{name}.', v),
+      t('home.greet.n3', 'Mimus went to bed ages ago{name}.', v),
+      t('home.greet.n4', 'The night is young{name}. The panel, less so.', v),
+      t('home.greet.n5', 'Small hours{name}. Volume down?', v)
+    ];
+  }
+  function greet() {
+    var name = look().name;
+    var v = { name: name ? ', ' + name : '' };
+    var lines = greetings(preview.hour !== undefined ? +preview.hour % 24 : new Date().getHours(), v).concat([
+      t('home.greet.x1', 'Hi{name}!', v),
+      t('home.greet.x2', 'There you are{name}!', v),
+      t('home.greet.x3', 'Lovely to see you{name}.', v)
+    ]);
+    var line = lines[Math.floor(Math.random() * lines.length)];
+    if (line === greetShown) line = lines[(lines.indexOf(line) + 1) % lines.length];
+    greetShown = line;
+    var el = $('greet');
+    el.className = '';
+    el.textContent = line;
+    void el.offsetWidth;
+    el.className = 'in';
   }
 
   function topAt(target) {
@@ -1404,8 +1559,10 @@ html.faded #stage{opacity:0}
    * Back goes home. Jellyfin is linked from a phone, by the QR code here.
    */
   // tmdb: the same as pairUrl, pairError and pairAt, for the TMDB key AUROR's search needs.
+  // photos: the same for the page AUROR's photos are added from; gallery and ssh, what the server said of each.
+  // editing: the owner's name is being typed, with the TV's keyboard up.
   var settings = { open: false, cat: 0, side: true, row: {}, rows: [], busy: '', pairUrl: null, pairError: '', pairAt: 0, poll: null,
-    tmdb: { url: null, error: '', at: 0 } };
+    tmdb: { url: null, error: '', at: 0 }, photos: { url: null, error: '' }, gallery: null, ssh: null, editing: false };
   var SET_CATS = [
     { id: 'look', label: t('home.set.look', 'Look'),
       desc: t('home.set.lookDesc', 'Home’s theme and the screen saver. Automatic: light from 06:00 to 17:00, dark from 17:00.') },
@@ -1415,10 +1572,14 @@ html.faded #stage{opacity:0}
       desc: t('home.set.rowsDesc', 'What the rows show, and the order of the apps.') },
     { id: 'tiles', label: t('home.set.tiles', 'Tiles'),
       desc: t('home.set.tilesDesc', 'Which apps Home shows. To reorder them, hold OK on a tile.') },
+    { id: 'photos', label: t('home.set.photos', 'Backgrounds'),
+      desc: t('home.set.photosDesc', 'Photos behind Home, added from a phone or computer on the same network. With none chosen, Glasshouse’s wallpapers stay.') },
     { id: 'search', label: t('home.search', 'Search'),
       desc: t('home.set.searchDesc', 'Where a film or series is to watch: in Jellyfin, and on the services in Italy, which TMDB knows from JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.') },
     { id: 'jellyfin', label: 'Jellyfin',
       desc: t('home.set.jfDesc', 'The server the Top Shelf takes Continue watching and Recently added from.') },
+    { id: 'ssh', label: 'SSH',
+      desc: t('home.set.sshDesc', 'Root access to the TV from the home network, through the Homebrew Channel. Switching it off ends the sessions open now.') },
     { id: 'more', label: 'Glasshouse',
       desc: t('home.set.moreDesc', 'Everything else, from switching this Home on or off to wallpapers and Home Assistant, is in the Glasshouse app.') }
   ];
@@ -1432,6 +1593,9 @@ html.faded #stage{opacity:0}
       var themeText = { auto: t('home.set.themeAuto', 'Automatic'), light: t('home.set.themeLight', 'Light'), dark: t('home.set.themeDark', 'Dark') };
       var saverOn = !!(saver && saver.mode === 'auror');
       var rows = [{
+        kind: 'text', label: t('home.set.name', 'Your name'), help: t('home.set.nameHelp', 'For the greeting over the Top Shelf. OK, then the TV’s keyboard'),
+        value: lk.name || '—', act: startNameEdit
+      }, {
         kind: 'cycle', label: t('home.set.theme', 'Theme'), help: t('home.set.themeHelp', 'The button on Home changes it until the next switch'),
         value: themeText[lk.theme], act: function () { setLook({ theme: themes[(themes.indexOf(lk.theme) + 1) % themes.length] }); }
       }];
@@ -1502,6 +1666,8 @@ html.faded #stage{opacity:0}
       }
       return searchRows;
     }
+    if (id === 'photos') return photoRows();
+    if (id === 'ssh') return sshRows();
     if (id === 'tiles') {
       return data.order.app.map(function (appId) {
         var a = byId('app', appId);
@@ -1554,7 +1720,8 @@ html.faded #stage{opacity:0}
   }
 
   function renderSettings() {
-    if (!settings.open || !data || !layout) return;
+    // Drawn again, the field being typed in would lose what is in it.
+    if (!settings.open || !data || !layout || settings.editing) return;
     var cat = SET_CATS[settings.cat];
     $('setTitle').textContent = cat.label;
     $('setDesc').textContent = cat.desc;
@@ -1569,14 +1736,15 @@ html.faded #stage{opacity:0}
       return '<div class="setrow' + (on ? ' focus' : '') + (r.locked ? ' locked' : '') + '" data-i="' + i + '">' +
         '<span class="sl"><span class="lb">' + esc(r.label) + '</span>' + (on && r.help ? '<span class="hp">' + esc(r.help) + '</span>' : '') + '</span>' +
         '<span class="sv">' + esc(r.value) +
-        (r.kind === 'switch' ? '<i class="sw' + (r.on ? ' on' : '') + '"><b></b></i>' : r.kind === 'cycle' || r.kind === 'link' ? '<i class="cy">›</i>' : '') +
+        (r.kind === 'switch' ? '<i class="sw' + (r.on ? ' on' : '') + '"><b></b></i>' : r.kind === 'cycle' || r.kind === 'link' || r.kind === 'text' ? '<i class="cy">›</i>' : '') +
         '</span></div>';
     }).join('');
     if (cat.id === 'jellyfin') html += qrBox();
     if (cat.id === 'search') html += tmdbQrBox();
+    if (cat.id === 'photos') html += photosBox();
     $('setRows').innerHTML = html;
     var svg = $('setRows').querySelector('.qr svg');
-    if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : settings.pairUrl);
+    if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : cat.id === 'photos' ? settings.photos.url : settings.pairUrl);
   }
 
   function openSettings() {
@@ -1589,6 +1757,7 @@ html.faded #stage{opacity:0}
   }
 
   function closeSettings() {
+    if (settings.editing) endNameEdit(false);
     settings.open = false;
     clearInterval(settings.poll);
     settings.poll = null;
@@ -1607,6 +1776,14 @@ html.faded #stage{opacity:0}
       settings.poll = setInterval(pollTmdb, 3000);
       return;
     }
+    // Photos added from the phone show up here as they come.
+    if (SET_CATS[i].id === 'photos') {
+      requestPhotosPair();
+      loadGallery();
+      settings.poll = setInterval(loadGallery, 4000);
+      return;
+    }
+    if (SET_CATS[i].id === 'ssh') return loadSsh();
     if (SET_CATS[i].id !== 'jellyfin') return;
     // A code lasts ten minutes on the server.
     if (!settings.pairUrl || Date.now() - settings.pairAt > 9 * 60000) requestPair();
@@ -1667,6 +1844,138 @@ html.faded #stage{opacity:0}
         toast(t('home.set.jfLinked', 'Jellyfin linked'), r.user);
         requestPair();
       }
+      renderSettings();
+    });
+  }
+
+  // ------------------------------------------------ settings: name, backgrounds, SSH
+
+  /*
+   * The name is typed in place, with the TV's keyboard: Enter or the
+   * keyboard closing keeps it, Back leaves it as it was.
+   */
+  function startNameEdit() {
+    if (settings.editing) return;
+    var sv = $('setRows').querySelector('.setrow.focus .sv');
+    if (!sv) return;
+    settings.editing = true;
+    sv.innerHTML = '<input id="setInput" type="text" maxlength="30" autocomplete="off" spellcheck="false">';
+    var input = $('setInput');
+    input.value = look().name || '';
+    input.addEventListener('blur', function () { endNameEdit(true); });
+    input.focus();
+  }
+
+  function endNameEdit(keep) {
+    if (!settings.editing) return;
+    settings.editing = false;
+    var input = $('setInput'), name = input ? input.value.replace(/\s+/g, ' ').replace(/^ | $/g, '') : '';
+    if (input) input.blur();
+    if (!keep || name === (look().name || '')) return renderSettings();
+    setLook({ name: name }, greet);
+  }
+
+  function editKey(e) {
+    var k = e.keyCode;
+    if (k === KEY.ok || k === KEY.back || k === KEY.up || k === KEY.down) {
+      e.preventDefault();
+      if (k === KEY.back) backDown = true;
+      endNameEdit(k !== KEY.back);
+    }
+  }
+
+  function photoRows() {
+    var g = settings.gallery;
+    if (!g) return [{ kind: 'info', label: t('home.set.photosCount', 'Photos on the TV'), value: '…' }];
+    var modes = ['off', 'one', 'rotate'];
+    var modeText = { off: t('home.set.photosOff', 'No photo'), one: t('home.set.photosOne', 'One photo'), rotate: t('home.set.photosRotate', 'All, in turn') };
+    var rows = [{ kind: 'cycle', label: t('home.set.photosMode', 'Background'),
+      help: g.count ? '' : t('home.set.photosNone', 'No photos yet: add some with the code below'),
+      value: modeText[g.mode], act: function () { setGallery({ mode: modes[(modes.indexOf(g.mode) + 1) % modes.length] }); } }];
+    var at = g.ids.indexOf(g.shown);
+    if (g.mode === 'one' && g.count) {
+      rows.push({ kind: 'cycle', label: t('home.set.photosWhich', 'Photo'), help: t('home.set.photosWhichHelp', 'OK for the next one, behind Home at once'),
+        value: t('home.set.photosOf', '{i} of {n}', { i: at + 1, n: g.count }),
+        act: function () { setGallery({ photo: g.ids[(at + 1) % g.ids.length] }); } });
+    }
+    if (g.mode === 'rotate') {
+      var steps = [5, 15, 30, 60, 180];
+      rows.push({ kind: 'cycle', label: t('home.set.photosEvery', 'Next photo every'),
+        value: g.every < 60 ? t('home.set.minutes', '{n} min', { n: g.every }) : t('home.set.hours', '{n} h', { n: g.every / 60 }),
+        act: function () { setGallery({ every: steps[(steps.indexOf(g.every) + 1) % steps.length] }); } });
+    }
+    rows.push({ kind: 'info', label: t('home.set.photosCount', 'Photos on the TV'), value: t('home.set.photosOf', '{i} of {n}', { i: g.count, n: g.max }) });
+    return rows;
+  }
+
+  function photosBox() {
+    var g = settings.gallery, url = settings.photos.url;
+    var shown = g && g.shown && g.mode !== 'off' ? '<img class="prev" src="/api/home/photo?id=' + encodeURIComponent(g.shown) + '&thumb=1" alt="">' : '';
+    return shown + '<div class="qrbox"><div class="qr">' + (url ? '<svg shape-rendering="crispEdges"></svg>' : '<span>' + esc(settings.photos.error || '…') + '</span>') + '</div>' +
+      '<div><div class="qt">' + esc(t('home.set.photosAdd', 'Add photos from a phone or computer')) + '</div>' +
+      '<div class="qd">' + esc(t('home.set.photosQrDesc', 'Scan the code, or open the address below in a browser on the same network. The photos stay on the TV only.')) + '</div>' +
+      (url ? '<div class="qu" translate="no">' + esc(url) + '</div>' : '') + '</div></div>';
+  }
+
+  function requestPhotosPair() {
+    postJson('/api/home/gallery/pair', {}, function (r) {
+      if (r && r.ok && r.url) { settings.photos.url = r.url; settings.photos.error = ''; }
+      else { settings.photos.url = null; settings.photos.error = (r && r.error) || t('home.set.jfNoCode', 'No code: the TV did not answer'); }
+      renderSettings();
+    });
+  }
+
+  function loadGallery() {
+    getJson('/api/home/gallery', function (r) {
+      if (!r || !r.ok) return;
+      var was = settings.gallery;
+      settings.gallery = r;
+      if (was && r.count > was.count) toast(t('home.set.photosAdded', 'Photos added'), t('home.set.photosOf', '{i} of {n}', { i: r.count, n: r.max }));
+      if (!was || was.count !== r.count || was.shown !== r.shown || was.mode !== r.mode) renderSettings();
+    });
+  }
+
+  function setGallery(patch) {
+    postJson('/api/home/gallery', patch, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      settings.gallery = r;
+      if (r.wallpapers) { takeWall(r.wallpapers); updateWall(); }
+      renderSettings();
+    });
+  }
+
+  function sshRows() {
+    var s = settings.ssh;
+    if (!s) return [{ kind: 'info', label: 'SSH', value: '…' }];
+    var signIn = s.keys ? t('home.set.sshKeys', 'Key ({n})', { n: s.keys }) : '—';
+    if (s.passwordNow) signIn = s.keys ? t('home.set.sshKeysPassword', 'Key ({n}) or password', { n: s.keys }) : t('home.set.sshPassword', 'Password');
+    var rows = [
+      { kind: 'switch', on: s.enabled, label: 'SSH', help: t('home.set.sshHelp', 'Also at every start of the TV, as the Homebrew Channel’s own setting'),
+        value: settings.busy === 'ssh' ? t('home.set.switching', 'Switching…') : onText(s.enabled), act: function () { setSsh(!s.enabled); } },
+      { kind: 'info', label: t('home.set.sshRunning', 'Server'), value: s.running ? t('home.set.sshListening', 'Listening on port 22') : t('home.set.off', 'Off') },
+      { kind: 'info', label: t('home.set.sshSignIn', 'Sign-in'), value: signIn,
+        help: s.passwordNow ? t('home.set.sshPasswordHelp', 'The Homebrew Channel’s password is alpine unless changed: add a key in the Glasshouse app to switch it off') : '' }
+    ];
+    if (net && net.ip) rows.push({ kind: 'info', label: t('home.set.sshAddress', 'Address'), value: 'root@' + net.ip });
+    return rows;
+  }
+
+  function loadSsh() {
+    getJson('/api/home/ssh', function (r) {
+      if (!r || !r.ok) return;
+      settings.ssh = r;
+      renderSettings();
+    });
+  }
+
+  function setSsh(on) {
+    if (settings.busy) return;
+    settings.busy = 'ssh';
+    renderSettings();
+    postJson('/api/home/ssh', { on: on }, function (r) {
+      settings.busy = '';
+      if (!r || !r.ok) toast(t('home.set.sshFailed', 'SSH did not change'), r && r.error);
+      else settings.ssh = r;
       renderSettings();
     });
   }
@@ -2038,7 +2347,9 @@ html.faded #stage{opacity:0}
     var inputs = !!(data && layout && !state.arranging && items('dev').length);
     $('stage').className = (state.arranging ? 'arranging' : '') + (recents.open ? ' recents' : '') + (themeName === 'light' ? ' light' : '') +
       (settings.open ? ' settings' : '') + (faultShown ? ' fault' : '') + (inputs ? ' inputs' : '') +
-      (finder.open ? ' finding' : '') + (finder.typing ? ' typing' : '') + (searchOn() ? '' : ' no-search');
+      (finder.open ? ' finding' : '') + (finder.typing ? ' typing' : '') + (searchOn() ? '' : ' no-search') +
+      // A photo of the owner's behind Home: the shelf and the rows are shaded to stay legible on it.
+      (wallSrc ? ' photo' : '');
   }
 
   // ---------------------------------------------------------------- recent apps
@@ -2691,6 +3002,8 @@ html.faded #stage{opacity:0}
     stopPointing();
     landAll();
     if (!data || !layout) return;
+    // Typing the name: the keys are the field's, but for the ones that end it.
+    if (settings.editing) return editKey(e);
     if (finder.open) {
       // OK held repeats: one press opens one app. The keyboard's Enter sends
       // no key up (ime/sendEnterKey on a G3), so it is not counted.
@@ -2855,6 +3168,14 @@ html.faded #stage{opacity:0}
     for (var j = 0; j < WALL_SLOTS.length; j++) if (WALL_SLOTS[j].from <= h) slot = WALL_SLOTS[j];
     return slot;
   }
+  function takeWall(w) {
+    wallAvailable = !!(w && w.available);
+    wallSlots = w && w.slots;
+    wallRevision = w && w.revision || '';
+    wallSrc = w && w.src || '';
+    stageClass();
+  }
+
   function updateWall() {
     var slot = wallSlot();
     if (!wallAvailable || (wallSlots && !wallSlots[slot.key])) {
@@ -2867,7 +3188,7 @@ html.faded #stage{opacity:0}
     if (id === wallShown) return;
     var layers = $('wall').querySelectorAll('.layer');
     var next = layers[1 - wallFront], prev = layers[wallFront];
-    var src = '/api/home/wallpaper?slot=' + slot.key + '&v=' + encodeURIComponent(revision);
+    var src = wallSrc || '/api/home/wallpaper?slot=' + slot.key + '&v=' + encodeURIComponent(revision);
     var img = new Image();
     img.onload = function () {
       if (!wallAvailable || wallRevision !== revision || wallSlot().key !== slot.key) return;
@@ -2948,12 +3269,10 @@ html.faded #stage{opacity:0}
       if (r.layoutVersion) layoutVersion = r.layoutVersion;
       refreshPicture();
       clearTimeout(loadRetry);
-      wallAvailable = !!(r.wallpapers && r.wallpapers.available);
-      wallSlots = r.wallpapers && r.wallpapers.slots;
-      wallRevision = r.wallpapers && r.wallpapers.revision || '';
+      takeWall(r.wallpapers);
       updateWall();
       if (!state.arranging) render();
-      if (firstLoad) { beat(); fadeIn(); planMascot(); }
+      if (firstLoad) { beat(); fadeIn(); planMascot(); greet(); refreshNet(); refreshSleep(); }
       renderSettings();
       if (!layout.hintSeen) {
         toast(t('home.hint.title', 'Hold OK to arrange'), t('home.hint.desc', 'Move or hide tiles and rows. LG\'s Home is the last tile in Apps.'));
@@ -3004,9 +3323,7 @@ html.faded #stage{opacity:0}
     postJson('/api/home/beat', {}, function (r) {
       if (r && r.ok) {
         beatFails = 0;
-        wallAvailable = !!(r.wallpapers && r.wallpapers.available);
-        wallSlots = r.wallpapers && r.wallpapers.slots;
-        wallRevision = r.wallpapers && r.wallpapers.revision || '';
+        takeWall(r.wallpapers);
         updateWall();
         showFault(false);
         // The TV's setting can change while the view is open, so the heartbeat
@@ -3049,6 +3366,7 @@ html.faded #stage{opacity:0}
     keepSearch();
     readLaunchParams();
     updateWall();
+    if (layout) { greet(); refreshNet(); refreshSleep(); }
     state.top = -1;
     if (settings.open) closeSettings();
     // Back from an app, Home is as it was left: the same tile in focus and
@@ -3106,7 +3424,8 @@ html.faded #stage{opacity:0}
   beat();
   load();
   setInterval(beat, BEAT_MS);
-  setInterval(function () { renderNow(); updateWall(); if (!document.hidden) refreshPicture(); }, 15000);
+  setInterval(function () { renderNow(); updateWall(); paintSleep(); if (!document.hidden) refreshPicture(); }, 15000);
+  setInterval(function () { if (!document.hidden && layout) { refreshNet(); refreshSleep(); } }, 30000);
   setInterval(function () { refreshNow(); refreshGuide(); }, 60000);
   setInterval(function () { if (!state.arranging) load(); }, 5 * 60000);
 })();

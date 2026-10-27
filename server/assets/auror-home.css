@@ -402,3 +402,40 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .hit .else{-webkit-align-self:center;align-self:center;margin-left:16px;font-size:20px;color:#99a2af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .typing .hit .else{display:none}
 .light .hit .else{color:#5d6472}
+
+/* ---- The greeting over the Top Shelf's left, a new line each time Home comes back ---- */
+#greet{position:absolute;left:128px;top:62px;right:900px;font-size:34px;font-weight:300;letter-spacing:-.3px;line-height:1.2;color:#e0e4ea;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0}
+#greet.in{opacity:1;-webkit-transition:opacity .6s ease-out;transition:opacity .6s ease-out}
+.light #greet{color:#111827}
+
+/* ---- Network, sleep timer and switching off beside the theme and the settings ---- */
+.topbtn{position:relative}
+.topbtn .wired,.topbtn .nonet{display:none}
+.net-wired .wifi,.net-none .wifi{display:none}
+.net-wired .wired,.net-none .nonet{display:block}
+.topbtn .dot{display:none;position:absolute;right:8px;bottom:8px;width:9px;height:9px;border-radius:50%;background:#22c55e}
+.st-online .dot,.st-limited .dot,.st-off .dot{display:block}
+.st-limited .dot{background:#f5a000}
+.st-off .dot{background:#ef4444}
+.topbtn .left{display:none;margin-left:8px;font-size:20px;font-weight:600;-webkit-font-feature-settings:"tnum";font-feature-settings:"tnum"}
+.topbtn.wide{width:auto;padding:0 16px}
+.topbtn.wide .left{display:block}
+#btnTimer.wide{color:#f5a000}
+.light #btnTimer.wide{color:#b36b00}
+#btnPower.armed,.light #btnPower.armed{background:#b42318;border-color:#b42318;color:#fff;outline-color:#ff8a80}
+
+/* ---- An owner's photo behind Home: the shelf lets it through, shaded so the text stays legible ---- */
+.photo #shelf{background:rgba(28,32,40,.62)}
+.light.photo #shelf{background:rgba(255,255,255,.64)}
+.photo #scrim{display:block;background:-webkit-linear-gradient(top,rgba(21,25,31,0) 55%,rgba(21,25,31,.6) 100%);background:linear-gradient(to bottom,rgba(21,25,31,0) 55%,rgba(21,25,31,.6) 100%)}
+.light.photo #scrim{background:-webkit-linear-gradient(top,rgba(243,245,247,0) 55%,rgba(243,245,247,.6) 100%);background:linear-gradient(to bottom,rgba(243,245,247,0) 55%,rgba(243,245,247,.6) 100%)}
+
+/* ---- Settings: over a photo, on the page's own colour; the name typed in place, the photo shown now, the page's address ---- */
+.photo #settings{background:#15191f}
+.light.photo #settings{background:#f3f5f7}
+#setInput{width:420px;font:inherit;font-size:26px;color:#e0e4ea;background:#15191f;border:0;border-bottom:2px solid #f5a000;padding:4px 6px;outline:0}
+.light #setInput{color:#111827;background:#f3f5f7;border-bottom-color:#d98c00}
+#setRows .prev{display:block;width:384px;height:216px;margin-top:22px;border-radius:10px;background:#23272e;object-fit:cover}
+.qrbox .qu{margin-top:12px;font-family:"Space Mono",monospace;font-size:20px;color:#f5a000;word-break:break-all}
+.light .qrbox .qu{color:#b36b00}

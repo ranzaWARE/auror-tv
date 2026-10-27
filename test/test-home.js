@@ -388,7 +388,14 @@ step('the view\'s look is kept apart from the layout, and survives a layout save
       assert.strictEqual(r2.layout.look.theme, 'dark');
       home.setLook({ theme: 'sepia' }, function (r3) {
         assert.strictEqual(r3.layout.look.theme, 'auto', 'an unknown theme falls back to automatic');
-        done();
+        // AUROR's greeting: the owner's name, tidied and kept short; empty, it goes.
+        home.setLook({ name: '  Marco\u0007 <b>Rossi</b>   di Verona e dintorni  ' }, function (r4) {
+          assert.strictEqual(r4.layout.look.name, 'Marco bRossi/b di Verona e din');
+          home.setLook({ name: ' ' }, function (r5) {
+            assert.ok(!('name' in r5.layout.look));
+            done();
+          });
+        });
       });
     });
   });
