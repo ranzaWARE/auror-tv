@@ -49,8 +49,21 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 
 #shelfBody{position:absolute;left:120px;right:120px;top:208px}
 #shelfBody.none{visibility:hidden}
-#shelfBody .sh-title,#shelfBody .sh-cards,#shelfBody .sh-stats{display:none}
+#shelfBody .sh-title,#shelfBody .sh-cards,#shelfBody .sh-stats,#shelfBody .sh-hero{display:none}
 #shelfBody.title .sh-title,#shelfBody.cards .sh-cards,#shelfBody.stats .sh-stats{display:block}
+#shelfBody.hero .sh-hero{display:-webkit-flex;display:flex;-webkit-align-items:flex-end;align-items:flex-end}
+/* An app with nothing to show: its picture large, its name only under its tile. */
+#shelfBody.hero{top:96px}
+#heroArt{position:relative;width:800px;height:450px;-webkit-flex:0 0 auto;flex:0 0 auto;border-radius:10px;overflow:hidden;
+  box-shadow:0 22px 44px rgba(0,0,0,.45)}
+#heroArt img,#heroArt .mono{display:block;width:100%;height:100%;object-fit:cover}
+#heroArt img.tinted{object-fit:contain;padding:110px 0;box-sizing:border-box}
+#heroArt .mono{line-height:450px;text-align:center;font-size:160px;font-weight:600;color:#fff}
+.hero-text{margin-left:64px;padding-bottom:6px}
+#heroSub{font-size:24px;color:#99a2af;margin-top:14px}
+.light #heroArt{box-shadow:0 16px 36px rgba(17,24,39,.18)}
+.light #heroSub{color:#5d6472}
+.inputs #shelfBody.hero{top:80px}
 #shelfBody.cards{top:148px}
 #shelfBody.stats{top:188px}
 #shelfBody.fade{-webkit-animation:auror-fade .22s cubic-bezier(.2,.7,.2,1);animation:auror-fade .22s cubic-bezier(.2,.7,.2,1)}
