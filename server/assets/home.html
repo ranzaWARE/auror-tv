@@ -285,6 +285,9 @@ html.faded #stage{opacity:0}
         <div id="date">&mdash;</div>
         <div id="themeNote"></div>
       </div>
+      <span class="topbtn" id="btnSearch" role="button" aria-label="Search" data-t-aria-label="home.search.rail">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+      </span>
       <span class="topbtn" id="btnTheme" role="button" aria-label="Light or dark theme" data-t-aria-label="home.theme.toggle">
         <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
@@ -400,7 +403,13 @@ html.faded #stage{opacity:0}
   // rail: the search mark in the left gutter has the focus.
   var state = { row: 0, col: {}, arranging: false, held: false, bar: -1, top: -1, last: null, rail: false };
   var BAR = ['btnHide', 'btnReset', 'btnDone'];
-  var TOP = ['btnTheme', 'btnSettings'];
+  // Search, the theme and the settings, over the Top Shelf's right: Search only while it is switched on.
+  var TOP = ['btnSearch', 'btnTheme', 'btnSettings'];
+  function topShown(i) { return TOP[i] !== 'btnSearch' || searchOn(); }
+  function topStep(from, dc) {
+    for (var i = from + dc; i >= 0 && i < TOP.length; i += dc) if (topShown(i)) return i;
+    return from;
+  }
   var DASHBOARD_APP = 'com.tvweb.dashboard';
   // The focus rests this long on a tile before its Top Shelf data is asked for.
   var SHELF_REST_MS = 450;
@@ -595,7 +604,8 @@ html.faded #stage{opacity:0}
   }
   function hidden(kind, id) { return layout.hidden[kind].indexOf(id) !== -1; }
   // The server puts a Last opened row in that order; the view shows it as sent.
-  function byRecent(kind) { return !!(layout.sort && layout.sort[kind] === 'recent'); }
+  function byRecent(kind) { return !!(layout.sort && (layout.sort[kind] === 'recent' || layout.sort[kind] === 'use')); }
+  function byUse(kind) { return !!(layout.sort && layout.sort[kind] === 'use'); }
 
   // A row's items in its saved order; arranging shows the hidden ones too.
   function items(kind) {
@@ -626,6 +636,7 @@ html.faded #stage{opacity:0}
   // ---------------------------------------------------------------- rows
 
   function sortLabel(kind) {
+    if (byUse(kind)) return t('home.arrange.orderUse', 'Order: most used');
     return byRecent(kind) ? t('home.arrange.orderRecent', 'Order: last opened') : t('home.arrange.orderCustom', 'Order: yours');
   }
 
@@ -1372,7 +1383,8 @@ html.faded #stage{opacity:0}
   }
 
   function pressTop(i) {
-    if (i === 0) return toggleTheme();
+    if (TOP[i] === 'btnSearch') return searchOn() && openSearch();
+    if (TOP[i] === 'btnTheme') return toggleTheme();
     openSettings();
   }
 
@@ -1398,7 +1410,7 @@ html.faded #stage{opacity:0}
     { id: 'shelf', label: t('home.set.shelf', 'Top Shelf'),
       desc: t('home.set.shelfDesc', 'What the band at the top shows when an app or an input is selected.') },
     { id: 'rows', label: t('home.set.rows', 'Rows'),
-      desc: t('home.set.rowsDesc', 'What the rows show, and the search to their left.') },
+      desc: t('home.set.rowsDesc', 'What the rows show, the order of the apps, and search.') },
     { id: 'tiles', label: t('home.set.tiles', 'Tiles'),
       desc: t('home.set.tilesDesc', 'Which apps Home shows. To reorder them, hold OK on a tile.') },
     { id: 'jellyfin', label: 'Jellyfin',
@@ -1460,14 +1472,19 @@ html.faded #stage{opacity:0}
         ['showAppCount', t('home.showAppCount', 'App count'), t('home.showAppCountDesc', 'Beside the Apps row: how many of the TV’s apps it shows.'), true],
         ['fade', t('home.fade', 'Fade in and out'), '', false]
       ];
-      return flags.map(function (f) {
+      var autoOrder = byRecent('app');
+      var orderRow = { kind: 'cycle', label: t('home.set.appOrder', 'App order'),
+        help: autoOrder ? t('home.set.appOrderAuto', 'The apps opened most come first') : t('home.set.appOrderManual', 'As arranged by holding OK on a tile'),
+        value: autoOrder ? t('home.set.orderAuto', 'Automatic') : t('home.set.orderManual', 'Manual'),
+        act: function () { setLayoutFlags({ sort: { app: autoOrder ? 'custom' : 'use' } }, true); } };
+      return [orderRow].concat(flags.map(function (f) {
         var on = f[3] ? layout[f[0]] !== false : layout[f[0]] === true;
         if (f[0] === 'search' && blocked) {
           return { kind: 'switch', on: false, locked: true, label: f[1], help: f[2], value: t('home.searchUnavailable', 'Unavailable') };
         }
         return { kind: 'switch', on: on, label: f[1], help: f[2], value: onText(on),
           act: function () { var patch = {}; patch[f[0]] = !on; setLayoutFlags(patch); } };
-      });
+      }));
     }
     if (id === 'tiles') {
       return data.order.app.map(function (appId) {
@@ -1485,8 +1502,12 @@ html.faded #stage{opacity:0}
         help: up.available ? t('home.set.autoUpdateNew', 'v{version} is out: it goes in with the TV off or at night', { version: up.latest })
           : t('home.set.autoUpdateHelp', 'New AUROR releases go in with the TV off or at night'),
         value: onText(!!up.auto), act: function () { setAutoUpdate(!up.auto); } };
+      var nowRow = { kind: 'link', label: t('home.set.updateNow', 'Update now'),
+        help: t('home.set.updateNowHelp', 'Asks for AUROR’s latest release and installs it at once'),
+        value: settings.busy === 'update' ? t('home.set.updateChecking', 'Checking…') : '', act: updateNow };
       return [
         autoRow,
+        nowRow,
         { kind: 'info', label: t('home.set.version', 'Version'), value: up.installed ? 'v' + up.installed : '—' },
         { kind: 'link', label: t('home.set.moreOpen', 'Open the Glasshouse app'), value: '', act: openGlasshouse }
       ];
@@ -1627,8 +1648,24 @@ html.faded #stage{opacity:0}
     });
   }
 
+  // The server restarts once a release is in: the view waits it out as it does any restart.
+  function updateNow() {
+    if (settings.busy) return;
+    settings.busy = 'update';
+    renderSettings();
+    postJson('/api/home/updatenow', {}, function (r) {
+      settings.busy = '';
+      if (r && r.update) data.update = r.update;
+      renderSettings();
+      if (!r || !r.ok) return toast(t('home.set.updateFailed', 'The update did not go in'), r && r.error);
+      if (r.installing) return toast(t('home.set.updateInstalling', 'Installing v{version}', { version: r.version }), t('home.set.updateBack', 'Glasshouse Home is back in a minute'));
+      toast(t('home.set.updateCurrent', 'AUROR is up to date'), r.update && r.update.installed ? 'v' + r.update.installed : '');
+    });
+  }
+
   // Switches kept with the layout, which the dashboards change too.
-  function setLayoutFlags(patch) {
+  // reorder: the server puts the rows in their new order, so they are asked for again.
+  function setLayoutFlags(patch, reorder) {
     postJson('/api/home/layout', patch, function (r) {
       if (!r || !r.ok || !r.layout) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
       layout = r.layout;
@@ -1636,6 +1673,7 @@ html.faded #stage{opacity:0}
       stageClass();
       render();
       renderSettings();
+      if (reorder) load(function () { renderSettings(); });
     });
   }
 
@@ -1905,7 +1943,7 @@ html.faded #stage{opacity:0}
     // Up from the first row reaches the buttons over the Top Shelf; down comes back.
     if (state.top >= 0) {
       if (dr > 0) state.top = -1;
-      else if (dc) state.top = Math.max(0, Math.min(TOP.length - 1, state.top + dc));
+      else if (dc) state.top = topStep(state.top, dc);
       return applyFocus();
     }
     var onSort = colOf(rowKey()) === -1;
@@ -1915,14 +1953,11 @@ html.faded #stage{opacity:0}
       if (dc > 0) { state.rail = false; applyFocus(); }
       return;
     }
-    if (dc < 0 && !state.arranging && searchOn() && colOf(rowKey()) === 0) {
-      state.rail = true;
-      return applyFocus();
-    }
+    // Search is a button over the Top Shelf rather than a rail at the rows' left.
     if (dr) {
       var to = nextShown(state.row + dr, dr);
       if (to >= 0 && to < layout.rows.length && shown(to)) state.row = to;
-      else if (dr < 0 && !state.arranging) { state.top = 0; return applyFocus(); }
+      else if (dr < 0 && !state.arranging) { state.top = topStep(-1, 1); return applyFocus(); }
     }
     // Up and down from a row's Order go to the next row's.
     if (dr && onSort) state.col[rowKey()] = -1;
@@ -2146,7 +2181,8 @@ html.faded #stage{opacity:0}
     $('query').blur();
     $('query').value = '';
     $('hits').innerHTML = '';
-    state.rail = true;
+    state.rail = false;
+    state.top = searchOn() ? TOP.indexOf('btnSearch') : -1;
     stageClass();
     applyFocus();
   }
@@ -2479,7 +2515,7 @@ html.faded #stage{opacity:0}
       layout.sort[kind] = 'custom';
       movedRows[kind] = true;
       toast(t('home.arrange.nowCustom', '{row} are now in your order', { row: ROW_TITLES[kind] }),
-            t('home.arrange.nowCustomDesc', 'The row\'s Order, left of its first tile, puts them back in last opened order'));
+            t('home.arrange.nowCustomDesc', 'The row\'s Order, left of its first tile, or Settings, Rows, puts them back in order of use'));
       render();
     }
     state.held = !state.held;
@@ -2491,13 +2527,14 @@ html.faded #stage{opacity:0}
     if (layoutBusy) return;
     state.held = false;
     if (!layout.sort) layout.sort = {};
-    var recent = !byRecent(kind);
-    layout.sort[kind] = recent ? 'recent' : 'custom';
+    // AUROR: between the row's own order and Most used; Last opened stays for a row set to it elsewhere.
+    var auto = !byRecent(kind);
+    layout.sort[kind] = auto ? 'use' : 'custom';
     saveLayout({}, true, function () {
-      toast(recent ? t('home.arrange.sortedRecent', '{row}: last opened first', { row: ROW_TITLES[kind] })
-                   : t('home.arrange.sortedCustom', '{row}: in your order', { row: ROW_TITLES[kind] }),
-            recent ? t('home.arrange.sortedRecentDesc', 'Each tile moves to the front when it is opened')
-                   : t('home.arrange.sortedCustomDesc', 'Pick a tile up with OK to move it'));
+      toast(auto ? t('home.arrange.sortedRecent', '{row}: most used first', { row: ROW_TITLES[kind] })
+                 : t('home.arrange.sortedCustom', '{row}: in your order', { row: ROW_TITLES[kind] }),
+            auto ? t('home.arrange.sortedRecentDesc', 'The tiles opened most come first, and an old favourite slowly gives way')
+                 : t('home.arrange.sortedCustomDesc', 'Pick a tile up with OK to move it'));
     });
   }
 
@@ -2855,7 +2892,7 @@ html.faded #stage{opacity:0}
         layout.hintSeen = true;
       } else if (!layout.searchHintSeen && searchOn()) {
         // Once, for a TV that had Glasshouse Home before search came.
-        toast(t('home.search.hintTitle', 'Search is left of the rows'), t('home.search.hintDesc', 'Press left on a row\u2019s first tile to find a film or series and open it in an app on this TV'));
+        toast(t('home.search.hintTitle', 'Search is at the top right'), t('home.search.hintDesc', 'Press up to the magnifier, beside the theme and the settings, to find a film or series and open it in an app on this TV'));
         postJson('/api/home/layout', { searchHintSeen: true });
         layout.searchHintSeen = true;
       }

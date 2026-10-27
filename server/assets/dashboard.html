@@ -1134,11 +1134,12 @@ function glasshouseHomeRows(d) {
     // channels are added, so they are removed.
     var hasChannels = !!(d.channels && d.channels.length);
     var sortRow = function (kind) {
-      var recent = !!(lay.sort && lay.sort[kind] === 'recent');
-      return { label: t('home.sort', 'Order'), value: recent ? t('home.sortRecent', 'Last opened') : t('home.sortCustom', 'Your order'),
+      var sorted = lay.sort && lay.sort[kind], recent = sorted === 'recent' || sorted === 'use';
+      return { label: t('home.sort', 'Order'), value: sorted === 'use' ? t('home.sortUse', 'Most used') : recent ? t('home.sortRecent', 'Last opened') : t('home.sortCustom', 'Your order'),
                cls: 'act', act: can ? 'homeSort' : null, key: kind, on: recent,
-               press: recent ? t('tv.home.sort.custom', 'Press OK for your own order') : t('tv.home.sort.recent', 'Press OK to put the tile opened last first'),
-               hint: recent ? t('home.sortRecentDesc', 'The tile opened last comes first, whether it was opened from Glasshouse Home or not. Tiles not yet opened follow in this row\u2019s own order.')
+               press: recent ? t('tv.home.sort.custom', 'Press OK for your own order') : t('tv.home.sort.recent', 'Press OK to put the most used first'),
+               hint: sorted === 'use' ? t('home.sortUseDesc', 'The tiles opened most come first, whether opened from Glasshouse Home or not, with old opens counting for less and less. Tiles not yet opened follow in this row\u2019s own order.')
+                   : recent ? t('home.sortRecentDesc', 'The tile opened last comes first, whether it was opened from Glasshouse Home or not. Tiles not yet opened follow in this row\u2019s own order.')
                             : t('tv.home.sort.hint', 'As arranged by holding OK on Glasshouse Home.') };
     };
     lay.rows.forEach(function (kind) {
@@ -2688,8 +2689,8 @@ function activate() {
       return homeLayout({ rows: rowsNow });
     case 'homeSort':
       var sortNow = {};
-      sortNow[r.key] = r.on ? 'custom' : 'recent';
-      return homeLayout({ sort: sortNow }, r.on ? t('home.sortCustom', 'Your order') : t('home.sortRecent', 'Last opened'));
+      sortNow[r.key] = r.on ? 'custom' : 'use';
+      return homeLayout({ sort: sortNow }, r.on ? t('home.sortCustom', 'Your order') : t('home.sortUse', 'Most used'));
     case 'homeTile':
       var hiddenNow = {};
       hiddenNow[r.kind] = homeData.layout.hidden[r.kind].filter(function (id) { return id !== r.key; });

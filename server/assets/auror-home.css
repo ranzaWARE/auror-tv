@@ -367,17 +367,15 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 @-webkit-keyframes quetza-fly{0%{-webkit-transform:translate(-340px,50px)}50%{-webkit-transform:translate(800px,0)}100%{-webkit-transform:translate(2240px,40px)}}
 @keyframes quetza-fly{0%{transform:translate(-340px,50px)}50%{transform:translate(800px,0)}100%{transform:translate(2240px,40px)}}
 
-/* ---- Search: the mark left of the rows, and its panel over the left of the screen ---- */
-#rail{color:#5d6472}
-#rail.focus{color:#e0e4ea}
-#rail.focus svg{background:#23272e;outline:3px solid #f5a000;outline-offset:2px}
-.light #rail{color:#99a2af}
-.light #rail.focus{color:#111827}
-.light #rail.focus svg{background:#fff;outline-color:#d98c00}
-#finder{z-index:5;width:1040px;padding:120px 72px 0 120px;background:#1c2028;border-right:1px solid rgba(255,255,255,.08);
-  box-shadow:24px 0 60px rgba(0,0,0,.35)}
-.light #finder{background:#fff;border-right-color:#e5e7eb;box-shadow:24px 0 60px rgba(17,24,39,.12)}
-.finding #shelf,.finding #rowsView,.finding #rail{opacity:.25}
+/* ---- Search: a button beside the theme and the settings, and its panel over the right of the screen ---- */
+#rail{display:none !important}
+.no-search #btnSearch{display:none}
+#finder{z-index:5;left:auto;right:0;width:1040px;padding:120px 120px 0 72px;background:#1c2028;
+  border-left:1px solid rgba(255,255,255,.08);box-shadow:-24px 0 60px rgba(0,0,0,.35);
+  -webkit-transform:translateX(100%);transform:translateX(100%)}
+.finding #finder{-webkit-transform:none;transform:none}
+.light #finder{background:#fff;border-left-color:#e5e7eb;box-shadow:-24px 0 60px rgba(17,24,39,.12)}
+.finding #shelf,.finding #rowsView{opacity:.25}
 #ask{border-bottom-color:rgba(255,255,255,.12)}
 .typing #ask{border-bottom-color:#f5a000}
 #ask svg{color:#99a2af}

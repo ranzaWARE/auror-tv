@@ -16,7 +16,7 @@ The **Screensaver** tab, `/?tab=screensaver`, provides fifteen alternatives to L
 * Harmonograph, pendulum ribbons of light weaving and fading on black
 * Tesseract, a four-dimensional cube turning through the fourth dimension, in fine lines of light that dim and turn violet with depth
 * Panel vitals, showing the TV's own panel hours and refresher countdown
-* AUROR, Glasshouse Home's clock dimmed on black and gliding slowly without stopping; now and then Mimus dozes beside it or Quetza flies past, unless they are switched off in Glasshouse Home's settings. It can also be switched on from those settings, on the TV.
+* AUROR, black for the OLED panel: Mimus asleep in the middle with the time beneath him, dimmed, the pair drifting up to 90 px from the middle so no pixel stays lit in one place. With the mascots switched off in Glasshouse Home's settings, the time is left alone. It can also be switched on from those settings, on the TV.
 
 Each mode offers dim and bright variants, and visual elements continuously drift across the screen to prevent OLED burn-in or image retention. The clock and the time on Panel vitals draw 12-hour or 24-hour time as the TV's own time setting has it, and pick up a change the next time the screen saver starts.
 

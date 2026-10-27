@@ -1219,6 +1219,7 @@ function handleHomeRoute(req, res, u, pathname) {
         return screensaversModule.setScreensaver(body && body.on === true ? 'auror' : 'stock', body && body.bright === true ? 'bright' : 'dim', reply);
       }
       if (pathname === '/api/home/autoupdate') return aurorUpdate.setAuto(!!(body && body.auto === true), reply);
+      if (pathname === '/api/home/updatenow') return aurorUpdate.updateNow(reply);
       if (pathname === '/api/home/start-layout') return homeModule.setHideLgHomeAtStart(body, reply);
       if (pathname === '/api/home/wallpapers') return homeModule.setWallpapers(body, reply);
       if (pathname === '/api/home/enable') return homeModule.enable(reply);

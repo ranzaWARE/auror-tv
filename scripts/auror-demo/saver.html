@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AUROR: screen saver</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<style>
+/* The AUROR screen saver as its QML draws it (server/assets/screensavers/auror/main.qml): black, Mimus asleep, the time beneath. */
+@font-face{font-family:"Space Grotesk";src:url("assets/fonts/SpaceGrotesk.ttf") format("truetype");font-weight:300 700}
+@font-face{font-family:"Space Mono";src:url("assets/fonts/SpaceMono-Regular.ttf") format("truetype");font-weight:400}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+#pair{position:absolute;left:50%;top:50%;display:flex;flex-direction:column;align-items:center;gap:28px;
+  transform:translate(-50%,-50%);animation:drift 360s ease-in-out infinite alternate}
+@keyframes drift{0%{transform:translate(-50%,-50%)}25%{transform:translate(calc(-50% + 70px),calc(-50% - 40px))}
+  50%{transform:translate(calc(-50% - 50px),calc(-50% + 55px))}75%{transform:translate(calc(-50% - 85px),calc(-50% - 30px))}
+  100%{transform:translate(calc(-50% + 40px),calc(-50% + 45px))}}
+#mimus{width:384px;height:294px;image-rendering:pixelated;opacity:.5}
+#clock{font-family:"Space Grotesk",sans-serif;font-weight:300;font-size:96px;letter-spacing:-3px;line-height:1;color:#7d8592}
+#date{font-family:"Space Mono",monospace;font-size:20px;letter-spacing:1.5px;color:#5d6472;text-transform:uppercase}
+.bright #mimus{opacity:.85}.bright #clock{color:#e0e4ea}.bright #date{color:#99a2af}
+#hint{position:fixed;left:16px;bottom:12px;font:13px/1.4 sans-serif;color:#333}
+</style>
+</head>
+<body>
+<div id="stage"><div id="pair"><img id="mimus" src="assets/screensavers/auror/mimus-sleep-dark.gif" alt="Mimus asleep"><div id="clock">00:00</div><div id="date"></div></div></div>
+<div id="hint">B: dim or bright · Esc: back</div>
+<script>
+  function fit() { var s = Math.min(innerWidth / 1920, innerHeight / 1080), st = document.getElementById('stage');
+    st.style.transform = 'translate(' + (innerWidth - 1920 * s) / 2 + 'px,' + (innerHeight - 1080 * s) / 2 + 'px) scale(' + s + ')'; }
+  function tick() { var d = new Date(), two = function (n) { return (n < 10 ? '0' : '') + n; };
+    document.getElementById('clock').textContent = two(d.getHours()) + ':' + two(d.getMinutes());
+    document.getElementById('date').textContent = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }); }
+  addEventListener('resize', fit);
+  addEventListener('keydown', function (e) {
+    if (e.key === 'b' || e.key === 'B') document.body.classList.toggle('bright');
+    if (e.key === 'Escape' || e.key === 'Backspace') location.href = 'index.html';
+  });
+  fit(); tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>
