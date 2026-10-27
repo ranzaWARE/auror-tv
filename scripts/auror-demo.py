@@ -101,10 +101,12 @@ def main():
     script = '<script src="demo/api.js"></script>\n'
     # Images are not requests the demo's TV can answer: the photos are the files beside the page.
     page('home.html', os.path.join(out, 'home.html'), script,
+         ("return '/api/home/immich/thumb?id=' + encodeURIComponent(id) + '&size=' + size;", "return 'demo/' + id + '.svg';"),
          ('"/api/home/photo?id=\' + encodeURIComponent(g.shown) + \'&thumb=1"', '"demo/\' + g.shown + \'.svg"'))
     page('gallery-phone.html', os.path.join(out, 'photos.html'), script,
          ("'/photos/thumb?c=' + code + '&id=' + id", "'demo/' + id + '.svg'"))
     page('jellyfin-phone.html', os.path.join(out, 'jellyfin.html'), script)
+    page('immich-phone.html', os.path.join(out, 'immich.html'), script)
     page('search-phone.html', os.path.join(out, 'tmdb.html'), script)
     for name in ('index.html', 'saver.html'):
         shutil.copy(os.path.join(HERE, name), os.path.join(out, name))

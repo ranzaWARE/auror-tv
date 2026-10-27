@@ -48,6 +48,24 @@
   var update = { auto: true, installed: '0.122.101', latest: '0.122.101', available: false };
   var jellyfin = { linked: true };
   var tmdb = { linked: true };
+  // Immich's albums: the build's landscapes and posters stand in for the photos.
+  var immich = { linked: true };
+  var ALBUMS = [
+    { id: 'a1', name: 'Estate al lago', cover: 'photo1', from: '2026-07-12', to: '2026-07-26', places: ['Garda', 'Malcesine', 'Riva del Garda'] },
+    { id: 'a2', name: 'Montagna', cover: 'photo2', from: '2026-02-01', to: '2026-02-08', places: ['Cortina d’Ampezzo', 'Dobbiaco'] },
+    { id: 'a3', name: 'Tramonti', cover: 'photo0', from: '2024-05-03', to: '2026-09-30', places: ['Verona', 'Venezia', null] },
+    { id: 'a4', name: 'Notti stellate', cover: 'photo3', from: '2025-08-10', to: '2025-08-12', places: ['Lessinia'] },
+    { id: 'a5', name: 'Serate cinema', cover: 'poster3', from: '2025-11-01', to: '2026-03-15', places: [null] }
+  ];
+  var PICS = ['photo0', 'photo1', 'photo2', 'photo3', 'poster0', 'poster1', 'poster2', 'poster3', 'poster4', 'poster5'];
+  function albumAssets(a) {
+    var out = [], n = a.id === 'a3' ? 64 : 18 + a.name.length;
+    for (var i = 0; i < n; i++) {
+      var d = new Date(Date.parse(a.to) - i * 86400000 * (a.id === 'a3' ? 13 : 0.6));
+      out.push({ id: i ? PICS[(i + a.name.length) % PICS.length] : a.cover, video: false, date: d.toISOString().slice(0, 10), place: a.places[i % a.places.length] });
+    }
+    return out;
+  }
   // The top bar's network, sleep timer and the SSH settings, as lib/auror-tv answers.
   var net = { ok: true, kind: 'wifi', state: 'online', ssid: 'Casa', ip: '192.168.1.42' };
   var sleepAt = 0;
@@ -75,7 +93,7 @@
       ids = ids.map(function (id, i) { return { id: id, i: i, n: opens[id] || 0 }; })
         .sort(function (x, y) { return y.n - x.n || x.i - y.i; }).map(function (x) { return x.id; });
     }
-    return ids.concat('lg-home');
+    return ids.concat(immich.linked ? ['auror-immich'] : [], 'lg-home');
   }
   function sleepStatus() {
     var left = Math.max(0, sleepAt - Date.now());
@@ -104,7 +122,10 @@
       sources: { apps: true, devices: true, channels: 0 }, layout: copy(layout), enabled: true,
       wallpapers: wallpapers(), layoutVersion: 'v' + version,
       jellyfin: jellyfin.linked ? { ok: true, configured: true, server: 'jellyfin.example.org', user: 'Demo' } : { ok: true, configured: false },
-      saver: saver, update: update, tmdb: { ok: true, configured: tmdb.linked } };
+      saver: saver, update: update, tmdb: { ok: true, configured: tmdb.linked }, immich: immichStatus() };
+  }
+  function immichStatus() {
+    return immich.linked ? { ok: true, configured: true, server: 'immich.example.org', user: 'Demo' } : { ok: true, configured: false };
   }
   function shelf() {
     if (!jellyfin.linked) return { ok: true, state: 'off', items: [] };
@@ -162,6 +183,24 @@
         var st = galleryStatus();
         st.wallpapers = wallpapers();
         return st;
+      case '/api/home/immich/status': return immichStatus();
+      case '/api/home/immich/albums':
+        return { ok: true, albums: ALBUMS.map(function (a) {
+          return { id: a.id, name: a.name, count: albumAssets(a).length, cover: a.cover, from: a.from, to: a.to, shared: false };
+        }) };
+      case '/api/home/immich/album':
+        var wanted = (/[?&]id=([^&]+)/.exec(url) || [])[1], hit = null;
+        ALBUMS.forEach(function (a) { if (a.id === wanted) hit = a; });
+        if (!hit) return { ok: false, error: 'that album is not on Immich', status: 400 };
+        var assets = albumAssets(hit);
+        return { ok: true, id: hit.id, name: hit.name, count: assets.length, assets: assets, delay: 300 };
+      case '/api/home/immich/pair': return { ok: true, url: location.href.replace(/[^/]*$/, '') + 'immich.html?c=demo' };
+      case '/api/home/immich/forget': immich.linked = false; version++; return { ok: true, configured: false };
+      case '/immich/link':
+        if (b.check) return { ok: true, valid: true };
+        immich.linked = true;
+        version++;
+        return { ok: true, user: 'Demo', albums: ALBUMS.length };
       case '/api/home/gallery/pair': return { ok: true, url: location.href.replace(/[^/]*$/, '') + 'photos.html?c=demo' };
       case '/photos/upload': return { ok: false, error: 'Nella demo le foto non si caricano: sulla TV finirebbero qui.', status: 400 };
       case '/api/home/guide': return { ok: true, guide: {} };
@@ -221,7 +260,7 @@
   DemoRequest.prototype.open = function (method, url, async) {
     this._method = method;
     this._url = String(url);
-    this._fake = /^\/(api|jellyfin|tmdb|photos)\//.test(this._url);
+    this._fake = /^\/(api|jellyfin|tmdb|photos|immich)\//.test(this._url);
     if (this._fake) return;
     var self = this, r = this._real = new Real();
     r.open(method, this._url.replace(/^\/assets\//, 'assets/'), async !== false);

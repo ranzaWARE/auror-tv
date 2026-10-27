@@ -405,6 +405,19 @@ html.faded #stage{opacity:0}
     <div class="gwrap"><div id="folderGrid"></div></div>
   </section>
 
+  <section id="photos">
+    <div class="kick" translate="no">Immich</div>
+    <h2 id="phTitle"></h2>
+    <div id="phSub"></div>
+    <div class="gwrap" id="phWrap"><div id="phGrid"></div><div id="phEmpty"></div></div>
+  </section>
+  <div id="viewer">
+    <div id="vwPic"></div>
+    <video id="vwVideo" preload="none"></video>
+    <i class="play"></i>
+    <div id="vwInfo"><div id="vwWhen"></div><div id="vwWhere"></div><div id="vwPos"></div></div>
+  </div>
+
   <div id="fault">
     <div class="kick" translate="no">Glasshouse Home</div>
     <h1 data-t="home.fault.title">Glasshouse is not answering</h1>
@@ -431,6 +444,8 @@ html.faded #stage{opacity:0}
     ch: t('home.row.channels', 'Channels')
   };
   var LG_HOME_TILE = 'lg-home';
+  // AUROR's Immich tile, in the row once Immich is linked: its albums open here.
+  var IMMICH_TILE = 'auror-immich';
   // The remote's keys as webOS reports them to a page.
   var KEY = { left: 37, up: 38, right: 39, down: 40, ok: 13, back: 461, red: 403, green: 404, yellow: 405 };
   // The More apps tile, last in the Apps row while any app is in the folder.
@@ -478,7 +493,7 @@ html.faded #stage{opacity:0}
     [/crunchyroll/i, 'crunchyroll'], [/emby/i, 'emby'], [/tidal/i, 'tidal'], [/deezer/i, 'deezer'],
     [/apple ?music/i, 'apple-music'], [/steam/i, 'steam'], [/playstation/i, 'playstation'], [/dazn/i, 'dazn'],
     [/paramount/i, 'paramount-plus'], [/vimeo/i, 'vimeo'], [/soundcloud/i, 'soundcloud'], [/rakuten/i, 'rakuten-tv'],
-    [/^sky\b/i, 'sky'], [/^now( tv)?$/i, 'now'], [/prime ?video|amazon/i, 'prime-video'], [/disney/i, 'disney-plus'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser']
+    [/^sky\b/i, 'sky'], [/^now( tv)?$/i, 'now'], [/prime ?video|amazon/i, 'prime-video'], [/disney/i, 'disney-plus'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser'], [/^immich$/i, 'immich']
   ];
   /*
    * An app with nothing of its own to show gets its colours as a glow across
@@ -515,7 +530,8 @@ html.faded #stage{opacity:0}
     'now': ['#8E9AA6', '#2B3138'],
     'prime-video': ['#1AB4F0', '#0067A8'],
     'disney-plus': ['#2A6BFF', '#0B1F5C'],
-    'browser': ['#3B82F6', '#1E40AF']
+    'browser': ['#3B82F6', '#1E40AF'],
+    'immich': ['#5B6BD6', '#ED79B5']
   };
   var APP_ABOUT = {
     'browser': t('home.app.browser', 'The web on the big screen: sites, videos, recipes, timetables, whatever is needed in a hurry.'),
@@ -546,7 +562,8 @@ html.faded #stage{opacity:0}
     'prime-video': t('home.app.primeVideo', 'Amazon’s films and series, its own productions and sport, with a Prime subscription.'),
     'disney-plus': t('home.app.disneyPlus', 'Disney, Pixar, Marvel, Star Wars and National Geographic, all in one place.'),
     'now': t('home.app.now', 'Sky’s films, series and sport without a dish: passes switched on and off as wanted.'),
-    'lg-channels': t('home.app.lgChannels', 'Free channels over the internet: films, news and series from years ago. The price is the adverts.')
+    'lg-channels': t('home.app.lgChannels', 'Free channels over the internet: films, news and series from years ago. The price is the adverts.'),
+    'immich': t('home.app.immich', 'The photos and videos on the Immich server at home, album by album.')
   };
   // Brands Simple Icons leaves out, by their own colours.
   var BRAND_COLOURS = [
@@ -554,7 +571,7 @@ html.faded #stage{opacity:0}
     [/rai ?play/i, '#1A6FE0', '#0A2E73'], [/mediaset|infinity/i, '#2F62D9', '#172F72']
   ];
   var build = null;
-  var okDownAt = 0, okTimer = null, okLong = false, okInRecents = false, okInFolder = false, backDown = false;
+  var okDownAt = 0, okTimer = null, okLong = false, okInRecents = false, okInFolder = false, okInPhotos = false, backDown = false;
   var beatFails = 0;
   // The TV's own 12 or 24 hour setting, which the server repeats with each heartbeat.
   var hour12 = false;
@@ -646,6 +663,7 @@ html.faded #stage{opacity:0}
   function byId(kind, id) {
     if (kind === 'app') {
       if (id === LG_HOME_TILE) return { id: LG_HOME_TILE, title: t('home.lgHome', 'LG Home'), lg: true };
+      if (id === IMMICH_TILE) return { id: IMMICH_TILE, title: 'Immich', immich: true };
       return find(data.apps, id);
     }
     return find(kind === 'dev' ? data.devices : data.channels, id);
@@ -1148,7 +1166,7 @@ html.faded #stage{opacity:0}
   function aim() {
     glide = null;
     hoverKey = null;
-    if (data && layout && !layoutBusy && !state.held && !finder.open && !folder.open) {
+    if (data && layout && !layoutBusy && !state.held && !finder.open && !folder.open && !photos.open) {
       var list = recents.open ? [$('recents')] : document.querySelectorAll('.row');
       for (var i = 0; i < list.length; i++) {
         var wrap = list[i].querySelector('.wrap');
@@ -1187,6 +1205,10 @@ html.faded #stage{opacity:0}
   function onWheel(e) {
     e.preventDefault();
     if (!data || !layout || layoutBusy || state.held || folder.open) return;
+    if (photos.open) {
+      if (!photos.viewer) photosMove((e.deltaY !== undefined ? e.deltaY : -e.wheelDelta) > 0 ? KEY.down : KEY.up);
+      return;
+    }
     var d = e.deltaY !== undefined ? e.deltaY : -e.wheelDelta;
     if (e.deltaX && Math.abs(e.deltaX) > Math.abs(d || 0)) d = e.deltaX;
     if (!d) return;
@@ -1647,7 +1669,8 @@ html.faded #stage{opacity:0}
   // photos: the same for the page AUROR's photos are added from; gallery and ssh, what the server said of each.
   // editing: the owner's name is being typed, with the TV's keyboard up.
   var settings = { open: false, cat: 0, side: true, row: {}, rows: [], busy: '', pairUrl: null, pairError: '', pairAt: 0, poll: null,
-    tmdb: { url: null, error: '', at: 0 }, photos: { url: null, error: '' }, gallery: null, ssh: null, editing: false };
+    tmdb: { url: null, error: '', at: 0 }, photos: { url: null, error: '' }, gallery: null, ssh: null, editing: false,
+    immich: { url: null, error: '', at: 0 } };
   var SET_CATS = [
     { id: 'look', label: t('home.set.look', 'Look'),
       desc: t('home.set.lookDesc', 'Home’s theme and the screen saver. Automatic: light from 06:00 to 17:00, dark from 17:00.') },
@@ -1663,6 +1686,8 @@ html.faded #stage{opacity:0}
       desc: t('home.set.searchDesc', 'Where a film or series is to watch: in Jellyfin, and on the services in Italy, which TMDB knows from JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.') },
     { id: 'jellyfin', label: 'Jellyfin',
       desc: t('home.set.jfDesc', 'The server the Top Shelf takes Continue watching and Recently added from.') },
+    { id: 'immich', label: 'Immich',
+      desc: t('home.set.immichDesc', 'The albums on the Immich server at home, behind the Immich tile in the Apps row.') },
     { id: 'ssh', label: 'SSH',
       desc: t('home.set.sshDesc', 'Root access to the TV from the home network, through the Homebrew Channel. Switching it off ends the sessions open now.') },
     { id: 'more', label: 'Glasshouse',
@@ -1753,6 +1778,7 @@ html.faded #stage{opacity:0}
     }
     if (id === 'photos') return photoRows();
     if (id === 'ssh') return sshRows();
+    if (id === 'immich') return immichRows();
     if (id === 'tiles') {
       return data.order.app.map(function (appId) {
         var a = byId('app', appId);
@@ -1827,9 +1853,11 @@ html.faded #stage{opacity:0}
     if (cat.id === 'jellyfin') html += qrBox();
     if (cat.id === 'search') html += tmdbQrBox();
     if (cat.id === 'photos') html += photosBox();
+    if (cat.id === 'immich') html += immichQrBox();
     $('setRows').innerHTML = html;
     var svg = $('setRows').querySelector('.qr svg');
-    if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : cat.id === 'photos' ? settings.photos.url : settings.pairUrl);
+    if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : cat.id === 'photos' ? settings.photos.url :
+      cat.id === 'immich' ? settings.immich.url : settings.pairUrl);
   }
 
   function openSettings() {
@@ -1869,6 +1897,12 @@ html.faded #stage{opacity:0}
       return;
     }
     if (SET_CATS[i].id === 'ssh') return loadSsh();
+    if (SET_CATS[i].id === 'immich') {
+      // A code lasts ten minutes on the server.
+      if (!settings.immich.url || Date.now() - settings.immich.at > 9 * 60000) requestImmichPair();
+      settings.poll = setInterval(pollImmich, 3000);
+      return;
+    }
     if (SET_CATS[i].id !== 'jellyfin') return;
     // A code lasts ten minutes on the server.
     if (!settings.pairUrl || Date.now() - settings.pairAt > 9 * 60000) requestPair();
@@ -2061,6 +2095,61 @@ html.faded #stage{opacity:0}
       settings.busy = '';
       if (!r || !r.ok) toast(t('home.set.sshFailed', 'SSH did not change'), r && r.error);
       else settings.ssh = r;
+      renderSettings();
+    });
+  }
+
+  function immichRows() {
+    var im = data.immich || { configured: false };
+    var rows = [
+      { kind: 'info', label: t('home.set.jfServer', 'Server'), value: im.configured ? im.server : t('home.set.jfNone', 'Not linked') },
+      { kind: 'info', label: t('home.set.jfUser', 'User'), value: im.configured && im.user ? im.user : '—' }
+    ];
+    if (im.configured) {
+      rows.push({ kind: 'action', label: t('home.set.immichForget', 'Unlink Immich'), help: t('home.set.immichForgetHelp', 'The key is removed from the TV, and the Immich tile from the row'),
+        value: '', act: forgetImmich });
+    }
+    return rows;
+  }
+
+  function immichQrBox() {
+    var im = (data && data.immich) || {};
+    return '<div class="qrbox"><div class="qr">' + (settings.immich.url ? '<svg shape-rendering="crispEdges"></svg>' : '<span>' + esc(settings.immich.error || '…') + '</span>') + '</div>' +
+      '<div><div class="qt">' + esc(im.configured ? t('home.set.immichRelink', 'Link another Immich from the phone') : t('home.set.immichLink', 'Link Immich from the phone')) + '</div>' +
+      '<div class="qd">' + esc(t('home.set.immichQrDesc', 'Scan the code: the server address and an API key are entered on the phone, not with the remote. The key stays on the TV only.')) + '</div></div></div>';
+  }
+
+  function requestImmichPair() {
+    settings.immich.url = null;
+    settings.immich.error = '';
+    postJson('/api/home/immich/pair', {}, function (r) {
+      if (r && r.ok && r.url) { settings.immich.url = r.url; settings.immich.at = Date.now(); }
+      else settings.immich.error = (r && r.error) || t('home.set.jfNoCode', 'No code: the TV did not answer');
+      renderSettings();
+    });
+  }
+
+  // Linked from the phone: the tile comes into the row with the catalogue.
+  function pollImmich() {
+    getJson('/api/home/immich/status', function (r) {
+      if (!r || !r.ok || !data) return;
+      var was = data.immich || {};
+      if (r.configured === !!was.configured && r.server === was.server && r.user === was.user) return;
+      data.immich = r;
+      if (r.configured) {
+        toast(t('home.set.immichLinked', 'Immich linked'), t('home.set.immichLinkedSub', 'The Immich tile is in the Apps row'));
+        requestImmichPair();
+      }
+      load();
+      renderSettings();
+    });
+  }
+
+  function forgetImmich() {
+    postJson('/api/home/immich/forget', {}, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      data.immich = { configured: false };
+      load();
       renderSettings();
     });
   }
@@ -2386,6 +2475,10 @@ html.faded #stage{opacity:0}
     var kind = rowKey(), it = items(kind)[colOf(kind)];
     if (!it) return;
     if (it.folder) return openFolder();
+    if (it.immich) {
+      postJson('/api/home/open', { kind: 'app', id: it.id });
+      return openPhotos();
+    }
     fadeThenOpen(it.overlay === true, function (done) {
       postJson('/api/home/open', { kind: kind, id: it.id }, function (r) {
         done(!!(r && r.ok));
@@ -2434,8 +2527,290 @@ html.faded #stage{opacity:0}
     $('stage').className = (state.arranging ? 'arranging' : '') + (recents.open ? ' recents' : '') + (themeName === 'light' ? ' light' : '') +
       (settings.open ? ' settings' : '') + (faultShown ? ' fault' : '') + (inputs ? ' inputs' : '') +
       (finder.open ? ' finding' : '') + (finder.typing ? ' typing' : '') + (searchOn() ? '' : ' no-search') + (folder.open ? ' folder' : '') +
+      (photos.open ? ' photos' : '') + (photos.viewer ? ' viewing' : '') +
       // A photo of the owner's behind Home: the shelf and the rows are shaded to stay legible on it.
       (wallSrc ? ' photo' : '');
+  }
+
+  // ---------------------------------------------------------------- Immich
+
+  /*
+   * The Immich tile's albums, over Home: the albums four to a line, an
+   * album's photos and videos six to a line, and one full screen, where left
+   * and right go through the album and OK plays a video, or starts and stops
+   * the slideshow. Only the lines near the focus are drawn, since an album
+   * may hold thousands. Pictures and videos come through the server
+   * (lib/auror-immich), which has the key.
+   */
+  var PH_VIEW_H = 780, PH_SLIDE_MS = 6000, PH_INFO_MS = 4000;
+  var KEY_PLAY = 415, KEY_PAUSE = 19;
+  var photos = { open: false, level: 'albums', albums: null, error: '', album: null, albumCol: 0, col: 0,
+    viewer: false, at: 0, slide: null, req: 0, drawn: {}, top: 0, info: null, playing: false };
+
+  function immichPic(id, size) { return '/api/home/immich/thumb?id=' + encodeURIComponent(id) + '&size=' + size; }
+
+  // A day as the TV's language writes it; with month, only its month and year.
+  function photoDate(s, month) {
+    var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || '');
+    if (!m) return '';
+    var d = new Date(+m[1], +m[2] - 1, +m[3]), lang = (window.I18N && I18N.lang) ? I18N.lang() : 'en';
+    try { return d.toLocaleDateString(lang === 'en' ? undefined : lang, month ? { month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long', year: 'numeric' }); }
+    catch (e) { return s.slice(0, month ? 7 : 10); }
+  }
+
+  function phLayout() {
+    return photos.level === 'albums' ? { cols: 4, w: 384, gap: 40, pitch: 330 } : { cols: 6, w: 256, gap: 24, pitch: 168 };
+  }
+  function phList() { return photos.level === 'albums' ? (photos.albums || []) : ((photos.album && photos.album.assets) || []); }
+  function phCol() { return photos.level === 'albums' ? photos.albumCol : photos.col; }
+  function setPhCol(c) { if (photos.level === 'albums') photos.albumCol = c; else photos.col = c; }
+
+  function openPhotos() {
+    photos.open = true;
+    photos.level = 'albums';
+    photos.viewer = false;
+    stageClass();
+    renderPhotos();
+    var req = ++photos.req;
+    getJson('/api/home/immich/albums', function (r) {
+      if (!photos.open || req !== photos.req) return;
+      photos.albums = r && r.ok ? r.albums : [];
+      photos.error = r && r.ok ? '' : (r && r.error) || t('home.immich.unreachable', 'Immich did not answer');
+      photos.albumCol = Math.min(photos.albumCol, Math.max(0, photos.albums.length - 1));
+      renderPhotos();
+    });
+  }
+
+  function closePhotos() {
+    closeViewer();
+    photos.open = false;
+    photos.req++;
+    $('phGrid').innerHTML = '';
+    photos.drawn = {};
+    stageClass();
+  }
+
+  function openAlbum(a) {
+    photos.level = 'album';
+    photos.col = 0;
+    photos.album = { id: a.id, name: a.name, assets: null };
+    renderPhotos();
+    var req = ++photos.req;
+    getJson('/api/home/immich/album?id=' + encodeURIComponent(a.id), function (r) {
+      if (!photos.open || req !== photos.req) return;
+      if (!r || !r.ok) {
+        photos.album.assets = [];
+        photos.error = (r && r.error) || t('home.immich.unreachable', 'Immich did not answer');
+      } else {
+        photos.album = r;
+        photos.error = '';
+      }
+      renderPhotos();
+    });
+  }
+
+  function renderPhotos() {
+    var list = phList(), albums = photos.level === 'albums', loading = albums ? !photos.albums : !(photos.album && photos.album.assets);
+    $('phTitle').textContent = albums ? t('home.immich.albums', 'Albums') : photos.album.name;
+    $('phSub').textContent = loading ? t('home.immich.loading', 'Loading…') : photos.error ? photos.error
+      : albums ? (list.length === 1 ? t('home.immich.oneAlbum', '1 album') : t('home.immich.nAlbums', '{n} albums', { n: list.length }))
+      : (list.length === 1 ? t('home.immich.oneItem', '1 photo or video') : t('home.immich.nItems', '{n} photos and videos', { n: list.length }));
+    $('phEmpty').textContent = !loading && !photos.error && !list.length
+      ? (albums ? t('home.immich.noAlbums', 'No albums on Immich yet.') : t('home.immich.emptyAlbum', 'This album is empty.')) : '';
+    drawGrid(true);
+  }
+
+  function phTile(it, i, L) {
+    var el = document.createElement('div');
+    el.className = 'ph' + (photos.level === 'albums' ? ' alb' : ' as');
+    el.setAttribute('data-p', i);
+    el.style.left = (i % L.cols) * (L.w + L.gap) + 'px';
+    el.style.top = Math.floor(i / L.cols) * L.pitch + 'px';
+    if (photos.level === 'albums') {
+      var from = photoDate(it.from, true), to = photoDate(it.to, true);
+      var when = from ? from + (to && to !== from ? ' – ' + to : '') : '';
+      el.innerHTML = '<span class="cv">' + (it.cover ? '<img src="' + immichPic(it.cover, 'preview') + '" alt="">' : '') + '</span>' +
+        '<div class="an">' + esc(it.name || '—') + '</div>' +
+        '<div class="am">' + esc((it.count === 1 ? t('home.immich.oneItem', '1 photo or video') : t('home.immich.nItems', '{n} photos and videos', { n: it.count })) + (when ? ' · ' + when : '')) + '</div>';
+    } else {
+      el.innerHTML = '<img src="' + immichPic(it.id, 'thumbnail') + '" alt="">' + (it.video ? '<i class="play"></i>' : '');
+    }
+    return el;
+  }
+
+  // The lines in view and two either side, the focused one kept in view.
+  function drawGrid(reset) {
+    var grid = $('phGrid'), L = phLayout(), list = phList(), n = list.length, c = phCol();
+    if (reset) { grid.innerHTML = ''; photos.drawn = {}; photos.top = Math.max(0, Math.floor(c / L.cols) - 1); }
+    grid.style.height = Math.ceil(n / L.cols) * L.pitch + 'px';
+    var line = Math.floor(c / L.cols), view = Math.max(1, Math.floor(PH_VIEW_H / L.pitch));
+    if (line < photos.top) photos.top = line;
+    if (line > photos.top + view - 1) photos.top = line - view + 1;
+    grid.style.webkitTransform = grid.style.transform = 'translateY(' + (-photos.top * L.pitch) + 'px)';
+    var from = Math.max(0, (photos.top - 2) * L.cols), to = Math.min(n, (photos.top + view + 2) * L.cols);
+    for (var k in photos.drawn) {
+      if (photos.drawn.hasOwnProperty(k) && (+k < from || +k >= to)) { grid.removeChild(photos.drawn[k]); delete photos.drawn[k]; }
+    }
+    for (var i = from; i < to; i++) {
+      if (!photos.drawn[i]) { photos.drawn[i] = phTile(list[i], i, L); grid.appendChild(photos.drawn[i]); }
+      var el = photos.drawn[i], want = el.className.replace(/ focus\b/, '') + (i === c ? ' focus' : '');
+      if (el.className !== want) el.className = want;
+    }
+  }
+
+  function photosMove(k) {
+    var L = phLayout(), n = phList().length, c = phCol();
+    if (!n) return;
+    if (k === KEY.left && c % L.cols > 0) c--;
+    else if (k === KEY.right && c % L.cols < L.cols - 1 && c + 1 < n) c++;
+    else if (k === KEY.up && c - L.cols >= 0) c -= L.cols;
+    // Down from above a short last line goes to its last tile.
+    else if (k === KEY.down && Math.floor(c / L.cols) < Math.floor((n - 1) / L.cols)) c = Math.min(n - 1, c + L.cols);
+    else return;
+    setPhCol(c);
+    drawGrid();
+  }
+
+  function photosKey(k) {
+    if (photos.viewer) return viewerKey(k);
+    if (k === KEY.ok) {
+      var list = phList(), c = phCol();
+      if (!list[c]) return;
+      return photos.level === 'albums' ? openAlbum(list[c]) : openViewer(c);
+    }
+    photosMove(k);
+  }
+
+  function photosBack() {
+    if (photos.viewer) return closeViewer();
+    if (photos.level === 'album') {
+      photos.req++;
+      photos.level = 'albums';
+      photos.album = null;
+      photos.error = '';
+      return renderPhotos();
+    }
+    closePhotos();
+  }
+
+  // -------------------------------------------- full screen
+
+  function openViewer(i) {
+    photos.viewer = true;
+    photos.at = i;
+    stageClass();
+    showAsset();
+  }
+
+  function closeViewer() {
+    if (!photos.viewer) return;
+    stopSlide();
+    stopVideo();
+    photos.viewer = false;
+    $('vwPic').style.backgroundImage = '';
+    clearTimeout(photos.info);
+    stageClass();
+    // Back on the grid at the one last shown.
+    photos.col = photos.at;
+    drawGrid();
+  }
+
+  function stopVideo() {
+    var v = $('vwVideo');
+    photos.playing = false;
+    try { v.pause(); } catch (e) {}
+    v.removeAttribute('src');
+    try { v.load(); } catch (e) {}
+    $('viewer').className = $('viewer').className.replace(/ playing\b/, '');
+  }
+
+  function showAsset() {
+    var list = phList(), a = list[photos.at];
+    if (!a) return;
+    stopVideo();
+    var pic = $('vwPic'), small = immichPic(a.id, 'thumbnail'), big = immichPic(a.id, 'preview');
+    // The small one at once, from the grid's cache; the large one once it is in.
+    pic.style.backgroundImage = 'url(' + small + ')';
+    var img = new Image(), at = photos.at;
+    img.onload = function () { if (photos.viewer && photos.at === at) pic.style.backgroundImage = 'url(' + big + ')'; };
+    img.src = big;
+    [photos.at - 1, photos.at + 1].forEach(function (j) { if (list[j]) new Image().src = immichPic(list[j].id, 'preview'); });
+    $('vwWhen').textContent = photoDate(a.date);
+    $('vwWhere').textContent = a.place || '';
+    $('vwPos').textContent = (photos.at + 1) + ' / ' + list.length + (photos.slide ? '  ·  ' + t('home.immich.slideshow', 'Slideshow') : '');
+    $('viewer').className = 'shown' + (a.video ? ' video' : '');
+    showInfo();
+  }
+
+  function showInfo() {
+    var vw = $('viewer');
+    vw.className = vw.className.replace(/ quiet\b/g, '');
+    clearTimeout(photos.info);
+    photos.info = setTimeout(function () { vw.className += ' quiet'; }, PH_INFO_MS);
+  }
+
+  function stepAsset(d) {
+    var n = phList().length, to = photos.at + d;
+    if (to < 0 || to >= n) return false;
+    photos.at = to;
+    showAsset();
+    return true;
+  }
+
+  function stopSlide() {
+    clearInterval(photos.slide);
+    photos.slide = null;
+  }
+
+  function toggleSlide() {
+    if (photos.slide) {
+      stopSlide();
+      toast(t('home.immich.slideStopped', 'Slideshow paused'));
+    } else {
+      photos.slide = setInterval(function () {
+        if (!photos.viewer) return stopSlide();
+        // At the end it starts again from the first.
+        if (!stepAsset(1)) { photos.at = 0; showAsset(); }
+      }, PH_SLIDE_MS);
+      toast(t('home.immich.slideStarted', 'Slideshow'), t('home.immich.slideDesc', 'A photo every six seconds. OK pauses it'));
+    }
+    showAsset();
+  }
+
+  function playVideo() {
+    var a = phList()[photos.at], v = $('vwVideo');
+    if (!a || !a.video) return;
+    if (photos.playing) {
+      if (v.paused) v.play(); else v.pause();
+      return showInfo();
+    }
+    stopSlide();
+    photos.playing = true;
+    v.src = '/api/home/immich/video?id=' + encodeURIComponent(a.id);
+    v.play();
+    $('viewer').className += ' playing';
+    showInfo();
+  }
+
+  function viewerKey(k) {
+    var a = phList()[photos.at];
+    if (k === KEY.left) { stopSlide(); return stepAsset(-1); }
+    if (k === KEY.right) { stopSlide(); return stepAsset(1); }
+    if (k === KEY.up || k === KEY.down) return showInfo();
+    if (k === KEY.ok || k === KEY_PLAY || k === KEY_PAUSE) return a && a.video ? playVideo() : toggleSlide();
+  }
+
+  function photosPointer(target, click) {
+    if (photos.viewer) {
+      if (!click) return showInfo();
+      var x = pointerX / (window.innerWidth || 1920);
+      return x < 0.3 ? viewerKey(KEY.left) : x > 0.7 ? viewerKey(KEY.right) : viewerKey(KEY.ok);
+    }
+    while (target && target !== document.body && !(target.hasAttribute && target.hasAttribute('data-p'))) target = target.parentNode;
+    if (!target || target === document.body) return;
+    var i = +target.getAttribute('data-p');
+    if (i !== phCol()) { setPhCol(i); drawGrid(); }
+    if (click) photosKey(KEY.ok);
   }
 
   // ---------------------------------------------------------------- more apps
@@ -2481,6 +2856,11 @@ html.faded #stage{opacity:0}
   }
 
   function openFromFolder(app) {
+    if (app.immich) {
+      closeFolder();
+      postJson('/api/home/open', { kind: 'app', id: app.id });
+      return openPhotos();
+    }
     fadeThenOpen(app.overlay === true, function (done) {
       postJson('/api/home/open', { kind: 'app', id: app.id }, function (r) {
         done(!!(r && r.ok));
@@ -3196,7 +3576,8 @@ html.faded #stage{opacity:0}
       okLong = false;
       okInRecents = recents.open || settings.open;
       okInFolder = folder.open;
-      if (okInRecents || okInFolder) return;
+      okInPhotos = photos.open;
+      if (okInRecents || okInFolder || okInPhotos) return;
       okTimer = setTimeout(function () {
         okLong = true;
         if (state.held || state.top >= 0) return;
@@ -3210,12 +3591,14 @@ html.faded #stage{opacity:0}
       backDown = true;
       if (settings.open) return closeSettings();
       if (folder.open) return closeFolder();
+      if (photos.open) return photosBack();
       if (recents.open || recents.loading) return closeRecents();
       if (state.arranging && state.held) { state.held = false; return toggleHidden(); }
       if (state.arranging) return setArranging(false);
       return openRecents();
     }
     if (folder.open) { e.preventDefault(); return folderKey(k); }
+    if (photos.open) { e.preventDefault(); return photosKey(k); }
     if (recents.open) { e.preventDefault(); return recentsKey(k); }
     if (settings.open) { e.preventDefault(); return settingsKey(k); }
     if (state.arranging) { arrangeKey(k); e.preventDefault(); return; }
@@ -3241,7 +3624,8 @@ html.faded #stage{opacity:0}
       return;
     }
     if (okInFolder) { if (folder.open) folderKey(KEY.ok); return; }
-    if (recents.open || recents.loading || folder.open) return;
+    if (okInPhotos) { if (photos.open) photosKey(KEY.ok); return; }
+    if (recents.open || recents.loading || folder.open || photos.open) return;
     if (state.arranging) arrangeKey(KEY.ok);
     else if (state.top >= 0) pressTop(state.top);
     else activate();
@@ -3266,6 +3650,7 @@ html.faded #stage{opacity:0}
   function hoverTile(target) {
     if (layoutBusy || !data || !layout) return;
     if (settings.open) return settingsPointer(target, false);
+    if (photos.open) return photosPointer(target, false);
     if (finder.open) return finderPointer(target);
     if (folder.open) {
       var inFolder = tileAt(target);
@@ -3304,6 +3689,7 @@ html.faded #stage{opacity:0}
   }
   function onClick(e) {
     if (!data || !layout || layoutBusy) return;
+    if (photos.open) return photosPointer(e.target, true);
     if (folder.open) {
       var picked = tileAt(e.target);
       if (!picked || !picked.hasAttribute('data-f')) return closeFolder();
@@ -3562,6 +3948,7 @@ html.faded #stage{opacity:0}
     if (layout) { greet(); refreshNet(); refreshSleep(); }
     state.top = -1;
     if (settings.open) closeSettings();
+    if (photos.open) closePhotos();
     // Back from an app, Home is as it was left: the same tile in focus and
     // every row where it was scrolled, brought to rest where it was headed.
     state.bar = -1;

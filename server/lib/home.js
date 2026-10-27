@@ -40,6 +40,8 @@ var recentApps = require('./home-recent-apps');
 var search = require('./auror-search');
 // AUROR's photos from a phone, in place of the wallpapers when chosen.
 var gallery = require('./auror-gallery');
+// Immich's albums, behind a tile in the Apps row once it is linked.
+var immich = require('./auror-immich');
 
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
@@ -68,6 +70,8 @@ var PROMO_APPS = ['com.webos.app.lgchannels', 'com.webos.app.sportsteamsettings'
 var STREAMING_TITLES = /^(netflix|(amazon )?prime video|disney ?(\+|plus)|dazn|now( tv)?|lg channels)$/i;
 // The view's own way back to LG's Home: last in the Apps row, and never hidden.
 var LG_HOME_TILE = 'lg-home';
+// AUROR's Immich tile: the view opens the albums itself.
+var IMMICH_TILE = 'auror-immich';
 /*
  * LG's notifications and search, reached from its Home's sidebar and from no
  * other screen. Neither has a launch point, so the Apps row lists them from
@@ -695,7 +699,8 @@ function rows(cb) {
       channelList(function (chans) {
         var appList = byUse(apps || []);
         hideStreamingOnce(c, appList);
-        var appIds = appList.map(function (a) { return a.id; }).concat([LG_HOME_TILE]);
+        var appIds = appList.map(function (a) { return a.id; })
+          .concat(immich.status().configured ? [IMMICH_TILE] : [], [LG_HOME_TILE]);
         var devIds = (devs || []).map(function (d) { return d.id; });
         var picked = [];
         (chans || []).forEach(function (ch) { if (c.channels.indexOf(ch.id) !== -1) picked.push(ch); });
@@ -918,6 +923,11 @@ function open(body, cb) {
   if (kind === 'lg' || (kind === 'app' && id === LG_HOME_TILE)) {
     if (body.recovery && !viewInFront()) return cb({ ok: true, done: false });
     return toLgHome('tile', cb);
+  }
+  // Opened in the view; counted here for Most used.
+  if (kind === 'app' && id === IMMICH_TILE && immich.status().configured) {
+    noteOpened('app', id);
+    return cb({ ok: true });
   }
   if (kind === 'app') {
     return launchPoints(function (apps) {
@@ -1748,6 +1758,7 @@ function init(opts) {
   if (opts.stateDir) stateDir = opts.stateDir;
   wallpapers.init(stateDir);
   gallery.init({ stateDir: stateDir, now: opts.now });
+  immich.init(stateDir, opts.now);
   jellyfin.init(stateDir, opts.now);
   recent.init(stateDir, opts.now);
   use.init(stateDir, opts.now);
@@ -1975,6 +1986,7 @@ module.exports = {
   search: search,
   // AUROR's backgrounds (lib/auror-gallery).
   gallery: gallery,
+  immich: immich,
   viewWallpapers: viewWallpapers,
   wallpaperPath: wallpapers.image,
   uploadWallpaper: function (slot, req, cb) {
