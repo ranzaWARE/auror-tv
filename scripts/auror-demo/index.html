@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AUROR demo</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<style>
+@font-face{font-family:"Space Grotesk";src:url("assets/fonts/SpaceGrotesk.ttf") format("truetype");font-weight:300 700}
+@font-face{font-family:"Space Mono";src:url("assets/fonts/SpaceMono-Regular.ttf") format("truetype");font-weight:400}
+:root{--bg:#15191f;--card:#1c2028;--card-on:#23272e;--ink:#e0e4ea;--muted:#99a2af;--line:rgba(255,255,255,.08);--ring:#f5a000;--kick:#f5a000}
+@media (prefers-color-scheme: light){:root{--bg:#f3f5f7;--card:#fff;--card-on:#fff;--ink:#111827;--muted:#5d6472;--line:#e5e7eb;--ring:#d98c00;--kick:#374151}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Space Grotesk",system-ui,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:56px 16px 72px}
+.kick{display:flex;align-items:center;gap:10px;font:14px "Space Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--kick)}
+.kick:before{content:"";width:8px;height:8px;border-radius:2px;background:#f5a000}
+h1{font-size:clamp(40px,7vw,72px);font-weight:300;letter-spacing:-.03em;line-height:1.05;margin:14px 0 16px}
+.lead{max-width:680px;color:var(--muted);margin:0 0 36px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+a.card{display:block;padding:20px 22px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:inherit;text-decoration:none;
+  outline:3px solid transparent;outline-offset:3px;transition:transform .12s,outline-color .12s,background-color .12s}
+a.card:hover,a.card:focus-visible{background:var(--card-on);outline-color:var(--ring);transform:translateY(-2px)}
+.card b{display:block;font-size:22px;font-weight:500}
+.card span{display:block;color:var(--muted);font-size:15px;margin-top:4px}
+h2{font:14px "Space Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:44px 0 12px}
+table{border-collapse:collapse;width:100%;max-width:640px}
+td{padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{width:190px;font-family:"Space Mono",monospace;font-size:15px}
+.note{color:var(--muted);font-size:15px;max-width:680px}
+</style>
+</head>
+<body>
+<main>
+  <div class="kick">AUROR TV</div>
+  <h1>Glasshouse Home, in a browser</h1>
+  <p class="lead">The home screen AUROR puts on an LG TV, running here with made-up apps, inputs and shows. Settings change as they would on the TV and last until the page is closed; nothing opens, since there is no TV behind it.</p>
+
+  <div class="grid">
+    <a class="card" href="home.html?lang=it&amp;hour=20"><b>Home, evening</b><span>The dark theme, in Italian</span></a>
+    <a class="card" href="home.html?lang=it&amp;hour=10"><b>Home, daytime</b><span>The light theme, from 06:00 to 17:00</span></a>
+    <a class="card" href="home.html?lang=it&amp;hour=20&amp;scenario=inputs"><b>With a console plugged in</b><span>The Inputs row, and its Top Shelf</span></a>
+    <a class="card" href="home.html?lang=en&amp;hour=20"><b>Home in English</b><span>The same view, untranslated</span></a>
+    <a class="card" href="jellyfin.html?lang=it&amp;c=demo"><b>Linking Jellyfin</b><span>The page the TV's QR code opens on a phone</span></a>
+    <a class="card" href="saver.html"><b>Screen saver</b><span>Black for the OLED panel, Mimus asleep</span></a>
+  </div>
+
+  <h2>Keys</h2>
+  <table>
+    <tr><td>Arrows</td><td>Move, as the remote's arrows do. Up from the first row reaches Search, the theme and Settings.</td></tr>
+    <tr><td>Enter</td><td>OK. Held for a second, it arranges the tiles.</td></tr>
+    <tr><td>Esc or Backspace</td><td>Back: Recent apps from the rows, or out of a panel.</td></tr>
+    <tr><td>Mouse</td><td>The Magic Remote's pointer: hover, click, the wheel, and resting at a row's end glides it.</td></tr>
+  </table>
+  <p class="note">The view is the one in this repository's server, built into this site on each change; the TV's answers come from a small stand-in in the page.</p>
+</main>
+</body>
+</html>

@@ -10,11 +10,13 @@ The **Server** tab, `/?tab=server`, holds Glasshouse's own settings: Glasshouse 
 
 ![Glasshouse: the version and Check now, server health, daily update check, watch time, settings backup, daily backup and the app on the home screen](../screenshots/server-glasshouse.png)
 
-Shows the installed version and whether a newer release is out. **Check now** looks straight away, and **Install** appears when there is something to install, with **What's new**: a short summary of what each release since the installed one brings, newest first, and a link to its full notes. **Roll back**, under the version, puts back the version installed before, after asking first. [Updating](../managing.md#updating) covers installs from before the tab existed.
+Shows the installed version and whether a newer release is out. **Check now** looks straight away, and **Install** appears when there is something to install, with **What's new**: a short summary of what each release since the installed one brings, newest first, and a link to its full notes. Package installs close the Glasshouse app and keep no rollback copy. For installs made with `deploy.sh`, **Roll back**, under the version, puts back the version installed before, after asking first. [Updating](../managing.md#updating) covers installs from before the tab existed.
 
 **Check for updates daily** looks once a day on its own, and lets Home Assistant offer the update.
 
-**Update pop-up** shows a pop-up in the browser it is switched on in when a newer release is out, over whichever tab is open, with the release's one-line summary. **Update** installs it the way **Install** does, with its progress in the pop-up, and **Dismiss** leaves it until the next release. It is off by default and kept per browser. Where the update cannot be installed from the dashboard, because controls are off or the Homebrew Channel owns the install, the pop-up only says it is out.
+On AUROR, updates come from [AUROR's releases](https://github.com/ranzaWARE/auror-tv/releases), and a newer one is installed on its own while the TV is off with the server running, or between 03:00 and 05:00, so a restart of the server interrupts nothing on screen. **Automatic updates** in Glasshouse Home's settings, or `"update": { "auto": false }` in `config.json`, leaves it to **Install**, or to **Update now** in those settings, which installs a newer release at once whatever the hour. A failed install is tried again after 12 hours, and **Roll back** puts the previous release back as usual.
+
+**Update pop-up** shows a pop-up in the browser it is switched on in when a newer release is out, over whichever tab is open, with the release's one-line summary. **Update** installs it the way **Install** does, with its progress in the pop-up, and **Dismiss** leaves it until the next release. It is off by default and kept per browser. Where controls are off, the pop-up only says it is out.
 
 **Server health** shows the background process uptime and memory footprint on the TV.
 
@@ -32,7 +34,7 @@ Shows the installed version and whether a newer release is out. **Check now** lo
 
 Folded away, since nothing in it needs changing for everyday use. Once opened, it stays open in that browser.
 
-* **Dashboard port** is the port the dashboard answers on, 8080 unless changed. Change it when another app on the TV needs 8080 (Stremio's background service binds it, and fails to start while the dashboard holds it). Saving checks the port is free, writes `port` to `config.json` and restarts the server; the page then opens on the new address. The TV apps that open the dashboard follow the new port at the server's next start. Glasshouse Home only works on 8080.
+* **Dashboard port** is the port the dashboard answers on, 8080 unless changed. Change it when another app on the TV needs 8080 (Stremio's background service binds it, and fails to start while the dashboard holds it). Saving checks the port is free, writes `port` to `config.json` and restarts the server; the page then opens on the new address. The TV apps that open the dashboard follow the new port at the server's next start.
 * **Set the clock from a time server** switches the TV over to [a time server on the local network](../ntp.md), for networks that run one. Switched on, it asks for the server's address. Switched off, the address is kept for next time.
 * **Prometheus metrics** turns on the [Prometheus endpoint](../PROMETHEUS.md).
 * **Web app debugger** opens or closes Developer Mode's debugger to the network. It is closed unless it is needed, since webOS leaves it open with no password. On a TV whose kernel has no firewall there is no switch, since the port cannot be closed, and the row says the debugger stays open to the network.

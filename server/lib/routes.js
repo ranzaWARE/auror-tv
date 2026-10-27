@@ -9,6 +9,7 @@ var crypto = require('crypto');
 var http = require('http');
 var say = require('./say');
 var localAddress4 = require('./util').localAddress4;
+var localAddress6 = require('./util').localAddress6;
 var listenDualStack = require('./util').listenDualStack;
 var hostPort = require('./util').hostPort;
 var sendIconFile = require('./iconserver').sendIconFile;
@@ -20,6 +21,7 @@ var ha = require('./ha');
 var fetchLib = require('./fetch');
 var devtools = require('./devtools');
 var names = require('./names');
+var aurorUpdate = require('./auror-autoupdate');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
 var HA_ENTITIES = ha.HA_ENTITIES;
@@ -29,7 +31,7 @@ var MIME = {
   '.otf': 'font/otf', '.ttf': 'font/ttf', '.woff2': 'font/woff2',
   '.css': 'text/css; charset=utf-8', '.js': 'application/javascript',
   '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png', '.svg': 'image/svg+xml'
+  '.png': 'image/png', '.svg': 'image/svg+xml', '.gif': 'image/gif'
 };
 
 /**
@@ -61,6 +63,8 @@ var oledModule = null;
 var privacyModule = null;
 /** @type {typeof import('./lgsettings')} */
 var lgSettingsModule = null;
+/** @type {typeof import('./audio')} */
+var audioModule = null;
 /** @type {typeof import('./game')} */
 var gameModule = null;
 /** @type {typeof import('./apps')} */
@@ -77,6 +81,8 @@ var remoteKeysModule = null;
 var homeScreenModule = null;
 /** @type {typeof import('./home')} */
 var homeModule = null;
+/** @type {typeof import('./clock')} */
+var clockModule = null;
 /** @type {typeof import('./home-picture')} */
 var homePictureModule = null;
 /** @type {typeof import('./screensavers')} */
@@ -112,6 +118,7 @@ var assetDirsList = [];
 var lunaFn = null;
 var getMqttStatusFn = null;
 var piccapStatusFn = function (cb) { cb(null); };
+var huesyncStatusFn = function (cb) { cb(null); };
 var appsChangedFn = function () {};
 var versionStr = '';
 // With the commit of a git build: what a person reads, and what tells one
@@ -340,6 +347,11 @@ function prometheusEnabled() {
   return !!(config.prometheus && config.prometheus.enabled === true);
 }
 
+// Whether the clocks draw 12-hour time, as the TV's own setting has it (lib/clock).
+function clockHour12() {
+  return !!(clockModule && clockModule.hour12());
+}
+
 function handoffPort() { return (config.port || 8080) + 1; }
 
 function stopHandoff() {
@@ -399,16 +411,21 @@ function setupState(isDemo) {
   if (isDemo && simulatedSetupState.network !== null && simulatedSetupState.network !== undefined) {
     open = simulatedSetupState.network;
   }
+  var ip4 = localAddress4(), ip6 = localAddress6();
+  var name = telemetryModule ? telemetryModule.localName(ip4, ip6) : null;
+  // The TV app shows the address and the name each with the port, as a
+  // browser on a phone would open them.
   var st = {
     ok: true,
     needed: setupPending(),
     writable: config.allowControl,
     network: open,
     token: !!config.token,
-    address: localAddress4() ? hostPort(localAddress4(), config.port) : (isDemo ? hostPort('192.168.1.131', config.port || 8080) : null),
-    hostname: telemetryModule ? telemetryModule.localHostname(localAddress4()) : null,
+    address: ip4 ? hostPort(ip4, config.port) : (isDemo ? hostPort('192.168.1.131', config.port || 8080) : null),
+    address6: ip6 ? hostPort(ip6, config.port) : null,
+    hostname: name ? hostPort(name, config.port) : null,
     homeAssistant: (isDemo && simulatedSetupState.homeAssistant) ? simulatedSetupState.homeAssistant : { configured: !!(m.enabled && m.host), state: mqttStat.state },
-    handoff: HANDOFF.server ? handoffUrl() : (isDemo ? 'http://' + hostPort(localAddress4() || '192.168.1.131', config.port || 8080) + '/?c=demo' : null)
+    handoff: HANDOFF.server ? handoffUrl() : (isDemo ? 'http://' + hostPort(ip4 || '192.168.1.131', config.port || 8080) + '/?c=demo' : null)
   };
   if (isDemo) {
     st.demo = true;
@@ -611,6 +628,7 @@ function updateSummary() {
   s.isWebos10 = !!(screensaversModule && screensaversModule.experimental && screensaversModule.experimental());
   s.homeLayout = homeScreenModule ? homeScreenModule.experimental() : null;
   s.prometheusEnabled = prometheusEnabled();
+  s.clockHour12 = clockHour12();
   s.watchHistory = historyModule ? historyModule.status() : null;
   s.backupDaily = backupModule ? backupModule.dailyStatus() : null;
   s.ntp = ntpModule ? ntpModule.getStatus() : null;
@@ -838,6 +856,8 @@ function handleUpload(req, res) {
       // A stream destroyed before its file has opened creates the file
       // afterwards, so it is removed again once the stream has closed.
       ws.once('close', function () { fs.unlink(file, function () {}); });
+      // Node 0.12's destroy() leaves a pending open's descriptor alive.
+      ws.once('open', function () { ws.close(); });
       try { ws.destroy(); } catch (e) {}
       installerModule.releaseUpload(file);
       return true;
@@ -1043,6 +1063,37 @@ function getSettingsPayload() {
   };
 }
 
+function tileHidingAvailable() {
+  return !!(appsModule && appsModule.tileHidingAllowed && appsModule.tileHidingAllowed()) && !fromHomebrewChannel();
+}
+
+function lgHomeLayoutAvailable() { return !!(homeScreenModule && homeScreenModule.supported()); }
+
+/*
+ * LG's Home's options on the Home tab: its layout (lib/homescreen.js) and the
+ * system apps hidden from it (lib/apps.js), in the fields the Apps tab used.
+ */
+function lgHomeOptions(glasshouseHome, cb) {
+  var lg = { writable: !!config.allowControl, glasshouseHome: !!glasshouseHome, homeScreen: null,
+    tileHidingAvailable: tileHidingAvailable(), tileHidingHeld: false, tileHidingOverridden: false,
+    systemTiles: [], tileHidingEnabled: false, hiddenCount: 0 };
+  function withLayout() {
+    if (!lgHomeLayoutAvailable()) return cb(lg);
+    homeScreenModule.getHomeScreen(function (hs) {
+      lg.homeScreen = hs;
+      cb(lg);
+    });
+  }
+  if (!lg.tileHidingAvailable) return withLayout();
+  appsModule.getApps(function (d) {
+    lg.systemTiles = d.systemTiles || [];
+    lg.hiddenCount = d.hiddenCount || 0;
+    lg.tileHidingEnabled = !!d.tileHidingEnabled;
+    lg.tileHidingNudge = d.tileHidingNudge;
+    withLayout();
+  });
+}
+
 /*
  * Glasshouse Home (lib/home.js). Its view runs on the TV and changes nothing
  * but the layout and what is open, so it needs no allowControl; anything from
@@ -1051,20 +1102,37 @@ function getSettingsPayload() {
 function handleHomeRoute(req, res, u, pathname) {
   function reply(r) { send(res, r && r.ok === false ? 400 : 200, JSON.stringify(r)); }
   if (req.method === 'GET') {
-    // ?with=catalogue,channels adds what the TV app's Home section lists, in one answer.
+    // ?with=catalogue,channels adds what the TV app's Home section lists, and
+    // lghome LG's Home's own options, in one answer.
     if (pathname === '/api/home') {
       var wants = String((u.query && u.query['with']) || '').split(',');
       return homeModule.status(function (st) {
         st.writable = !!config.allowControl || fromTV(req);
-        if (wants.indexOf('catalogue') === -1) return reply(st);
-        homeModule.catalogue(function (c) {
-          st.catalogue = c;
-          if (wants.indexOf('channels') === -1) return reply(st);
-          homeModule.channelList(function (list) {
-            st.channels = list;
-            reply(st);
+        // What the Home pane draws its colour previews' clock as.
+        st.clockHour12 = clockHour12();
+        // The Home tab also holds LG's Home's layout and hidden system apps, so
+        // it is there wherever either is, Glasshouse Home or not (a B8).
+        st.lgHomeAvailable = lgHomeLayoutAvailable() || tileHidingAvailable();
+        // Open Home at power-on is on the Home tab too, wherever LG has it.
+        if (st.lgHomeAvailable || st.homeAutoLaunch !== undefined) st.available = true;
+        withLgHome(function () {
+          if (wants.indexOf('catalogue') === -1) return reply(st);
+          homeModule.catalogue(function (c) {
+            st.catalogue = c;
+            if (wants.indexOf('channels') === -1) return reply(st);
+            homeModule.channelList(function (list) {
+              st.channels = list;
+              reply(st);
+            });
           });
         });
+        function withLgHome(next) {
+          if (wants.indexOf('lghome') === -1 || !st.lgHomeAvailable) return next();
+          lgHomeOptions(st.enabled, function (lg) {
+            st.lgHome = lg;
+            next();
+          });
+        }
       });
     }
     if (pathname === '/api/home/catalogue') {
@@ -1075,6 +1143,12 @@ function handleHomeRoute(req, res, u, pathname) {
           c.enabled = st.enabled;
           c.wallpapers = st.wallpapers;
           c.layoutVersion = homeModule.layoutVersion();
+          // For the view's own settings.
+          c.jellyfin = homeModule.jellyfin.status();
+          c.tmdb = homeModule.search.status();
+          c.update = aurorUpdate.status();
+          c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
+            available: !screensaversModule.heldBack() } : null;
           reply(c);
         });
       });
@@ -1084,6 +1158,11 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
     if (pathname === '/api/home/now') return homeModule.now(reply);
+    if (pathname === '/api/home/look') return reply({ ok: true, look: homeModule.layout().look });
+    if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
+    if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());
+    if (pathname === '/api/home/search/status') return reply(homeModule.search.status());
+    if (pathname === '/api/home/jellyfin/image') return homeModule.jellyfin.image(u.query || {}, res);
     if (pathname === '/api/home/picture') {
       return homePictureModule.picture(String(u.query && u.query.kind || ''), Number(u.query && u.query.port), reply,
         String(u.query && u.query.app || ''));
@@ -1126,15 +1205,32 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/beat') {
       if (!postGuard(req, res, 'application/json', false)) return;
       req.resume();
-      return reply(homeModule.beat());
+      // The hour cycle the view's clock draws, which follows the TV's setting.
+      var beatBody = homeModule.beat();
+      beatBody.clockHour12 = clockHour12();
+      return reply(beatBody);
     }
     return readJsonBody(req, res, function (body) {
       if (pathname === '/api/home/layout') return homeModule.setLayout(body, reply);
+      if (pathname === '/api/home/look') return homeModule.setLook(body, reply);
+      if (pathname === '/api/home/jellyfin/pair') return reply(homeModule.jellyfin.pair(lanOrigin()));
+      if (pathname === '/api/home/jellyfin/forget') return homeModule.jellyfin.forget(reply);
+      // The view's AUROR screen saver switch, with its brightness.
+      if (pathname === '/api/home/screensaver') {
+        if (!screensaversModule) return reply({ ok: false, error: 'screen savers unavailable' });
+        return screensaversModule.setScreensaver(body && body.on === true ? 'auror' : 'stock', body && body.bright === true ? 'bright' : 'dim', reply);
+      }
+      if (pathname === '/api/home/autoupdate') return aurorUpdate.setAuto(!!(body && body.auto === true), reply);
+      if (pathname === '/api/home/updatenow') return aurorUpdate.updateNow(reply);
       if (pathname === '/api/home/start-layout') return homeModule.setHideLgHomeAtStart(body, reply);
       if (pathname === '/api/home/wallpapers') return homeModule.setWallpapers(body, reply);
       if (pathname === '/api/home/enable') return homeModule.enable(reply);
       if (pathname === '/api/home/disable') return homeModule.disable(reply);
       if (pathname === '/api/home/open') return homeModule.open(body, reply);
+      if (pathname === '/api/home/search') return homeModule.search.find(body && body.query, reply);
+      if (pathname === '/api/home/search/open') return homeModule.search.open(body, reply);
+      if (pathname === '/api/home/search/pair') return reply(homeModule.search.pair(lanOrigin()));
+      if (pathname === '/api/home/search/forget') return homeModule.search.forget(reply);
       if (pathname === '/api/home/recents') {
         var recentApps = homeModule.recentApps, recentId = body && typeof body.id === 'string' ? body.id : '';
         if (body && body.action === 'open') return recentApps.open(recentId, reply);
@@ -1143,6 +1239,46 @@ function handleHomeRoute(req, res, u, pathname) {
         return reply({ ok: false, error: 'action must be open, close or closeAll' });
       }
       send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+/*
+ * The phone's page for linking Jellyfin, and what it sends. Only with a live
+ * code from the TV's settings; the details are tried before they are kept.
+ */
+function handleJellyfinPhone(req, res, u, pathname) {
+  var jf = homeModule.jellyfin;
+  if (pathname === '/jellyfin' && req.method === 'GET') {
+    var page = assetPath('jellyfin-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (pathname === '/jellyfin/link' && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      jf.link(body, function (r) { send(res, r.ok || r.needUser ? 200 : 400, JSON.stringify(r)); });
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+// The phone's page for TMDB's key, for AUROR's search (lib/auror-search), as for Jellyfin.
+function handleTmdbPhone(req, res, pathname) {
+  if (pathname === '/tmdb' && req.method === 'GET') {
+    var page = assetPath('search-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (pathname === '/tmdb/link' && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      homeModule.search.link(body, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
     });
   }
   send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
@@ -1215,6 +1351,10 @@ function handleRequest(req, res) {
     }));
   }
 
+  // Jellyfin and TMDB linked from a phone: the one-time code in the TV's QR code stands in for the token.
+  if ((pathname === '/jellyfin' || pathname === '/jellyfin/link') && homeModule) return handleJellyfinPhone(req, res, u, pathname);
+  if ((pathname === '/tmdb' || pathname === '/tmdb/link') && homeModule) return handleTmdbPhone(req, res, pathname);
+
   if (pathname.indexOf('/api/') === 0 && !authed(u.query, req)) {
     return send(res, 401, JSON.stringify({ ok: false, error: 'bad or missing token' }));
   }
@@ -1224,13 +1364,31 @@ function handleRequest(req, res) {
       ok: true, allowControl: config.allowControl, allowPower: config.allowPower,
       // Bare: the Homebrew Channel app's launch page compares it with its own.
       origin: lanOrigin(), version: versionStr,
-      fromHomebrewChannel: fromHomebrewChannel(), setupNeeded: setupPending()
+      fromHomebrewChannel: fromHomebrewChannel(), setupNeeded: setupPending(),
+      // The hour cycle the dashboard's own clock draws.
+      clockHour12: clockHour12()
     };
     // The token goes into the TV's QR codes, so a phone that scans one can use
     // what it opens. Only to the TV itself: whoever sees the screen holds the
     // remote, and the remote needs no token.
     if (config.token && fromTV(req)) caps.key = config.token;
     return send(res, 200, JSON.stringify(caps));
+  }
+
+  if (pathname === '/api/audio' && audioModule) {
+    if (req.method === 'GET') {
+      return audioModule.status(function (r) {
+        r.writable = !!config.allowControl;
+        if (u.query.with !== 'settings') return send(res, 200, JSON.stringify(r));
+        // The Audio tabs show LG's sound settings beside the readings.
+        lgSettingsModule.collect(['sound', 'hdmi'], function (ls) {
+          r.lgSettings = ls.rows;
+          r.inputs = telemetryModule.inputNameMap;
+          send(res, 200, JSON.stringify(r));
+        });
+      });
+    }
+    return send(res, 405, JSON.stringify({ ok: false, error: 'method not allowed' }));
   }
 
   if (pathname === '/api/screensaver') {
@@ -1562,12 +1720,10 @@ function handleRequest(req, res) {
 
   if (pathname === '/api/apps' && req.method === 'GET') {
     return appsModule.getApps(function (d) {
-      d.tileHidingAvailable = !!(appsModule && appsModule.tileHidingAllowed && appsModule.tileHidingAllowed()) && !fromHomebrewChannel();
+      d.tileHidingAvailable = tileHidingAvailable();
       if (!d.tileHidingAvailable) { d.systemTiles = []; d.tileHidingEnabled = false; d.hiddenCount = 0; }
       d.tileHidingHeld = false;
       d.tileHidingOverridden = false;
-      // The TV app notes that LG's Home layout and hidden apps reach Glasshouse Home differently.
-      d.glasshouseHome = !!(homeModule && homeModule.enabled());
       servicesModule.getServices(function (sRes) {
         if (sRes && sRes.services) d.services = sRes.services;
         if (!preloadModule) return send(res, 200, JSON.stringify(d));
@@ -1576,19 +1732,12 @@ function handleRequest(req, res) {
           if (!quickAccessModule) return send(res, 200, JSON.stringify(d));
           quickAccessModule.getQuickAccess(function (qa) {
             d.quickAccess = qa && qa.supported ? qa : null;
-            if (!remoteKeysModule) return withHome();
+            if (!remoteKeysModule) return send(res, 200, JSON.stringify(d));
             remoteKeysModule.getRemoteKeys(function (rk) {
               d.remoteKeys = rk && rk.supported ? rk : null;
-              withHome();
-            });
-          });
-          function withHome() {
-            if (!homeScreenModule) return send(res, 200, JSON.stringify(d));
-            homeScreenModule.getHomeScreen(function (hs) {
-              d.homeScreen = hs;
               send(res, 200, JSON.stringify(d));
             });
-          }
+          });
         });
       });
     });
@@ -1760,19 +1909,24 @@ function handleRequest(req, res) {
 
   if (pathname === '/api/stats') {
     return telemetryModule.collectStats(function (s) {
-      // PicCap's capture, where it is installed, for the Advanced tab.
+      // PicCap's capture and Hue Sync's streaming, where installed, for the
+      // Advanced tab.
       piccapStatusFn(function (pc) {
-        if (!pc && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
-        // Copied, since s is telemetry's cache.
-        var copy = {};
-        for (var k in s) copy[k] = s[k];
-        if (pc) copy.piccapCapture = pc;
-        if (u.query.with !== 'settings') return send(res, 200, JSON.stringify(copy));
-        // The TV dashboard's System page, which reads one endpoint, also lists
-        // the sound and SIMPLINK settings.
-        lgSettingsModule.collect(['sound', 'hdmi', 'devices'], function (ls) {
-          copy.lgSettings = ls.rows;
-          send(res, 200, JSON.stringify(copy));
+        huesyncStatusFn(function (hs) {
+          if (!pc && !hs && !clockModule && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
+          // Copied, since s is telemetry's cache.
+          var copy = {};
+          for (var k in s) copy[k] = s[k];
+          if (clockModule) copy.clockHour12 = clockHour12();
+          if (pc) copy.piccapCapture = pc;
+          if (hs) copy.huesyncStreaming = hs;
+          if (u.query.with !== 'settings') return send(res, 200, JSON.stringify(copy));
+          // The TV dashboard's System page, which reads one endpoint, also
+          // lists the sound and SIMPLINK settings.
+          lgSettingsModule.collect(['sound', 'hdmi', 'devices'], function (ls) {
+            copy.lgSettings = ls.rows;
+            send(res, 200, JSON.stringify(copy));
+          });
         });
       });
     });
@@ -1932,6 +2086,7 @@ function init(opts) {
   if (opts.oled) oledModule = opts.oled;
   if (opts.privacy) privacyModule = opts.privacy;
   if (opts.lgSettings) lgSettingsModule = opts.lgSettings;
+  if (opts.audio) audioModule = opts.audio;
   if (opts.game) gameModule = opts.game;
   if (opts.apps) appsModule = opts.apps;
   if (opts.services) servicesModule = opts.services;
@@ -1940,6 +2095,7 @@ function init(opts) {
   if (opts.remoteKeys) remoteKeysModule = opts.remoteKeys;
   if (opts.homeScreen) homeScreenModule = opts.homeScreen;
   if (opts.home) homeModule = opts.home;
+  if (opts.clock) clockModule = opts.clock;
   if (opts.homePicture) homePictureModule = opts.homePicture;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;
@@ -1947,6 +2103,7 @@ function init(opts) {
   if (opts.tvApp) tvAppFn = opts.tvApp;
   if (opts.restartSelf) restartSelfFn = opts.restartSelf;
   if (opts.piccapStatus) piccapStatusFn = opts.piccapStatus;
+  if (opts.huesyncStatus) huesyncStatusFn = opts.huesyncStatus;
   if (opts.repo) repoModule = opts.repo;
   if (opts.installer) installerModule = opts.installer;
   if (opts.prometheus) prometheusModule = opts.prometheus;

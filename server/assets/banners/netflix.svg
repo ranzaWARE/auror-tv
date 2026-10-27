@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+  <!-- Netflix banner for Glasshouse Home. Logo from Simple Icons (CC0-1.0); a trademark of its owner. -->
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1F1F1F"/><stop offset="1" stop-color="#000000"/></linearGradient>
+  <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".14"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+  <rect width="320" height="180" fill="url(#bg)"/>
+  <rect width="320" height="180" fill="url(#sheen)"/>
+  <svg x="85" y="48" width="150" height="84" viewBox="0 0 24 24"><path fill="#E50914" d="m5.398 0 8.348 23.602c2.346.059 4.856.398 4.856.398L10.113 0H5.398zm8.489 0v9.172l4.715 13.33V0h-4.715zM5.398 1.5V24c1.873-.225 2.81-.312 4.715-.398V14.83L5.398 1.5z"/></svg>
+</svg>
