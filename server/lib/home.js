@@ -68,6 +68,8 @@ var PROMO_APPS = ['com.webos.app.lgchannels', 'com.webos.app.sportsteamsettings'
  * by name, since each region's store lists them under its own ids.
  */
 var STREAMING_TITLES = /^(netflix|(amazon )?prime video|disney ?(\+|plus)|dazn|now( tv)?|lg channels)$/i;
+// Glasshouse's own app is opened from Home's settings, so it starts off the row the same way.
+var GLASSHOUSE_APPS = ['com.tvweb.dashboard', 'io.github.rorygallagher2024.lg-webos-dashboard'];
 // The view's own way back to LG's Home: last in the Apps row, and never hidden.
 var LG_HOME_TILE = 'lg-home';
 // AUROR's Immich tile: the view opens the albums itself.
@@ -731,7 +733,9 @@ function rows(cb) {
 }
 
 function hideStreamingOnce(c, apps) {
-  var fresh = apps.filter(function (a) { return STREAMING_TITLES.test(a.title) && c.streamingSeen.indexOf(a.id) === -1; });
+  var fresh = apps.filter(function (a) {
+    return (STREAMING_TITLES.test(a.title) || GLASSHOUSE_APPS.indexOf(a.id) !== -1) && c.streamingSeen.indexOf(a.id) === -1;
+  });
   if (!fresh.length) return;
   fresh.forEach(function (a) {
     c.streamingSeen.push(a.id);
