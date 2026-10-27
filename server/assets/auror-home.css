@@ -199,8 +199,18 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
   -webkit-justify-content:center !important;justify-content:center !important}
 .ch{min-height:150px;padding:16px 20px !important}
 .dev .nm{font-size:24px !important;font-weight:600 !important}
-.dev .path{font-family:"Space Mono",monospace;font-size:16px !important;color:#99a2af !important;margin-top:6px !important}
-.dev.last .path{color:#f5a000 !important}
+/* Two lines: the name, then where it is on the left and its state or CEC address on the right. */
+.dev{position:relative}
+.dev .path,.dev .st{font-family:"Space Mono",monospace;font-size:16px !important;color:#99a2af !important;margin-top:6px !important}
+.dev .path{max-width:150px}
+.dev .path:empty{display:none}
+.dev .st{position:absolute;left:20px;right:20px;bottom:14px;margin:0 !important;-webkit-justify-content:flex-end !important;justify-content:flex-end !important}
+.dev .st em{font-style:normal}
+.dev:not(.last):not(.unused) .st em{display:none}
+.dev.last .st span{display:none}
+.dev.unused .st{position:static;margin-top:6px !important;-webkit-justify-content:flex-start !important;justify-content:flex-start !important}
+.dev.last .st em{color:#f5a000 !important}
+.dev.last .st em:before{display:none}
 .ch .num{font-size:40px !important}
 .ch .nm,.ch .next{color:#99a2af !important}
 .ch .bar{background:rgba(255,255,255,.12) !important}
@@ -209,8 +219,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
   -webkit-transform:translateY(-6px) scale(1.06);transform:translateY(-6px) scale(1.06)}
 .arranging .dev.held,.arranging .ch.held{outline-style:dashed !important}
 .light .dev,.light .ch{background:#fff !important;border-color:#e5e7eb}
-.light .dev .path,.light .ch .nm,.light .ch .next{color:#5d6472 !important}
-.light .dev.last .path{color:#b47400 !important}
+.light .dev .path,.light .dev .st,.light .ch .nm,.light .ch .next{color:#5d6472 !important}
+.light .dev.last .st em{color:#b47400 !important}
 .light .ch .bar{background:rgba(17,24,39,.1) !important}
 .light .dev.focus,.light .ch.focus{background:#fff !important;outline-color:#d98c00 !important;box-shadow:0 16px 36px rgba(17,24,39,.18)}
 #rows .row[data-key="dev"] .wrap{padding-top:24px;padding-bottom:20px}

@@ -1,0 +1,18 @@
+{
+  "manifest": 1,
+  "version": "1.0.0",
+  "name": {
+    "en": "AUROR",
+    "it": "AUROR"
+  },
+  "description": {
+    "en": "Glasshouse Home's clock, dimmed on black and wandering slowly, with Mimus and Quetza now and then.",
+    "it": "L’orologio della Glasshouse Home, attenuato su nero e che vaga piano, con Mimus e Quetza ogni tanto."
+  },
+  "license": "MIT",
+  "uses": [
+    "level",
+    "stats"
+  ],
+  "order": 15
+}

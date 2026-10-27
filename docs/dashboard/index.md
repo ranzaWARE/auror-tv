@@ -22,13 +22,13 @@ On a wide screen the tabs are listed down the left. On a phone, or wherever Pref
 
     ---
 
-    Install, uninstall, background services, remote button remapping and the home screen.
+    Install, uninstall, background services and remote button remapping.
 
 -   **[Home](home.md)**
 
     ---
 
-    Glasshouse Home, a clean home screen in place of LG's.
+    Glasshouse Home, a clean home screen in place of LG's, and Home customisation: Open Home at power-on, LG's Home screen layout and hidden system apps.
 
 -   **[Privacy](privacy.md)**
 
@@ -48,6 +48,12 @@ On a wide screen the tabs are listed down the left. On a phone, or wherever Pref
 
     Live frame rate, VRR and the Game Optimizer.
 
+-   **[Audio](audio.md)**
+
+    ---
+
+    Sound settings and the formats the TV and its receiver report.
+
 -   **[Screen savers](screen-savers.md)**
 
     ---
@@ -58,7 +64,7 @@ On a wide screen the tabs are listed down the left. On a phone, or wherever Pref
 
     ---
 
-    Power and standby, sound routing, HDMI, auto device detection and front lights.
+    Power and standby, HDMI, auto device detection and front lights.
 
 -   **[Service menu](service-menu.md)**
 
@@ -83,6 +89,8 @@ On a wide screen the tabs are listed down the left. On a phone, or wherever Pref
 For companion applications, see [Glasshouse apps](../apps/tv-app.md), including [The TV app](../apps/tv-app.md) on the TV's home screen and [Glasshouse for Android](../apps/android.md).
 
 The page works with no internet access, and has a dark/light mode toggle (via the UI or `/?theme=light`).
+
+The footer names the TV, by its DNS name where the home network's DNS has one or else by its address, beside the Glasshouse version.
 
 Use the search button at the top of the sidebar (or press `/` or `Ctrl`/`Cmd` + `K`)
 to find sections, settings, controls, and installed apps. Useful destinations can be pinned
