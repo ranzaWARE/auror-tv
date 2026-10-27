@@ -364,3 +364,37 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 @keyframes mimus-run{from{transform:translateX(-240px)}to{transform:translateX(2160px)}}
 @-webkit-keyframes quetza-fly{0%{-webkit-transform:translate(-340px,50px)}50%{-webkit-transform:translate(800px,0)}100%{-webkit-transform:translate(2240px,40px)}}
 @keyframes quetza-fly{0%{transform:translate(-340px,50px)}50%{transform:translate(800px,0)}100%{transform:translate(2240px,40px)}}
+
+/* ---- Search: the mark left of the rows, and its panel over the left of the screen ---- */
+#rail{color:#5d6472}
+#rail.focus{color:#e0e4ea}
+#rail.focus svg{background:#23272e;outline:3px solid #f5a000;outline-offset:2px}
+.light #rail{color:#99a2af}
+.light #rail.focus{color:#111827}
+.light #rail.focus svg{background:#fff;outline-color:#d98c00}
+#finder{z-index:5;width:1040px;padding:120px 72px 0 120px;background:#1c2028;border-right:1px solid rgba(255,255,255,.08);
+  box-shadow:24px 0 60px rgba(0,0,0,.35)}
+.light #finder{background:#fff;border-right-color:#e5e7eb;box-shadow:24px 0 60px rgba(17,24,39,.12)}
+.finding #shelf,.finding #rowsView,.finding #rail{opacity:.25}
+#ask{border-bottom-color:rgba(255,255,255,.12)}
+.typing #ask{border-bottom-color:#f5a000}
+#ask svg{color:#99a2af}
+#query{font-family:"Space Grotesk",sans-serif !important;font-size:72px;font-weight:300;color:#e0e4ea;caret-color:#f5a000}
+#query::-webkit-input-placeholder{color:#5d6472}
+#query::placeholder{color:#5d6472}
+#status{font-family:"Space Mono",monospace;font-size:18px;color:#99a2af;text-transform:uppercase;letter-spacing:.04em}
+.hit .poster{border-radius:10px;background:#23272e}
+.hit .ttl,.hit .poster .mono,.chip .mono{font-family:"Space Grotesk",sans-serif !important}
+.hit .ttl{font-weight:500;font-size:36px}
+.hit .meta{color:#99a2af}
+.chip{border-radius:10px}
+.chip .mono{background:#23272e}
+.hit.on .chip.focus{background:#23272e;outline:3px solid #f5a000}
+.light #ask{border-bottom-color:#e5e7eb}
+.light .typing #ask,.light.typing #ask{border-bottom-color:#d98c00}
+.light #ask svg,.light #status,.light .hit .meta{color:#5d6472}
+.light #query{color:#111827}
+.light #query::-webkit-input-placeholder{color:#99a2af}
+.light #query::placeholder{color:#99a2af}
+.light .hit .poster,.light .chip .mono{background:#eef1f4}
+.light .hit.on .chip.focus{background:#fff;outline-color:#d98c00}
