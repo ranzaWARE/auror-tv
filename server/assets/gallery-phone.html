@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title data-t="photosphone.title">Home backgrounds</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<style>
+/* Opened from the QR code in Glasshouse Home's Backgrounds settings, on a
+   phone or computer on the same network: the photos AUROR puts behind Home.
+   AUROR's colours, light or dark as the device is. */
+@font-face{font-family:"Space Grotesk";src:url("/assets/fonts/SpaceGrotesk.ttf") format("truetype");font-weight:300 700}
+@font-face{font-family:"Space Mono";src:url("/assets/fonts/SpaceMono-Regular.ttf") format("truetype");font-weight:400}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#f3f5f7;color:#111827}
+body{font:16px/1.5 "Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:max(28px,env(safe-area-inset-top)) 16px 48px;max-width:980px;margin:0 auto}
+.kick{display:flex;align-items:center;gap:10px;font:14px "Space Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:#374151}
+.kick:before{content:"";width:8px;height:8px;border-radius:2px;background:#f5a000}
+h1{font-weight:300;font-size:34px;line-height:1.1;letter-spacing:-.5px;margin:12px 0 10px}
+.sub{color:#5d6472;font-size:15px;margin-bottom:20px;max-width:560px}
+.bar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:18px}
+.bar .field label{display:block;font-size:13px;color:#5d6472;margin-bottom:6px}
+.bar .field{flex:1 1 200px}
+select{width:100%;font:inherit;color:inherit;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:11px 12px}
+select:focus,button:focus-visible,.add:focus-within{outline:2px solid #d98c00;outline-offset:2px}
+.add{flex:1 1 200px;position:relative;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;
+  color:#111827;background:#f5a000;border-radius:10px;padding:12px 14px;cursor:pointer}
+.add input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.add.busy{opacity:.6;pointer-events:none}
+#msg{font-size:15px;min-height:1.5em;margin:4px 0 14px}
+#msg.err{color:#b42318}
+.count{font:13px "Space Mono",monospace;color:#5d6472;margin-bottom:10px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.ph{position:relative;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+.ph img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#e5e7eb}
+.ph .on{position:absolute;left:8px;top:8px;font:12px "Space Mono",monospace;text-transform:uppercase;letter-spacing:.04em;
+  background:#f5a000;color:#111827;border-radius:6px;padding:2px 7px}
+.ph .acts{display:flex}
+.ph button{flex:1;font:inherit;font-size:14px;color:inherit;background:none;border:0;border-top:1px solid #e5e7eb;padding:9px 4px;cursor:pointer}
+.ph button + button{border-left:1px solid #e5e7eb}
+.ph button.sure{background:#b42318;color:#fff}
+.ph.pending img{opacity:.45}
+.empty{color:#5d6472;font-size:15px;padding:30px 0}
+.done h1{margin-top:18vh}
+@media (prefers-color-scheme:dark){
+  html,body{background:#15191f;color:#e0e4ea}
+  .kick{color:#f5a000}
+  .sub,.bar .field label,.count,.empty{color:#99a2af}
+  select{background:#1c2028;border-color:rgba(255,255,255,.12)}
+  select:focus{outline-color:#f5a000}
+  .ph{background:#1c2028;border-color:rgba(255,255,255,.12)}
+  .ph img{background:#262b34}
+  .ph button{border-color:rgba(255,255,255,.12)}
+  #msg.err{color:#ff8a80}
+}
+</style>
+</head>
+<body>
+<main id="page">
+  <div class="kick" translate="no">Glasshouse Home</div>
+  <h1 data-t="photosphone.title">Home backgrounds</h1>
+  <p class="sub" data-t="photosphone.sub">Photos added here go behind the TV's Home, one of them or all in turn. Each is cut to the TV's shape and shrunk on this device first; the photos stay on the TV only.</p>
+
+  <div class="bar">
+    <label class="add" id="add"><span data-t="photosphone.add">Add photos</span>
+      <input id="files" type="file" accept="image/*" multiple></label>
+    <div class="field">
+      <label for="mode" data-t="photosphone.mode">On the TV</label>
+      <select id="mode">
+        <option value="off" data-t="photosphone.modeOff">No photo</option>
+        <option value="one" data-t="photosphone.modeOne">One photo</option>
+        <option value="rotate" data-t="photosphone.modeRotate">All, in turn</option>
+      </select>
+    </div>
+    <div class="field" id="everyField" hidden>
+      <label for="every" data-t="photosphone.every">Next photo every</label>
+      <select id="every"></select>
+    </div>
+  </div>
+  <p id="msg" role="status"></p>
+  <p class="count" id="count"></p>
+  <div id="grid"></div>
+</main>
+
+<main id="gone" class="done" hidden>
+  <div class="kick" translate="no">Glasshouse Home</div>
+  <h1 data-t="photosphone.expiredTitle">This link has expired</h1>
+  <p class="sub" id="goneWhy"></p>
+</main>
+
+<script src="/assets/i18n.js"></script>
+<script>
+(function () {
+  var code = (location.search.match(/[?&]c=([0-9a-f]+)/) || [])[1] || '';
+  var EVERY = [5, 15, 30, 60, 180];
+  // The TV's screen: what the photo is cut to, and its small copy for lists.
+  var W = 1920, H = 1080, THUMB_W = 480, THUMB_H = 270;
+  function $(id) { return document.getElementById(id); }
+  var msg = $('msg'), state = null, confirmTimer = null;
+
+  function say(text, err) { msg.textContent = text || ''; msg.className = err ? 'err' : ''; }
+
+  function request(method, url, body, type, cb) {
+    var xhr = new XMLHttpRequest();
+    xhr.open(method, url + (url.indexOf('?') === -1 ? '?' : '&') + 'c=' + code, true);
+    if (type) xhr.setRequestHeader('Content-Type', type);
+    xhr.onload = function () {
+      var r = {};
+      try { r = JSON.parse(xhr.responseText); } catch (e) {}
+      if (r && r.expired) return expired(r);
+      cb(r);
+    };
+    xhr.onerror = function () { cb(null); };
+    xhr.send(body === undefined ? null : body);
+  }
+  function postJson(url, body, cb) { request('POST', url, JSON.stringify(body), 'application/json', cb); }
+
+  function expired(r) {
+    $('page').hidden = true;
+    $('gone').hidden = false;
+    $('goneWhy').textContent = r.error || '';
+  }
+
+  function unreachable() { say(t('photosphone.unreachable', 'Could not reach the TV. Check this device is on the same network.'), true); }
+
+  EVERY.forEach(function (m) {
+    var o = document.createElement('option');
+    o.value = m;
+    o.textContent = m < 60 ? t('photosphone.minutes', '{n} minutes', { n: m }) :
+      m === 60 ? t('photosphone.hour', 'An hour') : t('photosphone.hours', '{n} hours', { n: m / 60 });
+    $('every').appendChild(o);
+  });
+
+  function render() {
+    $('mode').value = state.mode;
+    $('every').value = state.every;
+    $('everyField').hidden = state.mode !== 'rotate';
+    $('count').textContent = t('photosphone.count', '{n} of {max} photos', { n: state.count, max: state.max });
+    var grid = $('grid');
+    grid.innerHTML = '';
+    if (!state.ids.length) {
+      var p = document.createElement('p');
+      p.className = 'empty';
+      p.textContent = t('photosphone.empty', 'No photos yet. Add some from this device.');
+      grid.appendChild(p);
+      return;
+    }
+    state.ids.slice().reverse().forEach(function (id) {
+      var box = document.createElement('div');
+      box.className = 'ph';
+      var img = document.createElement('img');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.src = '/photos/thumb?c=' + code + '&id=' + id;
+      box.appendChild(img);
+      if (id === state.shown) {
+        var on = document.createElement('span');
+        on.className = 'on';
+        on.textContent = t('photosphone.shown', 'On the TV');
+        box.appendChild(on);
+      }
+      var acts = document.createElement('div');
+      acts.className = 'acts';
+      var use = document.createElement('button');
+      use.type = 'button';
+      use.textContent = t('photosphone.use', 'Use');
+      use.onclick = function () {
+        postJson('/photos/use', { id: id }, function (r) {
+          if (!r) return unreachable();
+          if (!r.ok) return say(r.error, true);
+          state = r;
+          say(t('photosphone.used', 'This photo is now behind Home.'));
+          render();
+        });
+      };
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.textContent = t('photosphone.remove', 'Remove');
+      del.onclick = function () {
+        if (del.className !== 'sure') {
+          del.className = 'sure';
+          del.textContent = t('photosphone.removeSure', 'Sure?');
+          clearTimeout(confirmTimer);
+          confirmTimer = setTimeout(function () { del.className = ''; del.textContent = t('photosphone.remove', 'Remove'); }, 3000);
+          return;
+        }
+        postJson('/photos/remove', { id: id }, function (r) {
+          if (!r) return unreachable();
+          if (!r.ok) return say(r.error, true);
+          state = r;
+          say('');
+          render();
+        });
+      };
+      acts.appendChild(use);
+      acts.appendChild(del);
+      box.appendChild(acts);
+      grid.appendChild(box);
+    });
+  }
+
+  function load() {
+    request('GET', '/photos/list', undefined, null, function (r) {
+      if (!r) return unreachable();
+      if (!r.ok) return say(r.error, true);
+      state = r;
+      render();
+    });
+  }
+
+  function saveSettings(body) {
+    postJson('/photos/settings', body, function (r) {
+      if (!r) return unreachable();
+      if (!r.ok) return say(r.error, true);
+      state = r;
+      say('');
+      render();
+    });
+  }
+  $('mode').onchange = function () { saveSettings({ mode: $('mode').value }); };
+  $('every').onchange = function () { saveSettings({ every: +$('every').value }); };
+
+  /*
+   * The middle of the photo at the screen's shape, at most the screen's
+   * size, as JPEG: what the TV shows anyway, at a fraction of the bytes.
+   */
+  function cut(img, w, h, quality, cb) {
+    var sw = img.naturalWidth, sh = img.naturalHeight;
+    var cw = Math.min(sw, Math.round(sh * w / h)), ch = Math.round(cw * h / w);
+    var scale = Math.min(1, w / cw);
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.round(cw * scale);
+    canvas.height = Math.round(ch * scale);
+    var g = canvas.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, Math.round((sw - cw) / 2), Math.round((sh - ch) / 2), cw, ch, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(cb, 'image/jpeg', quality);
+  }
+
+  function send(blob, query, cb) { request('POST', '/photos/upload?' + query, blob, 'image/jpeg', cb); }
+
+  function addOne(file, cb) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onerror = function () { URL.revokeObjectURL(url); cb(t('photosphone.notImage', '{name} is not a photo this browser can open.', { name: file.name })); };
+    img.onload = function () {
+      cut(img, W, H, 0.86, function (photo) {
+        cut(img, THUMB_W, THUMB_H, 0.75, function (thumb) {
+          URL.revokeObjectURL(url);
+          if (!photo || !thumb) return cb(t('photosphone.notImage', '{name} is not a photo this browser can open.', { name: file.name }));
+          send(photo, 'kind=photo', function (r) {
+            if (!r) return cb(null, true);
+            if (!r.ok) return cb(r.error || t('photosphone.failed', 'The TV did not take {name}.', { name: file.name }));
+            send(thumb, 'kind=thumb&id=' + r.id, function () { cb(); });
+          });
+        });
+      });
+    };
+    img.src = url;
+  }
+
+  $('files').onchange = function () {
+    var files = [].slice.call(this.files || []), done = 0, failed = null;
+    this.value = '';
+    if (!files.length) return;
+    $('add').className = 'add busy';
+    (function next(i) {
+      if (i >= files.length) {
+        $('add').className = 'add';
+        if (failed) say(failed, true);
+        else say(t('photosphone.added', '{n} added.', { n: done }));
+        return load();
+      }
+      say(t('photosphone.adding', 'Adding {i} of {n}…', { i: i + 1, n: files.length }));
+      addOne(files[i], function (err, lost) {
+        if (lost) { $('add').className = 'add'; return unreachable(); }
+        if (err) failed = err; else done++;
+        next(i + 1);
+      });
+    })(0);
+  };
+
+  load();
+})();
+</script>
+</body>
+</html>

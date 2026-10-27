@@ -14,7 +14,13 @@ Glasshouse Home displays a Top Shelf over up to three rows (any row with no visi
 * **An HDMI input**: the name of the device on it.
 * **Any other app**: its colours as a glow across the shelf with its symbol large and faint, its logo and name, and for well-known apps a line saying what the app is. Jellyfin with nothing to show, and LG's Home, look the same.
 
-Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile. App tiles are 16:9 colour banners that show their name only when focused: well-known apps have their logo in white on the brand's colour, from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0-1.0; Prime Video's from its 14.15.0, before it was removed) and, for Disney+, [Streamline's Logos](https://github.com/webalys-hq/streamline-vectors) (CC BY 4.0), the logos remaining their owners' trademarks, and any other app its own icon on a colour. The clock, following the TV's 12-hour or 24-hour time setting, and the date sit at the top right with two buttons, reached with **Up**: the theme switch and the settings.
+Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile. App tiles are 16:9 colour banners that show their name only when focused: well-known apps have their logo in white on the brand's colour, from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0-1.0; Prime Video's from its 14.15.0, before it was removed) and, for Disney+, [Streamline's Logos](https://github.com/webalys-hq/streamline-vectors) (CC BY 4.0), the logos remaining their owners' trademarks, and any other app its own icon on a colour. The clock, following the TV's 12-hour or 24-hour time setting, and the date sit at the top right with a row of buttons, reached with **Up**: [Search](#search) when it is on, the network, the sleep timer, the theme switch, the settings and switching off.
+
+* **Network**: Wi-Fi, a cable or neither, with a dot that is green online, amber when connected with no way out to the internet and red with no network. **OK** names the Wi-Fi network and gives the TV's address.
+* **Sleep timer**: **OK** goes through 30, 60, 90 and 120 minutes, then off, and the button shows the minutes left. The timer runs in the server, so it goes on while an app is in front: a minute before, a toast says so, and the TV is then switched off as by the remote. The TV switched off in any other way cancels it.
+* **Switch off**: **OK** twice within three seconds switches the TV off; the first turns the button red and says so.
+
+At the top left a greeting changes each time Home comes back, by the time of day, with the owner's name when one is set in **Settings › Look**.
 
 The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, slowly and continuously, so no text stays on the same pixels. Every few minutes Mimus runs along the bottom or Quetza flies across the top.
 
@@ -22,12 +28,15 @@ The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand
 
 The gear opens Glasshouse Home's own settings, worked with the remote:
 
-* **Look**: the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza.
+* **Look**: the owner's name for the greeting, typed on the TV's keyboard, the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza.
 * **Top Shelf**: what Jellyfin, Glasshouse and the HDMI inputs show there.
 * **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), then hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
 * **Tiles**: which apps show. LG's Home always does.
+* **Backgrounds**: photos behind Home, one of them or all in turn, added from a phone or computer (see [Backgrounds](#backgrounds)).
 * **Search**: the switch, and TMDB's key, linked from a phone by a QR code (see [Search](#search)).
 * **Jellyfin**: the server and user linked, and a QR code. Scanned with a phone on the same network, it opens a page for the server's address and an API key (Jellyfin's **Dashboard › API Keys**), so neither is typed with the remote. The code lasts ten minutes and links once; the details are tried before they are kept, and the key is kept on the TV only, in `/var/lib/tvweb/jellyfin.json`.
+* **Immich**: the server and user linked, and a QR code, as for Jellyfin (see [Immich](#immich)).
+* **SSH**: the Homebrew Channel's SSH server, on or off. Switched on, it starts at once and at every start of the TV, as the Homebrew Channel's own setting; off, it stops, ending the sessions open. The rows say whether it is listening on port 22, whether a key or the root password lets in (the Homebrew Channel's `alpine` until changed, while there are no keys) and the address to connect to.
 * **Glasshouse**: AUROR's automatic updates, **Update now**, which asks for AUROR's latest release and installs it at once, the version installed, and Glasshouse's TV app, for everything else.
 
 <div class="grid cards" markdown>
@@ -100,6 +109,18 @@ When switched on, in **Settings › Search** on the TV or under **Home** on the 
 Each title says where it is to watch in Italy. Those in the Jellyfin library come first, with Jellyfin to open them; the others follow with the apps on this TV that stream them (Netflix, Prime Video, Disney+, NOW and the like, hidden or not), then the services that stream it with no app here (**Also on**), and those that rent or sell it. A title on no service in Italy is counted, not listed. OK opens the app chosen at its start: TMDB knows where a title is, not its address in the app. The titles and where they are come from TMDB, which has the services from [JustWatch](https://www.justwatch.com); this product uses the TMDB API but is not endorsed or certified by TMDB.
 
 TMDB needs an API key, free from themoviedb.org (**Settings › API**). **Settings › Search** on the TV shows a QR code: scanned with a phone on the same network, it opens a page that says how to get the key and takes it. The key is tried before it is kept, on the TV only, in `/var/lib/tvweb/tmdb.json`. Without it, only Jellyfin is searched.
+
+## Immich
+
+Once an [Immich](https://immich.app) server is linked, an **Immich** tile joins the Apps row, arranged, hidden or put in More apps like any app. **OK** opens the albums the key can read, owned or shared, the one added to last first, four to a line with their covers. **OK** on an album shows its photos and videos, six to a line, and **OK** on one shows it full screen: **Left** and **Right** go through the album, **OK** plays a video or starts and stops a slideshow of a photo every six seconds, and the date and place show for a few seconds after each change. **Back** goes back a step at a time.
+
+**Settings › Immich** on the TV shows a QR code: scanned with a phone on the same network, it opens a page for the server's address (its port is usually 2283) and an API key, made in Immich under **Account settings › API keys** with `album.read`, `asset.read` and `asset.view`. The key is tried on the albums before it is kept, on the TV only, in `/var/lib/tvweb/immich.json`; the view never has it, as the server passes the pictures and videos on with the key added. Albums come from the timeline on current Immich releases, and with the album itself from Immich 1.
+
+## Backgrounds
+
+AUROR's own backgrounds are photos put on the TV from a browser on the same network. **Settings › Backgrounds** on the TV shows a QR code and its address: the page they open lists the photos on the TV and adds more, any number at once. Each is cut to the TV's 16:9 in the middle and shrunk to 1920 × 1080 at most by the browser before it is sent; the server takes only JPEGs it can check, up to 5 MB, and keeps 60 at most in `/var/lib/tvweb/auror-photos`. The page's code stays good while it is used and for half an hour after.
+
+On the TV or on that page, **Background** is **No photo** (Glasshouse's wallpapers, below), **One photo**, the one picked, or **All, in turn**, the next every 5, 15, 30, 60 or 180 minutes. A photo stands in for every time of day's wallpaper, dimmed as they are, with the Top Shelf letting it through. The choice is kept in `/var/lib/tvweb/auror-photos.json`.
 
 ## Wallpapers
 

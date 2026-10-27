@@ -97,6 +97,7 @@ var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
 var history = require('./lib/history');
 var sshKeys = require('./lib/sshkeys');
+var aurorTv = require('./lib/auror-tv');
 var screentime = require('./lib/screentime');
 var saverPowerOff = require('./lib/saverpoweroff');
 var remoteBattery = require('./lib/remotebattery');
@@ -1878,6 +1879,8 @@ if (!CLI_MODE) {
   liveState.state.onChange(function (ev) {
     if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) setTimeout(refreshHomeTitles, 20000);
     if (homePicture && ev.group === 'power' && ev.key === 'systemOn') homePicture.want('tv', ev.value !== false);
+    // AUROR's sleep timer ends with the TV switched off any other way.
+    if (ev.group === 'power' && ev.key === 'systemOn') aurorTv.powerChanged(ev.value !== false);
     // LG puts its own streaming buttons back around each change, not always announced.
     if (ev.group === 'power' && ev.key === 'state') remoteKeys.powerChanged();
     if (ev.group === 'surface' && ev.key === 'control_app_id' && ev.value === 'com.webos.app.home') refreshHomeTitles();
@@ -1944,6 +1947,8 @@ if (!CLI_MODE) {
   // Not at startup: a reboot brings the whole house back at once, and nothing
   // about this is urgent.
   updater.scheduleUpdateChecks(120000);
+  // AUROR: the Wi-Fi state, sleep timer, switching off and SSH on its Home (lib/auror-tv).
+  aurorTv.init({ luna: luna, control: doControl, sshkeys: sshKeys, stateDir: __dirname });
   // AUROR: its own releases, installed with the TV off or at night (lib/auror-autoupdate).
   require('./lib/auror-autoupdate').start({
     updater: updater, config: CONFIG, control: doControl, writeSettings: routes.writeSettings,

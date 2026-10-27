@@ -58,7 +58,8 @@ menus. Uninstalling the dashboard leaves them as they are.
 | Change | Note |
 | :----- | :--- |
 | Uninstalling an app | Permanent; reinstall it from the LG Content Store |
-| SSH keys added or removed on the Server tab | In `/home/root/.ssh/authorized_keys`. Deleting the file there gives root the password `alpine` from the next boot. Uninstalling leaves the file as it is |
+| SSH keys added or removed on the Server tab | In `/home/root/.ssh/authorized_keys`. Deleting the file there gives root the password `alpine` from the next boot. Uninstalling leaves the file as it is
+| SSH switched on or off in Glasshouse Home's settings | The Homebrew Channel's own setting, the file `/var/luna/preferences/webosbrew_sshd_enabled` its startup script reads at boot. Switched on, the Homebrew Channel's `dropbear -R` is also started at once; off, running dropbear is stopped, ending open sessions. Uninstalling leaves the setting as it is | |
 | Installing an app | Installed as a developer app; remove it from the Apps tab or the Homebrew Channel. Its services stay elevated to root if that was chosen |
 | Picture mode, energy saving, sound output, Quick Start+, Home Auto Launch (`general.homeAutoLaunch`), sleep timer, Quick Access keys, 12-hour clock (`timeFormat` in `systemservice`) | Ordinary TV settings |
 | LG settings restored from a backup | Sound, device, HDMI and ad settings, set as the dashboard sets them one by one. Undone by changing them back, or by restoring a backup made before |
@@ -86,7 +87,7 @@ Glasshouse Home leaves empty rows out and centres the remaining rows below the c
 
 Glasshouse Home's text and accent colours are saved in `/var/lib/tvweb/home.json` and applied to its view within a few seconds. **Use the default colours** clears the choice.
 
-Glasshouse Home's own settings (theme, Mimus and Quetza, what the Top Shelf shows) are kept in `/var/lib/tvweb/home.json` too. A Jellyfin server linked from a phone is kept in `/var/lib/tvweb/jellyfin.json`, readable by root only, with its API key; **Unlink** in those settings deletes it. TMDB's key for AUROR's search is kept the same way in `/var/lib/tvweb/tmdb.json`, and a row set to Most used keeps its opens in `/var/lib/tvweb/home-use.json`. The AUROR screen saver, switched on there, is staged like the others, with its GIFs.
+Glasshouse Home's own settings (theme, the owner's name for the greeting, Mimus and Quetza, what the Top Shelf shows) are kept in `/var/lib/tvweb/home.json` too. A Jellyfin server linked from a phone is kept in `/var/lib/tvweb/jellyfin.json`, readable by root only, with its API key; **Unlink** in those settings deletes it. TMDB's key for AUROR's search is kept the same way in `/var/lib/tvweb/tmdb.json`, and Immich's address and key in `/var/lib/tvweb/immich.json`, and a row set to Most used keeps its opens in `/var/lib/tvweb/home-use.json`. AUROR's photos behind Home are kept in `/var/lib/tvweb/auror-photos`, readable by root only, with the choice of background in `auror-photos.json`; the page they are added from removes them. While AUROR's sleep timer runs, its end is in `/var/lib/tvweb/auror-sleep.json`, deleted once it has run or is cancelled, and the TV is then switched off as by the remote. The AUROR screen saver, switched on there, is staged like the others, with its GIFs.
 
 Glasshouse Home's **Last watched**, **App count** and **CEC addresses** switches are saved in `/var/lib/tvweb/home.json`, on unless switched off. Both dashboards edit the same choices, which reach an open Home view through its heartbeat. The source stays hidden until the saved layout loads.
 

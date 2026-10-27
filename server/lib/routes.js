@@ -22,6 +22,7 @@ var fetchLib = require('./fetch');
 var devtools = require('./devtools');
 var names = require('./names');
 var aurorUpdate = require('./auror-autoupdate');
+var aurorTv = require('./auror-tv');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
 var HA_ENTITIES = ha.HA_ENTITIES;
@@ -1143,11 +1144,12 @@ function handleHomeRoute(req, res, u, pathname) {
           c.ok = true;
           c.layout = st.layout;
           c.enabled = st.enabled;
-          c.wallpapers = st.wallpapers;
+          c.wallpapers = homeModule.viewWallpapers();
           c.layoutVersion = homeModule.layoutVersion();
           // For the view's own settings.
           c.jellyfin = homeModule.jellyfin.status();
           c.tmdb = homeModule.search.status();
+          c.immich = homeModule.immich.status();
           c.update = aurorUpdate.status();
           c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
             available: !screensaversModule.heldBack() } : null;
@@ -1164,6 +1166,10 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
     if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());
     if (pathname === '/api/home/search/status') return reply(homeModule.search.status());
+    // AUROR's top bar and settings (lib/auror-tv).
+    if (pathname === '/api/home/network') return aurorTv.networkStatus(reply);
+    if (pathname === '/api/home/sleep') return reply(aurorTv.sleepStatus());
+    if (pathname === '/api/home/ssh') return aurorTv.sshStatus(reply);
     if (pathname === '/api/home/jellyfin/image') return homeModule.jellyfin.image(u.query || {}, res);
     if (pathname === '/api/home/picture') {
       return homePictureModule.picture(String(u.query && u.query.kind || ''), Number(u.query && u.query.port), reply,
@@ -1176,6 +1182,14 @@ function handleHomeRoute(req, res, u, pathname) {
         send(res, status, JSON.stringify({ ok: false, error: error }));
       }, 'image/jpeg');
     }
+    if (pathname === '/api/home/photo') return sendPhoto(req, res, u);
+    if (pathname === '/api/home/gallery') return reply(homeModule.gallery.status());
+    // Immich (lib/auror-immich): what the view shows, through this server with the key added.
+    if (pathname === '/api/home/immich/status') return reply(homeModule.immich.status());
+    if (pathname === '/api/home/immich/albums') return homeModule.immich.albums(reply);
+    if (pathname === '/api/home/immich/album') return homeModule.immich.album(String(u.query && u.query.id || ''), reply);
+    if (pathname === '/api/home/immich/thumb') return homeModule.immich.thumb(u.query || {}, res);
+    if (pathname === '/api/home/immich/video') return homeModule.immich.video(u.query || {}, req, res);
     if (pathname === '/api/home/recents') return homeModule.recentApps.list(reply);
     if (pathname === '/api/home/recents/image') {
       var snapshot = homeModule.recentApps.imagePath(u.query && u.query.id);
@@ -1224,6 +1238,9 @@ function handleHomeRoute(req, res, u, pathname) {
       }
       if (pathname === '/api/home/autoupdate') return aurorUpdate.setAuto(!!(body && body.auto === true), reply);
       if (pathname === '/api/home/updatenow') return aurorUpdate.updateNow(reply);
+      if (pathname === '/api/home/sleep') return reply(body && body.next === true ? aurorTv.nextSleep() : aurorTv.setSleep(body && body.minutes));
+      if (pathname === '/api/home/poweroff') return aurorTv.powerOff(reply);
+      if (pathname === '/api/home/ssh') return aurorTv.setSsh(!!(body && body.on === true), reply);
       if (pathname === '/api/home/start-layout') return homeModule.setHideLgHomeAtStart(body, reply);
       if (pathname === '/api/home/wallpapers') return homeModule.setWallpapers(body, reply);
       if (pathname === '/api/home/enable') return homeModule.enable(reply);
@@ -1233,6 +1250,14 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/search/open') return homeModule.search.open(body, reply);
       if (pathname === '/api/home/search/pair') return reply(homeModule.search.pair(lanOrigin()));
       if (pathname === '/api/home/search/forget') return homeModule.search.forget(reply);
+      if (pathname === '/api/home/gallery') {
+        var galleryNow = homeModule.gallery.setSettings(body);
+        if (galleryNow.ok) galleryNow.wallpapers = homeModule.viewWallpapers();
+        return reply(galleryNow);
+      }
+      if (pathname === '/api/home/gallery/pair') return reply(homeModule.gallery.pair(lanOrigin()));
+      if (pathname === '/api/home/immich/pair') return reply(homeModule.immich.pair(lanOrigin()));
+      if (pathname === '/api/home/immich/forget') return homeModule.immich.forget(reply);
       if (pathname === '/api/home/recents') {
         var recentApps = homeModule.recentApps, recentId = body && typeof body.id === 'string' ? body.id : '';
         if (body && body.action === 'open') return recentApps.open(recentId, reply);
@@ -1263,6 +1288,72 @@ function handleJellyfinPhone(req, res, u, pathname) {
   if (pathname === '/jellyfin/link' && req.method === 'POST') {
     return readJsonBody(req, res, function (body) {
       jf.link(body, function (r) { send(res, r.ok || r.needUser ? 200 : 400, JSON.stringify(r)); });
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+// One of AUROR's photos (lib/auror-gallery), or with thumb, its small copy.
+function sendPhoto(req, res, u) {
+  var q = u.query || {};
+  var photo = homeModule.gallery.file(String(q.id || ''), q.thumb === '1');
+  if (!photo) return send(res, 404, JSON.stringify({ ok: false, error: 'no such photo' }));
+  sendIconFile(req, res, photo, function (status, error) {
+    send(res, status, JSON.stringify({ ok: false, error: error }));
+  }, 'image/jpeg');
+}
+
+/*
+ * The page for AUROR's photos, from a phone or computer: the code in the
+ * QR code of Home's settings stands in for the token, as for TMDB's key.
+ */
+function handlePhotosPhone(req, res, u, pathname) {
+  var gallery = homeModule.gallery, q = u.query || {};
+  var answer = function (r) { send(res, r.ok ? 200 : (r.status || 400), JSON.stringify(r)); };
+  if (pathname === '/photos' && req.method === 'GET') {
+    var page = assetPath('gallery-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (!gallery.codeValid(String(q.c || ''))) {
+    return send(res, 403, JSON.stringify({ ok: false, expired: true,
+      error: msg('srv.auror.photoExpired', 'This link has expired. Open Backgrounds in the TV\'s Home settings for a new one.') }));
+  }
+  if (pathname === '/photos/list' && req.method === 'GET') return answer(gallery.status());
+  if (pathname === '/photos/thumb' && req.method === 'GET') return sendPhoto(req, res, { query: { id: q.id, thumb: '1' } });
+  if (pathname === '/photos/upload' && req.method === 'POST') {
+    if (!postGuard(req, res, 'image/jpeg', true)) return;
+    return gallery.upload(req, String(q.kind || ''), String(q.id || ''), function (r) {
+      if (!r.ok) return refuseUpload(req, res, r.error, r.status || 400);
+      answer(r);
+    });
+  }
+  if (/^\/photos\/(remove|use|settings)$/.test(pathname) && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      if (pathname === '/photos/remove') return answer(gallery.remove(body.id));
+      if (pathname === '/photos/use') return answer(gallery.setSettings({ mode: 'one', photo: body.id }));
+      answer(gallery.setSettings({ mode: body.mode, every: body.every }));
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+// The phone's page for Immich's address and key (lib/auror-immich), as for Jellyfin.
+function handleImmichPhone(req, res, pathname) {
+  if (pathname === '/immich' && req.method === 'GET') {
+    var page = assetPath('immich-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (pathname === '/immich/link' && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      homeModule.immich.link(body, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
     });
   }
   send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
@@ -1353,9 +1444,11 @@ function handleRequest(req, res) {
     }));
   }
 
-  // Jellyfin and TMDB linked from a phone: the one-time code in the TV's QR code stands in for the token.
+  // Jellyfin, TMDB, Immich and AUROR's photos from a phone: the one-time code in the TV's QR code stands in for the token.
   if ((pathname === '/jellyfin' || pathname === '/jellyfin/link') && homeModule) return handleJellyfinPhone(req, res, u, pathname);
   if ((pathname === '/tmdb' || pathname === '/tmdb/link') && homeModule) return handleTmdbPhone(req, res, pathname);
+  if ((pathname === '/photos' || pathname.indexOf('/photos/') === 0) && homeModule) return handlePhotosPhone(req, res, u, pathname);
+  if ((pathname === '/immich' || pathname === '/immich/link') && homeModule) return handleImmichPhone(req, res, pathname);
 
   if (pathname.indexOf('/api/') === 0 && !authed(u.query, req)) {
     return send(res, 401, JSON.stringify({ ok: false, error: 'bad or missing token' }));

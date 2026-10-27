@@ -38,6 +38,10 @@ var use = require('./home-use');
 var recentApps = require('./home-recent-apps');
 // AUROR's search: Jellyfin and where to watch in Italy, not LG's (lib/home-search).
 var search = require('./auror-search');
+// AUROR's photos from a phone, in place of the wallpapers when chosen.
+var gallery = require('./auror-gallery');
+// Immich's albums, behind a tile in the Apps row once it is linked.
+var immich = require('./auror-immich');
 
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
@@ -66,6 +70,8 @@ var PROMO_APPS = ['com.webos.app.lgchannels', 'com.webos.app.sportsteamsettings'
 var STREAMING_TITLES = /^(netflix|(amazon )?prime video|disney ?(\+|plus)|dazn|now( tv)?|lg channels)$/i;
 // The view's own way back to LG's Home: last in the Apps row, and never hidden.
 var LG_HOME_TILE = 'lg-home';
+// AUROR's Immich tile: the view opens the albums itself.
+var IMMICH_TILE = 'auror-immich';
 /*
  * LG's notifications and search, reached from its Home's sidebar and from no
  * other screen. Neither has a launch point, so the Apps row lists them from
@@ -307,6 +313,11 @@ function normaliseLook(raw) {
   if (THEMES.indexOf(raw.theme) !== -1) d.theme = raw.theme;
   if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;
   if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
+  // AUROR: the owner's name for the greeting on the Top Shelf.
+  if (typeof raw.name === 'string') {
+    var name = raw.name.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30);
+    if (name) d.name = name;
+  }
   if (raw.shelf && typeof raw.shelf === 'object') {
     for (var k in d.shelf) if (typeof raw.shelf[k] === 'boolean') d.shelf[k] = raw.shelf[k];
   }
@@ -518,12 +529,12 @@ function layoutOf(c) {
     searchBlocked: search.blocked() };
 }
 
-// From the view's settings: any of theme, mascots, saverBright and shelf, the rest kept.
+// From the view's settings: any of theme, mascots, saverBright, name and shelf, the rest kept.
 function setLook(body, cb) {
   var c = readConfig();
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
   var merged = JSON.parse(JSON.stringify(c.look));
-  ['theme', 'mascots', 'saverBright'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  ['theme', 'mascots', 'saverBright', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
   if (body.shelf && typeof body.shelf === 'object') {
     for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
   }
@@ -688,7 +699,8 @@ function rows(cb) {
       channelList(function (chans) {
         var appList = byUse(apps || []);
         hideStreamingOnce(c, appList);
-        var appIds = appList.map(function (a) { return a.id; }).concat([LG_HOME_TILE]);
+        var appIds = appList.map(function (a) { return a.id; })
+          .concat(immich.status().configured ? [IMMICH_TILE] : [], [LG_HOME_TILE]);
         var devIds = (devs || []).map(function (d) { return d.id; });
         var picked = [];
         (chans || []).forEach(function (ch) { if (c.channels.indexOf(ch.id) !== -1) picked.push(ch); });
@@ -911,6 +923,11 @@ function open(body, cb) {
   if (kind === 'lg' || (kind === 'app' && id === LG_HOME_TILE)) {
     if (body.recovery && !viewInFront()) return cb({ ok: true, done: false });
     return toLgHome('tile', cb);
+  }
+  // Opened in the view; counted here for Most used.
+  if (kind === 'app' && id === IMMICH_TILE && immich.status().configured) {
+    noteOpened('app', id);
+    return cb({ ok: true });
   }
   if (kind === 'app') {
     return launchPoints(function (apps) {
@@ -1491,11 +1508,14 @@ function watchBeat(ms) {
   }, ms);
 }
 
+// What the view is told of its background: AUROR's photo when one is chosen, else Glasshouse's wallpapers.
+function viewWallpapers() { return gallery.wall() || wallpapers.status(); }
+
 function beat() {
   lastBeatAt = nowMs();
   beats++;
   if (viewInFront()) watchBeat(BEAT_GRACE_MS);
-  return { ok: true, enabled: readConfig().enabled, build: buildId, wallpapers: wallpapers.status(),
+  return { ok: true, enabled: readConfig().enabled, build: buildId, wallpapers: viewWallpapers(),
            layoutVersion: layoutVersion(), sleeps: sleeps };
 }
 
@@ -1737,6 +1757,8 @@ function init(opts) {
   historyModule = opts.history || null;
   if (opts.stateDir) stateDir = opts.stateDir;
   wallpapers.init(stateDir);
+  gallery.init({ stateDir: stateDir, now: opts.now });
+  immich.init(stateDir, opts.now);
   jellyfin.init(stateDir, opts.now);
   recent.init(stateDir, opts.now);
   use.init(stateDir, opts.now);
@@ -1962,6 +1984,10 @@ module.exports = {
   jellyfin: jellyfin,
   // The view's search: films and series on the TV's apps (lib/home-search).
   search: search,
+  // AUROR's backgrounds (lib/auror-gallery).
+  gallery: gallery,
+  immich: immich,
+  viewWallpapers: viewWallpapers,
   wallpaperPath: wallpapers.image,
   uploadWallpaper: function (slot, req, cb) {
     var sup = supported();
