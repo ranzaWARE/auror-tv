@@ -14,6 +14,8 @@ Shows the installed version and whether a newer release is out. **Check now** lo
 
 **Check for updates daily** looks once a day on its own, and lets Home Assistant offer the update.
 
+On AUROR, updates come from [AUROR's releases](https://github.com/ranzaWARE/auror-tv/releases), and a newer one is installed on its own while the TV is off with the server running, or between 03:00 and 05:00, so a restart of the server interrupts nothing on screen. **Automatic updates** in Glasshouse Home's settings, or `"update": { "auto": false }` in `config.json`, leaves it to **Install**. A failed install is tried again after 12 hours, and **Roll back** puts the previous release back as usual.
+
 **Update pop-up** shows a pop-up in the browser it is switched on in when a newer release is out, over whichever tab is open, with the release's one-line summary. **Update** installs it the way **Install** does, with its progress in the pop-up, and **Dismiss** leaves it until the next release. It is off by default and kept per browser. Where controls are off, the pop-up only says it is out.
 
 **Server health** shows the background process uptime and memory footprint on the TV.

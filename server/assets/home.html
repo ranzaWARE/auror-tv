@@ -1480,7 +1480,16 @@ html.faded #stage{opacity:0}
       }).filter(function (r) { return !!r; });
     }
     if (id === 'more') {
-      return [{ kind: 'link', label: t('home.set.moreOpen', 'Open the Glasshouse app'), value: '', act: openGlasshouse }];
+      var up = data.update || { auto: false };
+      var autoRow = { kind: 'switch', on: !!up.auto, label: t('home.set.autoUpdate', 'Automatic updates'),
+        help: up.available ? t('home.set.autoUpdateNew', 'v{version} is out: it goes in with the TV off or at night', { version: up.latest })
+          : t('home.set.autoUpdateHelp', 'New AUROR releases go in with the TV off or at night'),
+        value: onText(!!up.auto), act: function () { setAutoUpdate(!up.auto); } };
+      return [
+        autoRow,
+        { kind: 'info', label: t('home.set.version', 'Version'), value: up.installed ? 'v' + up.installed : '—' },
+        { kind: 'link', label: t('home.set.moreOpen', 'Open the Glasshouse app'), value: '', act: openGlasshouse }
+      ];
     }
     var jf = data.jellyfin || { configured: false };
     var list = [
@@ -1607,6 +1616,14 @@ html.faded #stage{opacity:0}
       renderShelf();
       renderSettings();
       if (then) then();
+    });
+  }
+
+  function setAutoUpdate(on) {
+    postJson('/api/home/autoupdate', { auto: on }, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      data.update = r.update;
+      renderSettings();
     });
   }
 
