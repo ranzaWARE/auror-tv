@@ -10,6 +10,8 @@ Glasshouse bridges your rooted LG webOS TV directly into Home Assistant, transfo
 
 Every entity published by the bridge is detailed in [Entities](HOME-ASSISTANT-ENTITIES.md), and triggering automations from Magic Remote button presses is covered in [Remote Button Events](HOME-ASSISTANT-REMOTE-BUTTONS.md).
 
+The other way round, Home Assistant on the TV, is AUROR's [Home Assistant tile](dashboard/home.md#home-assistant) on Glasshouse Home: the house's lights, heating, covers, scenes, sensors and cameras worked with the remote, over Home Assistant's REST API and without MQTT.
+
 ---
 
 ## Why MQTT?
