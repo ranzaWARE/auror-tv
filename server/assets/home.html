@@ -1715,15 +1715,15 @@ html.faded #stage{opacity:0}
       paintTop();
     });
   }
+  // OK opens LG's own network settings; the button itself shows how the TV is connected.
   function showNetwork() {
-    if (!net) return refreshNet();
-    var where = net.ip ? ' · ' + net.ip : '';
-    var how = net.state === 'online' ? t('home.net.online', 'Online{ip}', { ip: where })
-      : t('home.net.limited', 'Connected, but no internet{ip}', { ip: where });
-    if (net.kind === 'wifi') toast(net.ssid ? t('home.net.wifi', 'Wi-Fi: {ssid}', { ssid: net.ssid }) : 'Wi-Fi', how);
-    else if (net.kind === 'wired') toast(t('home.net.wired', 'Wired network'), how);
-    else toast(t('home.net.none', 'No network'), t('home.net.noneDesc', 'Neither Wi-Fi nor a cable is connected'));
     refreshNet();
+    fadeThenOpen(true, function (done) {
+      postJson('/api/home/open', { kind: 'settings', id: 'network' }, function (r) {
+        done(!!(r && r.ok));
+        if (!r || !r.ok) toast(t('home.openFailed', 'That did not open'), r && r.error);
+      });
+    });
   }
 
   /*
