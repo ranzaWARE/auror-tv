@@ -652,6 +652,20 @@ step('with Quick Start+ on, LG\'s Home auto launch is left as the owner had it, 
   });
 });
 
+step('the network button opens LG\'s network settings, and no other page of them', function (done) {
+  start(null);
+  tv.launches = [];
+  home.open({ kind: 'settings', id: 'network' }, function (r) {
+    assert.ok(r.ok, r.error);
+    assert.deepEqual(tv.launches, [{ id: 'com.palm.app.settings', params: { target: 'network' } }]);
+    home.open({ kind: 'settings', id: 'picture' }, function (r2) {
+      assert.strictEqual(r2.ok, false);
+      assert.strictEqual(tv.launches.length, 1);
+      done();
+    });
+  });
+});
+
 step('woken from Active Standby with auto launch held off, Glasshouse Home opens over the input, as LG would have', function (done) {
   start(null);
   tv.settings.homeAutoLaunch = 'on';
