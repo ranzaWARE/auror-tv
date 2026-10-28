@@ -62,6 +62,31 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 #rows{position:absolute;left:0;right:0;top:296px;bottom:40px;
   display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column}
 #rows:before,#rows:after{content:"";-webkit-flex:1 1 0;flex:1 1 0}
+/* Along the bottom, as on LG's Home: no space below the rows. */
+.rows-bottom #rows:after{-webkit-flex:0 0 0;flex:0 0 0}
+
+/* Alternative View (#999): a smaller clock on the right, Last watched to its
+   left, and the rows as rounded, translucent tiles, titled only while arranging. */
+.alternative #now{padding:0 90px}
+.alternative #when{-webkit-order:3;order:3;width:420px;text-align:right}
+.alternative #clock{font-size:100px;line-height:1;letter-spacing:-2px}
+.alternative #date{margin-top:8px;font-size:23px}
+.alternative #source{-webkit-order:1;order:1;border-left:0;padding-left:22px}
+.alternative #plate{-webkit-order:2;order:2;margin:0 56px 0 0}
+.alternative:not(.arranging) .row > h2{display:none}
+.alternative .row{margin-bottom:10px}
+.alternative .tile{border-radius:18px;margin-right:12px;background:rgba(20,15,29,.45)}
+.alternative .tile.focus{background:rgba(34,25,48,.86)}
+.alternative .app{width:160px;padding:12px}
+.alternative .app img,.alternative .app .mono{width:100px;height:100px;border-radius:16px}
+.alternative .app .mono{line-height:100px}
+.alternative .app .nm{font-size:18px;margin-top:8px}
+.alternative .app .fold{width:100px;height:100px;padding:9px}
+.alternative .app .fold i,.alternative .app .fold i img{width:37px;height:37px}
+.alternative .app .fold i{line-height:37px;font-size:18px}
+.alternative .dev{width:340px;height:108px}
+.alternative .dev .nm{font-size:26px}
+.alternative .dev .path,.alternative .dev .st{font-size:17px}
 .row{-webkit-flex:0 0 auto;flex:0 0 auto}
 .row.empty{display:none}
 .arranging .row.empty{display:block}
@@ -119,6 +144,15 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 .ch .bar i{display:block;height:100%;background:#a39d93}
 .ch.focus .bar i{background:#ece7df}
 .ch .next{font-size:17px;color:#6b665e;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* The apps' recommendations: each app's own picture, 16:9 */
+/* border-box: the 240px picture and 10px each side, so the focus outline frames all of it */
+.rec{width:260px;padding:10px}
+.rec .pic{display:block;width:240px;height:135px;border-radius:4px;background:#2a2825 center/cover no-repeat}
+.rec .nm{font-size:20px;font-weight:600;margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec .cat{font-size:17px;color:#6b665e;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Alternative View's rounded tiles: the picture's corners follow the tile's, less its padding */
+.alternative .rec .pic{border-radius:8px}
 
 /* Arranging */
 .arranging .row h2{color:#ece7df}
@@ -456,7 +490,8 @@ html.faded #stage{opacity:0}
   var ROW_TITLES = {
     app: t('home.row.apps', 'Apps'),
     dev: t('home.row.inputs', 'Inputs'),
-    ch: t('home.row.channels', 'Channels')
+    ch: t('home.row.channels', 'Channels'),
+    rec: t('home.row.recommended', 'Recommended')
   };
   var LG_HOME_TILE = 'lg-home';
   // AUROR's Immich tile, in the row once Immich is linked: its albums open here.
@@ -686,6 +721,7 @@ html.faded #stage{opacity:0}
       if (id === HA_TILE) return { id: HA_TILE, title: 'Home Assistant', ha: true };
       return find(data.apps, id);
     }
+    if (kind === 'rec') return find(data.recommended, id);
     return find(kind === 'dev' ? data.devices : data.channels, id);
   }
   function find(list, id) {
@@ -705,6 +741,8 @@ html.faded #stage{opacity:0}
    */
   function items(kind) {
     var out = [];
+    // The apps' cards follow the Apps row, so arranging moves the row, not its cards.
+    if (kind === 'rec') return state.arranging ? out : recCards();
     (data.order[kind] || []).forEach(function (id) {
       var it = byId(kind, id);
       if (it && (state.arranging || (!hidden(kind, id) && !inFolder(kind, id))) && !leftOut(kind, it)) out.push(it);
@@ -724,6 +762,49 @@ html.faded #stage{opacity:0}
     });
     return out;
   }
+  /*
+   * The Recommended row shows the cards of the app in focus on the Apps row,
+   * or every app's while that app has none (an input, LG Home). Leaving the
+   * Apps row keeps the app it was last on, so Down reaches its cards.
+   */
+  var recApp = null;
+  function recCards() {
+    var all = [];
+    (data.order.rec || []).forEach(function (id) { var it = byId('rec', id); if (it) all.push(it); });
+    if (!recApp) return all;
+    return all.filter(function (it) { return it.app === recApp; });
+  }
+  function hasCards(app) {
+    for (var i = 0; i < (data.recommended || []).length; i++) if (data.recommended[i].app === app) return true;
+    return false;
+  }
+  function followApps() {
+    if (state.arranging || state.bar >= 0 || state.rail || rowKey() !== 'app') return;
+    var it = items('app')[colOf('app')];
+    var app = it && hasCards(it.id) ? it.id : null;
+    if (app === recApp) return;
+    recApp = app;
+    renderRec();
+  }
+  // Only the Recommended row is redrawn, from its first card, leaving the Apps row moving under the pointer alone.
+  function renderRec() {
+    var rowEl = rowElOf('rec'), track = rowEl && rowEl.querySelector('.track');
+    if (!track) return;
+    var list = items('rec'), tiles = '', note = esc(rowNote('rec', list));
+    list.forEach(function (it, i) { tiles += TILE.rec(it, i); });
+    rowEl.querySelector('h2').innerHTML = esc(ROW_TITLES.rec) + (note ? '<span>' + note + '</span>' : '') +
+      '<em class="sort">' + esc(sortLabel('rec')) + '</em>';
+    track.innerHTML = tiles;
+    state.col.rec = 0;
+    var tr = trackOf('rec');
+    tr.x = tr.target = tr.v = tr.gv = 0;
+    measure('rec');
+    paint('rec');
+    edges();
+    // The next full render builds the rows again with this app's cards.
+    renderedRows = '';
+  }
+
   // An input with nothing plugged in, where the layout leaves those out, as well
   // as any hidden. While arranging it shows, greyed out, so that it can still be moved.
   function leftOut(kind, it) { return kind === 'dev' && it.unused && layout.hideUnused === true && !state.arranging; }
@@ -744,6 +825,7 @@ html.faded #stage{opacity:0}
   // ---------------------------------------------------------------- rows
 
   function sortLabel(kind) {
+    if (kind === 'rec') return '';
     if (byUse(kind)) return t('home.arrange.orderUse', 'Order: most used');
     return byRecent(kind) ? t('home.arrange.orderRecent', 'Order: last opened') : t('home.arrange.orderCustom', 'Order: yours');
   }
@@ -762,6 +844,12 @@ html.faded #stage{opacity:0}
       if (!ports.length) return t('home.dev.unused', 'Nothing connected');
       return ports.length === 1 ? t('home.row.inputsNoteOne', 'Devices on HDMI {port}', { port: ports[0] })
         : t('home.row.inputsNote', 'Devices on {n} HDMI inputs', { n: ports.length });
+    }
+    if (kind === 'rec') {
+      if (layout.recommended !== true) return t('home.row.recOff', 'Switch on in Glasshouse’s Home settings');
+      if (!list.length) return t('home.row.recArrange', 'Your apps’ picks, in the Apps row’s order');
+      var from = recApp && find(data.apps, recApp);
+      return from ? t('home.row.recFrom', 'From {app}', { app: from.title }) : '';
     }
     if (data.sources.channels === 0) return t('home.row.noTuner', 'This TV has no channels tuned');
     if (!list.length) return t('home.row.addChannels', 'Add channels in Glasshouse\u2019s Home settings');
@@ -914,6 +1002,13 @@ html.faded #stage{opacity:0}
         if (shows[1]) body += '<div class="next">' + esc(hm(new Date(shows[1].start)) + ' ' + shows[1].title) + '</div>';
       }
       return '<div class="' + cls + '" data-c="' + i + '">' + body + hiddenLabel + '</div>';
+    },
+    rec: function (r, i) {
+      var app = find(data.apps, r.app);
+      var pic = r.image ? ' style="background-image:url(\'' + esc(r.image.replace(/'/g, '%27')) + '\')"' : '';
+      return '<div class="tile rec" data-c="' + i + '"><i class="pic"' + pic + '></i>' +
+        '<div class="nm">' + esc(r.title) + '</div>' +
+        '<div class="cat">' + esc(r.category || (app ? app.title : '')) + '</div></div>';
     }
   };
 
@@ -938,6 +1033,7 @@ html.faded #stage{opacity:0}
     paintTop();
     $('rail').className = state.rail && !finder.open ? 'focus' : '';
     scrollRows(instant);
+    followApps();
     if (state.bar < 0 && state.top < 0) {
       var focused = items(rowKey())[colOf(rowKey())];
       state.last = focused ? { kind: rowKey(), id: focused.id } : null;
@@ -1233,6 +1329,11 @@ html.faded #stage{opacity:0}
       if (!ha.detail && !ha.cam) haMove((e.deltaY !== undefined ? e.deltaY : -e.wheelDelta) > 0 ? KEY.down : KEY.up);
       return;
     }
+    // In the settings the wheel goes through the rows, as Up and Down do.
+    if (settings.open) {
+      if (!settings.side && !settings.editing) settingsKey((e.deltaY !== undefined ? e.deltaY : -e.wheelDelta) > 0 ? KEY.down : KEY.up);
+      return;
+    }
     var d = e.deltaY !== undefined ? e.deltaY : -e.wheelDelta;
     if (e.deltaX && Math.abs(e.deltaX) > Math.abs(d || 0)) d = e.deltaX;
     if (!d) return;
@@ -1352,6 +1453,14 @@ html.faded #stage{opacity:0}
         sub: (lastDev ? t('home.dev.last', 'Last watched') : t('home.dev.connected', 'Connected')) + ' · ' +
           t('home.shelf.switch', 'Press OK to switch to this input')
       };
+    }
+    // A card of the Recommended row: it and the app's next two, with their pictures.
+    if (kind === 'rec') {
+      var recs = items('rec'), from = find(data.apps, it.app), at = Math.max(0, recs.indexOf(it));
+      return { mode: 'cards', kind: from ? t('home.shelf.recFrom', 'Recommended · {app}', { app: from.title }) : ROW_TITLES.rec,
+        items: recs.slice(at, at + 3).map(function (r) {
+          return { image: r.image || null, progress: null, title: r.title, line: r.category || (from ? from.title : '') };
+        }) };
     }
     var shows = guideData[it.id] || [];
     return {
@@ -1954,10 +2063,27 @@ html.faded #stage{opacity:0}
     if (cat.id === 'photos') html += photosBox();
     if (cat.id === 'immich') html += immichQrBox();
     if (cat.id === 'ha') html += haQrBox();
-    $('setRows').innerHTML = html;
+    $('setRows').innerHTML = '<div id="setTrack">' + html + '</div>';
+    followSetRow(cat.id);
     var svg = $('setRows').querySelector('.qr svg');
     if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : cat.id === 'photos' ? settings.photos.url :
       cat.id === 'immich' ? settings.immich.url : cat.id === 'ha' ? settings.ha.url : settings.pairUrl);
+  }
+
+  // Keeps the focused row inside the rows' window, moving the list no more than needed.
+  var SET_VIEW_H = 820, SET_MARGIN = 40;
+  function followSetRow(catId) {
+    var track = $('setTrack'), row = track && track.querySelector('.setrow.focus');
+    if (!settings.scroll) settings.scroll = {};
+    var at = settings.scroll[catId] || 0, total = track ? track.offsetHeight : 0;
+    if (row && !settings.pointed) {
+      var top = row.offsetTop, bottom = top + row.offsetHeight;
+      if (bottom > at + SET_VIEW_H - SET_MARGIN) at = bottom - SET_VIEW_H + SET_MARGIN;
+      if (top < at + SET_MARGIN) at = top - SET_MARGIN;
+    }
+    at = Math.max(0, Math.min(at, total - SET_VIEW_H));
+    settings.scroll[catId] = at;
+    if (track) track.style.webkitTransform = track.style.transform = 'translateY(' + (-at) + 'px)';
   }
 
   function openSettings() {
@@ -2469,8 +2595,11 @@ html.faded #stage{opacity:0}
       settings.row[cat.id] = hit.row;
       if (click && settings.rows[hit.row] && settings.rows[hit.row].act) return settings.rows[hit.row].act();
       if (!changed) return;
+      // A row under the pointer is in view already: the list stays, so it does not slide under the pointer.
+      settings.pointed = true;
     }
     renderSettings();
+    settings.pointed = false;
   }
 
   // ---------------------------------------------------------------- mascots
@@ -2708,12 +2837,13 @@ html.faded #stage{opacity:0}
 
   function stageClass() {
     // inputs: the Inputs row shows, so the shelf makes room for it.
-    var inputs = !!(data && layout && !state.arranging && items('dev').length);
+    var inputs = !!(data && layout && !state.arranging && (items('dev').length || items('rec').length));
     $('stage').className = (state.arranging ? 'arranging' : '') + (recents.open ? ' recents' : '') + (themeName === 'light' ? ' light' : '') +
       (settings.open ? ' settings' : '') + (faultShown ? ' fault' : '') + (inputs ? ' inputs' : '') +
       (finder.open ? ' finding' : '') + (finder.typing ? ' typing' : '') + (searchOn() ? '' : ' no-search') + (folder.open ? ' folder' : '') +
       (photos.open ? ' photos' : '') + (photos.viewer ? ' viewing' : '') +
       (ha.open ? ' ha' : '') + (ha.detail ? ' ha-detail' : '') + (ha.cam ? ' ha-cam' : '') +
+      (layout && layout.showClock === false ? ' no-clock' : '') +
       // A photo of the owner's behind Home: the shelf and the rows are shaded to stay legible on it.
       (wallSrc ? ' photo' : '');
   }
@@ -3902,7 +4032,7 @@ html.faded #stage{opacity:0}
 
   // A row's Order: between its own order and last opened.
   function toggleSort(kind) {
-    if (layoutBusy) return;
+    if (layoutBusy || kind === 'rec') return;
     state.held = false;
     if (!layout.sort) layout.sort = {};
     // AUROR: between the row's own order and Most used; Last opened stays for a row set to it elsewhere.
