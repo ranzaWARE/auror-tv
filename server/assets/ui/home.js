@@ -59,6 +59,7 @@ async function loadHome(afterSave) {
   setHomeAvailable(homeStatus);
   if (!homeAvailable && activeTab === 'home') return showTab('control');
   renderHome();
+  loadAuror();
 }
 
 function homeWritable() { return !!(!homeSaving && homeStatus && (homeStatus.supported.ok || homeStatus.enabled || homeStatus.restorePending) && homeStatus.writable !== false); }

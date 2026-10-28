@@ -24,6 +24,10 @@ At the top left a greeting changes each time Home comes back, by the time of day
 
 The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, slowly and continuously, so no text stays on the same pixels. Every few minutes Mimus runs along the bottom or Quetza flies across the top.
 
+### Settings from a browser
+
+The web dashboard's **Home** tab has an **AUROR** section with the same, while Glasshouse Home is on: the owner's name, the network, the sleep timer, the photos behind Home (**Manage** opens their page in a new tab), Immich (**Link** opens its page, **Unlink**, the screen saver's album and the memories on the Top Shelf) and SSH.
+
 ### Settings on the TV
 
 The gear opens Glasshouse Home's own settings, worked with the remote:

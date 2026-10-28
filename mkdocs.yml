@@ -1,15 +1,15 @@
-site_name: Glasshouse
-site_description: A dashboard, privacy controls and Home Assistant bridge for rooted LG webOS TVs.
-site_url: https://rorygallagher2024.github.io/glasshouse/
-repo_url: https://github.com/rorygallagher2024/glasshouse
-repo_name: glasshouse
+site_name: AUROR TV
+site_description: LG's TV Home the AUROR way, on Glasshouse's dashboard, privacy controls and Home Assistant bridge for rooted LG webOS TVs.
+site_url: https://ranzaware.github.io/auror-tv/
+repo_url: https://github.com/ranzaWARE/auror-tv
+repo_name: auror-tv
 edit_uri: edit/main/docs/
 strict: true
 
 theme:
   name: material
-  logo: logo/glasshouse.svg
-  favicon: logo/glasshouse-512.png
+  logo: logo/auror.svg
+  favicon: logo/auror-512.png
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
@@ -34,6 +34,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Demo: https://ranzaware.github.io/auror-tv/demo/
   - Getting started:
       - Installing: install.md
       - Tested TVs: tested-tvs.md

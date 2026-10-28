@@ -1,6 +1,24 @@
-<p align="center"><img src="logo/glasshouse-512.png" width="112" alt="Glasshouse logo: a G whose top is a roof"></p>
+<p align="center"><img src="logo/auror-512.png" width="112" alt="AUROR TV logo: a house with an amber window"></p>
 
-# Glasshouse
+# AUROR TV
+
+**LG's TV Home, the AUROR way.** A version of [Glasshouse](https://github.com/rorygallagher2024/glasshouse) in Italian, with a Home screen inspired by Apple TV and the AUROR design system, for rooted LG webOS TVs.
+
+[Try the demo](https://ranzaware.github.io/auror-tv/demo/){ .md-button .md-button--primary } [Glasshouse Home](dashboard/home.md){ .md-button }
+
+AUROR adds to Glasshouse:
+
+* **A Home like Apple TV's**: a Top Shelf showing the focused tile (Jellyfin's Continue watching, the TV's own readings, the device on an input, or the app's colours and what it is), over 16:9 colour banners; light by day and dark from 17:00; the page wandering a few pixels against burn-in.
+* **On the Top Shelf's right**: Search, which says where a film or series is to watch in Italy, the network, a sleep timer, the theme, the settings and switching off. At its left, a greeting with the owner's name.
+* **Photos behind Home**, added from a phone or computer on the same network, one at a time or in turn.
+* **Immich**: its albums, photos and videos on the TV, this day's memories on the Top Shelf, and its photos as a screen saver.
+* **Settings on the TV**, and the same in the web dashboard's Home tab: Jellyfin, TMDB and Immich linked from a phone, SSH on or off, the apps shown.
+* **Screen savers for OLED**: the time on black with Mimus asleep, or Immich's photos. Mimus and Quetza, the mascots, cross Home now and then.
+* **Updates from AUROR's releases**, each Glasshouse release merged in as it comes, installed with the TV off or at night.
+
+Installed as Glasshouse is ([Install](install.md)), AUROR is the `.ipk` of [its latest release](https://github.com/ranzaWARE/auror-tv/releases/latest), installed over Glasshouse from the dashboard's **Apps** tab (**Install app from a URL or file**), or `server/deploy.sh` from a clone of [the repository](https://github.com/ranzaWARE/auror-tv). From then on it updates itself. Everything below is Glasshouse's, as these pages describe it.
+
+## Glasshouse
 
 **Own the glass.** A dashboard, privacy controls and Home Assistant bridge for rooted LG webOS TVs.
 
