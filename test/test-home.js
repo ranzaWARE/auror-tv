@@ -340,7 +340,7 @@ step('the LG Home tile cannot be hidden, and unknown rows are dropped', function
   start(null);
   home.setLayout({ hidden: { app: ['lg-home', 'netflix'] }, rows: ['ch', 'bogus'] }, function (r) {
     assert.deepEqual(r.layout.hidden.app, ['netflix']);
-    assert.deepEqual(r.layout.rows, ['ch', 'app', 'dev']);
+    assert.deepEqual(r.layout.rows, ['ch', 'app', 'rec', 'dev']);
     done();
   });
 });
@@ -380,6 +380,12 @@ step('streaming apps and Glasshouse start hidden the first time they are seen, a
       });
     });
   });
+});
+
+step('a layout saved before the Recommended row gets it under Apps', function (done) {
+  start({ rows: ['dev', 'app', 'ch'] });
+  assert.deepEqual(home.layout().rows, ['dev', 'app', 'rec', 'ch']);
+  done();
 });
 
 step('apps in More apps are saved, kept by a layout that does not name them, and never also hidden', function (done) {
@@ -435,7 +441,7 @@ function startRecent(cb) {
   // Opened while the rows are in their own order: nothing is recorded.
   at('netflix');
   home.setLayout({ sort: { app: 'recent', dev: 'recent', ch: 'recent', bogus: 'recent' } }, function (r) {
-    assert.deepEqual(r.layout.sort, { app: 'recent', dev: 'recent', ch: 'recent' });
+    assert.deepEqual(r.layout.sort, { app: 'recent', dev: 'recent', ch: 'recent', rec: 'custom' });
     cb();
   });
 }
@@ -489,7 +495,7 @@ step('a device\'s own tile counts for that device, and a row back in its own ord
           // Inputs held the only records, so the file goes with them.
           assert.ok(!fs.existsSync(path.join(dir, 'home-recent.json')), 'a row back in its own order forgets what was opened');
           home.setLayout({ reset: true }, function (r) {
-            assert.deepEqual(r.layout.sort, { app: 'custom', dev: 'custom', ch: 'custom' });
+            assert.deepEqual(r.layout.sort, { app: 'custom', dev: 'custom', ch: 'custom', rec: 'custom' });
             done();
           });
         });
@@ -1311,6 +1317,44 @@ step('where WebAppMgr will not start, a short Home press that brings no heartbea
   });
 });
 
+// On a C2 (webOS 9.2.2) an input chosen 2 s after a press, before the view's
+// first beat, had LG's Home open over it.
+step('a short Home press, then an input opened from the view before its first beat, keeps Glasshouse Home', function (done) {
+  start({ enabled: true }, { systemctl: '/bin/systemctl', slowOpenMs: 7000 });
+  home.start();
+  wait(50, function () {
+    foreground('com.webos.app.hdmi2');
+    home.homeKey(true);
+    home.homeKey(false);
+    foreground(LG_HOME);
+    home.open({ kind: 'dev', id: 'hdmi2:playstation-5' }, function () {
+      foreground('com.webos.app.hdmi2');
+      wait(7200, function () {
+        assert.ok(taken(), 'Glasshouse Home keeps the place');
+        assert.strictEqual(tv.samType, 'web');
+        home.disable(function () { done(); });
+      });
+    });
+  });
+});
+
+step('a short Home press, then something else opened with no view behind it, still keeps the input', function (done) {
+  start({ enabled: true }, { systemctl: '/bin/systemctl', slowOpenMs: 7000 });
+  home.start();
+  wait(50, function () {
+    foreground('com.webos.app.hdmi1');
+    home.homeKey(true);
+    home.homeKey(false);
+    wait(1000, function () {
+      foreground('com.webos.app.hdmi2');
+      wait(7200, function () {
+        assert.ok(taken(), 'the input chosen is left in front');
+        home.disable(function () { done(); });
+      });
+    });
+  });
+});
+
 step('a short Home press the view answers with a heartbeat changes nothing', function (done) {
   start({ enabled: true }, { systemctl: '/bin/systemctl' });
   home.start();
@@ -1626,6 +1670,41 @@ step('last watched, the app count and CEC addresses show until switched off, one
           assert.deepEqual([r4.layout.showLastOn, r4.layout.showAppCount, r4.layout.showCec], [true, true, true]);
           done();
         });
+      });
+    });
+  });
+});
+
+step('the clock shows until switched off, the rows sit along the bottom only when switched on, and both are saved', function (done) {
+  start(null);
+  var l = home.layout();
+  assert.deepEqual([l.showClock, l.rowsBottom], [true, false]);
+  home.setLayout({ showClock: false, rowsBottom: true }, function (r) {
+    assert.deepEqual([r.layout.showClock, r.layout.rowsBottom], [false, true]);
+    var saved = home.normalise(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')));
+    assert.deepEqual([saved.showClock, saved.rowsBottom], [false, true]);
+    home.setLayout({ showClock: 'no', rowsBottom: 1 }, function (r2) {
+      assert.deepEqual([r2.layout.showClock, r2.layout.rowsBottom], [false, true], 'only true or false changes them');
+      home.setLayout({ showClock: true, rowsBottom: false }, function (r3) {
+        assert.deepEqual([r3.layout.showClock, r3.layout.rowsBottom], [true, false]);
+        done();
+      });
+    });
+  });
+});
+
+step('Alternative View is off until chosen, saved, and anything but alternative is standard', function (done) {
+  start(null);
+  assert.strictEqual(home.layout().view, 'standard');
+  home.setLayout({ view: 'alternative' }, function (r) {
+    assert.strictEqual(r.layout.view, 'alternative');
+    var saved = home.normalise(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')));
+    assert.strictEqual(saved.view, 'alternative');
+    home.setLayout({ rowsBottom: true }, function (r2) {
+      assert.strictEqual(r2.layout.view, 'alternative', 'kept by a save that does not name it');
+      home.setLayout({ view: 'compact' }, function (r3) {
+        assert.strictEqual(r3.layout.view, 'standard');
+        done();
       });
     });
   });
