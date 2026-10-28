@@ -98,6 +98,7 @@ var ntpClient = require('./lib/ntp');
 var history = require('./lib/history');
 var sshKeys = require('./lib/sshkeys');
 var aurorTv = require('./lib/auror-tv');
+var aurorHa = require('./lib/auror-ha');
 var screentime = require('./lib/screentime');
 var saverPowerOff = require('./lib/saverpoweroff');
 var remoteBattery = require('./lib/remotebattery');
@@ -1949,6 +1950,7 @@ if (!CLI_MODE) {
   updater.scheduleUpdateChecks(120000);
   // AUROR: the Wi-Fi state, sleep timer, switching off and SSH on its Home (lib/auror-tv).
   aurorTv.init({ luna: luna, control: doControl, sshkeys: sshKeys, stateDir: __dirname });
+  aurorHa.init({ stateDir: __dirname, control: doControl });
   // AUROR: its own releases, installed with the TV off or at night (lib/auror-autoupdate).
   require('./lib/auror-autoupdate').start({
     updater: updater, config: CONFIG, control: doControl, writeSettings: routes.writeSettings,

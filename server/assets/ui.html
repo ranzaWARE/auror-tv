@@ -1107,7 +1107,7 @@
   <!-- AUROR's own on Glasshouse Home, as its settings on the TV have them (assets/ui/auror.js) -->
   <div id="auror-sec">
   <div class="pv-sec adv-sec" translate="no">AUROR</div>
-  <div class="sub" data-t="auror.desc">What Glasshouse Home’s settings on the TV change, from here: the greeting, the sleep timer, the photos behind Home, Immich and SSH.</div>
+  <div class="sub" data-t="auror.desc">What Glasshouse Home’s settings on the TV change, from here: the greeting, the sleep timer, the photos behind Home, Immich, Home Assistant and SSH.</div>
   <div class="prot-table">
     <div class="prot-row">
       <div class="prot-main">
@@ -1159,6 +1159,27 @@
         <div class="prot-desc" data-t="auror.memoriesDesc">With the Immich tile focused: this day in years past. The key needs memory.read.</div>
       </div>
       <div class="prot-status"><button type="button" class="pill idle" id="auror-memories" onclick="aurorMemories()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" translate="no">Home Assistant</div>
+        <div class="prot-desc" id="auror-ha-state">&mdash;</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-ha" onclick="aurorHa()">&mdash;</button></div>
+    </div>
+    <div class="prot-row" id="auror-ha-choose-row" hidden>
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.haChoose">On the TV</div>
+        <div class="prot-desc" id="auror-ha-chosen">&mdash;</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-ha-choose" onclick="aurorOpenPage('/api/home/ha/pair')" data-t="auror.haChooseOpen">Choose</button></div>
+    </div>
+    <div class="prot-row" id="auror-ha-shelf-row" hidden>
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.haShelf">Readings on the Top Shelf</div>
+        <div class="prot-desc" data-t="auror.haShelfDesc">With the Home Assistant tile focused: the heating’s temperatures and the first sensors chosen.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-ha-shelf" onclick="aurorHaShelf()">&mdash;</button></div>
     </div>
     <div class="prot-row">
       <div class="prot-main">

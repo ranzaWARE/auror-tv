@@ -42,6 +42,8 @@ var search = require('./auror-search');
 var gallery = require('./auror-gallery');
 // Immich's albums, behind a tile in the Apps row once it is linked.
 var immich = require('./auror-immich');
+// Home Assistant's panel, behind a tile in the Apps row once it is linked (lib/auror-ha).
+var aurorHa = require('./auror-ha');
 
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
@@ -74,6 +76,7 @@ var GLASSHOUSE_APPS = ['com.tvweb.dashboard', 'io.github.rorygallagher2024.lg-we
 var LG_HOME_TILE = 'lg-home';
 // AUROR's Immich tile: the view opens the albums itself.
 var IMMICH_TILE = 'auror-immich';
+var HA_TILE = 'auror-ha';
 /*
  * LG's notifications and search, reached from its Home's sidebar and from no
  * other screen. Neither has a launch point, so the Apps row lists them from
@@ -310,7 +313,7 @@ function defaults() {
 function sidebarIds() { return LG_SIDEBAR_APPS.map(function (a) { return a.id; }); }
 
 function normaliseLook(raw) {
-  var d = { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true } };
+  var d = { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } };
   if (!raw || typeof raw !== 'object') return d;
   if (THEMES.indexOf(raw.theme) !== -1) d.theme = raw.theme;
   if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;
@@ -702,7 +705,7 @@ function rows(cb) {
         var appList = byUse(apps || []);
         hideStreamingOnce(c, appList);
         var appIds = appList.map(function (a) { return a.id; })
-          .concat(immich.status().configured ? [IMMICH_TILE] : [], [LG_HOME_TILE]);
+          .concat(immich.status().configured ? [IMMICH_TILE] : [], aurorHa.status().configured ? [HA_TILE] : [], [LG_HOME_TILE]);
         var devIds = (devs || []).map(function (d) { return d.id; });
         var picked = [];
         (chans || []).forEach(function (ch) { if (c.channels.indexOf(ch.id) !== -1) picked.push(ch); });
@@ -929,7 +932,7 @@ function open(body, cb) {
     return toLgHome('tile', cb);
   }
   // Opened in the view; counted here for Most used.
-  if (kind === 'app' && id === IMMICH_TILE && immich.status().configured) {
+  if (kind === 'app' && ((id === IMMICH_TILE && immich.status().configured) || (id === HA_TILE && aurorHa.status().configured))) {
     noteOpened('app', id);
     return cb({ ok: true });
   }

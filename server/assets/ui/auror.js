@@ -1,5 +1,5 @@
 // The Home tab's AUROR section: what Glasshouse Home's settings on the TV
-// change, from a browser. The pages for photos and for linking Immich are the
+// change, from a browser. The pages for photos and for linking Immich and Home Assistant are the
 // phone's own, opened in a new tab with a code from the server.
 
 const aurorState = { net: null, sleep: null, ssh: null, gallery: null, albums: null, busy: '' };
@@ -69,6 +69,20 @@ function renderAuror() {
     aurorOnOff('auror-memories', !look.shelf || look.shelf.immich !== false);
   }
 
+  const ha = (homeCat && homeCat.ha) || { configured: false };
+  q('auror-ha-state').textContent = ha.configured
+    ? t('auror.immichLinked', 'Linked to {server}', { server: ha.server }) + (ha.place ? ' · ' + ha.place : '')
+    : t('auror.haNone', 'Not linked. Link opens the page that takes the address and a long-lived access token.');
+  updateToggle('auror-ha', { cls: ha.configured ? 'good' : 'idle', label: ha.configured ? t('auror.unlink', 'Unlink') : t('auror.link', 'Link') });
+  q('auror-ha-choose-row').hidden = !ha.configured;
+  q('auror-ha-shelf-row').hidden = !ha.configured;
+  if (ha.configured) {
+    q('auror-ha-chosen').textContent = ha.chosen === null || ha.chosen === undefined
+      ? t('auror.haFirstPick', 'A first pick: the heating, lights, covers, scenes, cameras and a few sensors. Choose opens the page with all of them.')
+      : t('auror.haChosen', '{n} entities chosen. Choose opens the page with all of them.', { n: ha.chosen });
+    aurorOnOff('auror-ha-shelf', !look.shelf || look.shelf.ha !== false);
+  }
+
   const ssh = aurorState.ssh;
   q('auror-ssh-state').textContent = !ssh ? '—'
     : (ssh.running ? t('auror.sshListening', 'Listening on port 22') : t('auror.sshStopped', 'Not running')) +
@@ -127,6 +141,26 @@ async function aurorMemories() {
   const on = !look.shelf || look.shelf.immich !== false;
   try {
     const r = await homePost('/api/home/look', { shelf: { immich: !on } });
+    homeLayout = r.layout;
+  } catch (e) { showErr(e.message); }
+  renderAuror();
+}
+
+async function aurorHa() {
+  const ha = homeCat && homeCat.ha;
+  if (!ha || !ha.configured) return aurorOpenPage('/api/home/ha/pair');
+  if (!confirm(t('auror.haUnlinkConfirm', 'Unlink Home Assistant? The token is removed from the TV, and the Home Assistant tile from the row.'))) return;
+  try {
+    await homePost('/api/home/ha/forget', {});
+    loadHome();
+  } catch (e) { showErr(e.message); }
+}
+
+async function aurorHaShelf() {
+  const look = (homeLayout && homeLayout.look) || {};
+  const on = !look.shelf || look.shelf.ha !== false;
+  try {
+    const r = await homePost('/api/home/look', { shelf: { ha: !on } });
     homeLayout = r.layout;
   } catch (e) { showErr(e.message); }
   renderAuror();

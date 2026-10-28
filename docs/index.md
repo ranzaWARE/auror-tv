@@ -12,7 +12,8 @@ AUROR adds to Glasshouse:
 * **On the Top Shelf's right**: Search, which says where a film or series is to watch in Italy, the network, a sleep timer, the theme, the settings and switching off. At its left, a greeting with the owner's name.
 * **Photos behind Home**, added from a phone or computer on the same network, one at a time or in turn.
 * **Immich**: its albums, photos and videos on the TV, this day's memories on the Top Shelf, and its photos as a screen saver.
-* **Settings on the TV**, and the same in the web dashboard's Home tab: Jellyfin, TMDB and Immich linked from a phone, SSH on or off, the apps shown.
+* **Home Assistant**: lights, switches, covers, scenes, sensors and cameras from the sofa, heating and air conditioning set with the remote, and its full dashboard in the TV's browser.
+* **Settings on the TV**, and the same in the web dashboard's Home tab: Jellyfin, TMDB, Immich and Home Assistant linked from a phone, SSH on or off, the apps shown.
 * **Screen savers for OLED**: the time on black with Mimus asleep, or Immich's photos. Mimus and Quetza, the mascots, cross Home now and then.
 * **Updates from AUROR's releases**, each Glasshouse release merged in as it comes, installed with the TV off or at night.
 
