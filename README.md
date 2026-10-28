@@ -26,7 +26,7 @@ Gira direttamente su una TV LG webOS con root, senza servizi cloud. Pensata per 
 ## Installazione
 
 1. Root della TV e [Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel), poi Glasshouse come da [guida](https://ranzaware.github.io/auror-tv/install/).
-2. Dalla dashboard di Glasshouse, scheda **App** › **Install app from a URL or file**: il file `.ipk` dell'[ultima release di AUROR](https://github.com/ranzaWARE/auror-tv/releases/latest), installato sopra Glasshouse.
+2. Nell'Homebrew Channel: ingranaggio › **Add repository**, indirizzo `https://ranzaware.github.io/auror-tv/hbc.json`. Tornati all'elenco compare **AUROR TV**: **Install** lo installa sopra Glasshouse, che ne tiene le impostazioni. Dalla dashboard di Glasshouse non si può, perché Glasshouse non installa sopra sé stesso.
    In alternativa, da un clone di questo repository: `./deploy.sh <ip-tv>` dalla cartella `server/`.
 3. Aprire `http://<ip-tv>:8080/` nel browser. Su webOS 11 Glasshouse Home è sperimentale e va abilitata con `"allowExperimentalHome": true` in `config.json`.
 
