@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- AUROR TV: Home's house, its window lit in AUROR's amber, as the Home app's icon. -->
+  <rect width="512" height="512" rx="112" fill="#15191f"/>
+  <rect x="1.5" y="1.5" width="509" height="509" rx="110.5" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3"/>
+  <path d="M132 240 L256 140 L380 240 V350 A34 34 0 0 1 346 384 H166 A34 34 0 0 1 132 350 Z" fill="none" stroke="#ece7df" stroke-width="36" stroke-linejoin="round"/>
+  <rect x="224" y="262" width="64" height="64" rx="10" fill="#f5a000"/>
+</svg>

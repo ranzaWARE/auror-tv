@@ -1104,6 +1104,72 @@
 
   <div id="home-more">
 
+  <!-- AUROR's own on Glasshouse Home, as its settings on the TV have them (assets/ui/auror.js) -->
+  <div id="auror-sec">
+  <div class="pv-sec adv-sec" translate="no">AUROR</div>
+  <div class="sub" data-t="auror.desc">What Glasshouse Home’s settings on the TV change, from here: the greeting, the sleep timer, the photos behind Home, Immich and SSH.</div>
+  <div class="prot-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.name">The owner’s name</div>
+        <div class="prot-desc" data-t="auror.nameDesc">For the greeting over the Top Shelf. Empty, the greeting has no name.</div>
+        <form class="toast-form" style="margin-top:10px" onsubmit="event.preventDefault();aurorSaveName();">
+          <input type="text" id="auror-name" maxlength="30" autocomplete="off" spellcheck="false">
+          <button type="submit" id="auror-name-save" data-t="auror.save">Save</button>
+        </form>
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.net">Network</div>
+        <div class="prot-desc" id="auror-net">&mdash;</div>
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.sleep">Sleep timer</div>
+        <div class="prot-desc" id="auror-sleep-state">&mdash;</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="auror-sleep" onchange="aurorSetSleep(this.value)" aria-label="Sleep timer" data-t-aria-label="auror.sleep"></select></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.photos">Backgrounds</div>
+        <div class="prot-desc" id="auror-photos-state">&mdash;</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-photos" onclick="aurorOpenPhotos()" data-t="auror.photosOpen">Manage</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" translate="no">Immich</div>
+        <div class="prot-desc" id="auror-immich-state">&mdash;</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-immich" onclick="aurorImmich()">&mdash;</button></div>
+    </div>
+    <div class="prot-row" id="auror-saver-row" hidden>
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.saverAlbum">Screen saver album</div>
+        <div class="prot-desc" data-t="auror.saverAlbumDesc">What the AUROR · Immich screen saver shows, when picked in Screen savers or in Look on the TV.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="auror-saver-album" onchange="aurorSaverAlbum(this.value)" aria-label="Screen saver album" data-t-aria-label="auror.saverAlbum"></select></div>
+    </div>
+    <div class="prot-row" id="auror-memories-row" hidden>
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.memories">Memories on the Top Shelf</div>
+        <div class="prot-desc" data-t="auror.memoriesDesc">With the Immich tile focused: this day in years past. The key needs memory.read.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-memories" onclick="aurorMemories()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" translate="no">SSH</div>
+        <div class="prot-desc" id="auror-ssh-state">&mdash;</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-ssh" onclick="aurorSsh()">&mdash;</button></div>
+    </div>
+  </div>
+  </div>
+
   <div class="pv-sec adv-sec" data-t="home.layout">Rows and tiles</div>
   <div class="sub" data-t="home.layoutDesc">Apps and inputs come from the TV: hide the ones not wanted. Channels are only the ones added here. Holding OK on Glasshouse Home arranges the same layout on the TV.</div>
   <div class="pv-note" id="home-history-note" hidden data-t="home.historyNote">Apps are in LG's order. With History switched on in Advanced, new apps are placed by how much each is used.</div>
@@ -1728,6 +1794,7 @@
 <script src="/assets/ui/apps.js"></script>
 <script src="/assets/ui/install.js"></script>
 <script src="/assets/ui/home.js"></script>
+<script src="/assets/ui/auror.js"></script>
 <script src="/assets/ui/audio.js"></script>
 <script src="/assets/ui/servicemenu.js"></script>
 <script src="/assets/ui/oled.js"></script>
