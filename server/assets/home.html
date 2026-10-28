@@ -1329,6 +1329,11 @@ html.faded #stage{opacity:0}
       if (!ha.detail && !ha.cam) haMove((e.deltaY !== undefined ? e.deltaY : -e.wheelDelta) > 0 ? KEY.down : KEY.up);
       return;
     }
+    // In the settings the wheel goes through the rows, as Up and Down do.
+    if (settings.open) {
+      if (!settings.side && !settings.editing) settingsKey((e.deltaY !== undefined ? e.deltaY : -e.wheelDelta) > 0 ? KEY.down : KEY.up);
+      return;
+    }
     var d = e.deltaY !== undefined ? e.deltaY : -e.wheelDelta;
     if (e.deltaX && Math.abs(e.deltaX) > Math.abs(d || 0)) d = e.deltaX;
     if (!d) return;
@@ -2058,10 +2063,27 @@ html.faded #stage{opacity:0}
     if (cat.id === 'photos') html += photosBox();
     if (cat.id === 'immich') html += immichQrBox();
     if (cat.id === 'ha') html += haQrBox();
-    $('setRows').innerHTML = html;
+    $('setRows').innerHTML = '<div id="setTrack">' + html + '</div>';
+    followSetRow(cat.id);
     var svg = $('setRows').querySelector('.qr svg');
     if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : cat.id === 'photos' ? settings.photos.url :
       cat.id === 'immich' ? settings.immich.url : cat.id === 'ha' ? settings.ha.url : settings.pairUrl);
+  }
+
+  // Keeps the focused row inside the rows' window, moving the list no more than needed.
+  var SET_VIEW_H = 820, SET_MARGIN = 40;
+  function followSetRow(catId) {
+    var track = $('setTrack'), row = track && track.querySelector('.setrow.focus');
+    if (!settings.scroll) settings.scroll = {};
+    var at = settings.scroll[catId] || 0, total = track ? track.offsetHeight : 0;
+    if (row && !settings.pointed) {
+      var top = row.offsetTop, bottom = top + row.offsetHeight;
+      if (bottom > at + SET_VIEW_H - SET_MARGIN) at = bottom - SET_VIEW_H + SET_MARGIN;
+      if (top < at + SET_MARGIN) at = top - SET_MARGIN;
+    }
+    at = Math.max(0, Math.min(at, total - SET_VIEW_H));
+    settings.scroll[catId] = at;
+    if (track) track.style.webkitTransform = track.style.transform = 'translateY(' + (-at) + 'px)';
   }
 
   function openSettings() {
@@ -2573,8 +2595,11 @@ html.faded #stage{opacity:0}
       settings.row[cat.id] = hit.row;
       if (click && settings.rows[hit.row] && settings.rows[hit.row].act) return settings.rows[hit.row].act();
       if (!changed) return;
+      // A row under the pointer is in view already: the list stays, so it does not slide under the pointer.
+      settings.pointed = true;
     }
     renderSettings();
+    settings.pointed = false;
   }
 
   // ---------------------------------------------------------------- mascots

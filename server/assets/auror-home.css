@@ -29,7 +29,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .recents #shelf{opacity:.25}
 
 #topbar{position:absolute;top:56px;right:120px;display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start}
-#when{width:auto !important;margin-right:28px;text-align:right}
+/* The clock in the corner, the buttons to its left. */
+#when{width:auto !important;margin:0 0 0 28px;text-align:right;-webkit-order:2;order:2}
 /* Switched off on the dashboard, the clock leaves the buttons in the corner. */
 .no-clock #when{display:none}
 /* Figures of one width, so the clock keeps its place as the minutes change. */
@@ -326,7 +327,10 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .setcat.current{background:#23272e;border-color:rgba(255,255,255,.08);color:#e0e4ea;font-weight:600}
 .setcat.current:before{background:#f5a000}
 .setcat.focus{outline-color:#f5a000}
-#setRows{position:absolute;left:820px;top:236px;width:988px}
+/* A window on the rows: a long list moves under it to keep the focus in view. */
+#setRows{position:absolute;left:808px;top:224px;width:1012px;height:832px;padding:12px 12px 0;overflow:hidden}
+/* Room under the last row for its focus outline. */
+#setTrack{padding-bottom:28px}
 .setrow{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;
   min-height:80px;margin-bottom:10px;padding:12px 28px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#1c2028;opacity:.75;
   outline:3px solid transparent;outline-offset:4px;
