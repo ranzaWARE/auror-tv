@@ -14,10 +14,11 @@ Gira direttamente su una TV LG webOS con root, senza servizi cloud. Pensata per 
 - **Ricerca:** dice dove vedere un film o una serie in Italia, tra Jellyfin e i servizi di streaming, senza passare da LG.
 - **Sfondi:** foto caricate dal telefono o dal computer nella rete di casa, una fissa o a rotazione.
 - **Immich:** album, foto e video sulla TV, i ricordi di oggi sulla fascia in alto e le foto come salvaschermo.
+- **Home Assistant:** luci, prese, tapparelle, scene, sensori e telecamere dal divano, riscaldamento e aria condizionata regolati col telecomando, e la dashboard completa nel browser della TV.
 - **Altre app:** una cartella per le app che non servono sempre, senza nasconderle.
 - **Tema chiaro e scuro:** chiaro dalle 6:00 alle 17:00, scuro dalle 17:00. Un pulsante lo cambia fino al passaggio successivo.
 - **Anti burn-in:** tutta la pagina si sposta lentamente di pochi pixel e non ci sono scritte fisse.
-- **Impostazioni dalla TV e dal browser:** tema, nome, salvaschermo, mascotte, fascia in alto, app visibili, sfondi, SSH. Jellyfin, TMDB e Immich si collegano dal telefono con un codice QR.
+- **Impostazioni dalla TV e dal browser:** tema, nome, salvaschermo, mascotte, fascia in alto, app visibili, sfondi, SSH. Jellyfin, TMDB, Immich e Home Assistant si collegano dal telefono con un codice QR.
 - **Salvaschermo per OLED:** orologio su nero con Mimus che dorme, oppure le foto di Immich.
 - **Mimus e Quetza:** le due mascotte in pixel art attraversano ogni tanto la Home.
 - **Aggiornamenti automatici:** ogni release di Glasshouse viene unita ad AUROR e la TV la installa da sola, a TV spenta o di notte.
@@ -44,7 +45,7 @@ La dashboard non ha autenticazione di default ed è pensata per la rete di casa.
 **Uso a proprio rischio.**
 
 * **Root e hardware.** Il software gira con privilegi `root` sul sistema della TV. Nessuna responsabilità per danni, blocchi, TV inutilizzabili, garanzia, perdita di dati o problemi al pannello.
-* **Marchi.** Progetto indipendente e non ufficiale, non affiliato né approvato da LG Electronics. webOS è un marchio di LG Electronics. I loghi dei banner vengono da [Simple Icons](https://simpleicons.org/) (CC0-1.0) e, per Disney+, da [Streamline](https://github.com/webalys-hq/streamline-vectors) (CC BY 4.0), e restano marchi dei rispettivi proprietari. Immich è un marchio dei suoi autori.
+* **Marchi.** Progetto indipendente e non ufficiale, non affiliato né approvato da LG Electronics. webOS è un marchio di LG Electronics. I loghi dei banner vengono da [Simple Icons](https://simpleicons.org/) (CC0-1.0) e, per Disney+, da [Streamline](https://github.com/webalys-hq/streamline-vectors) (CC BY 4.0), e restano marchi dei rispettivi proprietari. Immich è un marchio dei suoi autori, Home Assistant della Open Home Foundation.
 * **Font.** Include [Outfit](https://github.com/Outfitio/Outfit-Fonts), [Manrope](https://github.com/sharanda/manrope), [Space Grotesk](https://github.com/floriankarsten/space-grotesk) e [Space Mono](https://github.com/googlefonts/spacemono) con licenza [SIL Open Font License 1.1](https://openfontlicense.org/); le licenze sono in `server/assets/fonts/`.
 
 ## Crediti e licenza

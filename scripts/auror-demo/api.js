@@ -42,7 +42,7 @@
     hidden: { app: ['netflix', 'amazon', 'com.disney.disneyplus-prod', 'dazn', 'it.sky.now', 'com.webos.app.lgchannels', 'com.tvweb.dashboard'], dev: [], ch: [] },
     order: { app: [], dev: [], ch: [] }, folder: [], channels: [], hintSeen: true, searchHintSeen: true, search: true,
     hideUnused: true, picture: false, colours: null,
-    look: { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true } }
+    look: { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } }
   };
   var saver = { mode: 'auror', level: 'dim', available: true };
   var update = { auto: true, installed: '0.122.101', latest: '0.122.101', available: false };
@@ -57,6 +57,40 @@
     { id: 'a4', name: 'Notti stellate', cover: 'photo3', from: '2025-08-10', to: '2025-08-12', places: ['Lessinia'] },
     { id: 'a5', name: 'Serate cinema', cover: 'poster3', from: '2025-11-01', to: '2026-03-15', places: [null] }
   ];
+  // Home Assistant: a house's worth of entities, acted on in memory.
+  var ha = { linked: true, chosen: null };
+  var HA = [
+    { id: 'climate.soggiorno', group: 'climate', domain: 'climate', name: 'Riscaldamento soggiorno', state: 'heat', current: 20.5, target: 21, min: 7, max: 30, step: 0.5, modes: ['off', 'heat', 'auto'], action: 'heating', humidity: 48 },
+    { id: 'climate.camera', group: 'climate', domain: 'climate', name: 'Clima camera', state: 'off', current: 22.8, target: 24, min: 16, max: 30, step: 0.5, modes: ['off', 'cool', 'dry', 'fan_only'], action: 'off', humidity: 55 },
+    { id: 'light.soggiorno', group: 'power', domain: 'light', name: 'Luce soggiorno', state: 'on', brightness: 70 },
+    { id: 'light.cucina', group: 'power', domain: 'light', name: 'Luce cucina', state: 'off', brightness: null },
+    { id: 'light.giardino', group: 'power', domain: 'light', name: 'Luci giardino', state: 'off', brightness: null },
+    { id: 'switch.presa_tv', group: 'power', domain: 'switch', name: 'Presa TV', state: 'on' },
+    { id: 'cover.soggiorno', group: 'covers', domain: 'cover', name: 'Tapparella soggiorno', state: 'open', position: 100 },
+    { id: 'cover.garage', group: 'covers', domain: 'cover', name: 'Garage', state: 'closed', position: 0 },
+    { id: 'scene.cinema', group: 'scenes', domain: 'scene', name: 'Serata cinema', state: 'scening' },
+    { id: 'script.buonanotte', group: 'scenes', domain: 'script', name: 'Buonanotte', state: 'off' },
+    { id: 'sensor.temp_esterna', group: 'sensors', domain: 'sensor', name: 'Temperatura esterna', state: '12.4', unit: '°C', deviceClass: 'temperature' },
+    { id: 'sensor.consumo', group: 'sensors', domain: 'sensor', name: 'Consumo casa', state: '1340', unit: 'W', deviceClass: 'power' },
+    { id: 'binary_sensor.porta', group: 'sensors', domain: 'binary_sensor', name: 'Porta d’ingresso', state: 'off', unit: null, deviceClass: 'door' },
+    { id: 'camera.ingresso', group: 'cameras', domain: 'camera', name: 'Ingresso', state: 'idle' },
+    { id: 'camera.giardino', group: 'cameras', domain: 'camera', name: 'Giardino', state: 'idle' }
+  ];
+  function haStatus() {
+    return ha.linked ? { ok: true, configured: true, server: '192.168.1.10:8123', place: 'Casa', chosen: ha.chosen ? ha.chosen.length : null } : { ok: true, configured: false };
+  }
+  function haShown() { return HA.filter(function (e) { return !ha.chosen || ha.chosen.indexOf(e.id) !== -1; }); }
+  function haAct(b) {
+    var e = null;
+    HA.forEach(function (x) { if (x.id === b.id) e = x; });
+    if (!e) return { ok: false, error: 'that entity is not one chosen for the TV' };
+    if (b.action === 'toggle') {
+      if (e.domain === 'cover') { e.state = e.state === 'open' ? 'closed' : 'open'; e.position = e.state === 'open' ? 100 : 0; }
+      else { e.state = e.state === 'on' ? 'off' : 'on'; if (e.domain === 'light') e.brightness = e.state === 'on' ? 80 : null; }
+    } else if (b.action === 'temperature') e.target = Math.max(e.min, Math.min(e.max, +b.value));
+    else if (b.action === 'mode') { e.state = b.value; e.action = b.value === 'off' ? 'off' : b.value === 'heat' ? 'heating' : b.value === 'cool' ? 'cooling' : 'idle'; }
+    return { ok: true, place: 'Casa', chosen: !!ha.chosen, entities: haShown(), delay: 300 };
+  }
   var PICS = ['photo0', 'photo1', 'photo2', 'photo3', 'poster0', 'poster1', 'poster2', 'poster3', 'poster4', 'poster5'];
   function albumAssets(a) {
     var out = [], n = a.id === 'a3' ? 64 : 18 + a.name.length;
@@ -93,7 +127,7 @@
       ids = ids.map(function (id, i) { return { id: id, i: i, n: opens[id] || 0 }; })
         .sort(function (x, y) { return y.n - x.n || x.i - y.i; }).map(function (x) { return x.id; });
     }
-    return ids.concat(immich.linked ? ['auror-immich'] : [], 'lg-home');
+    return ids.concat(immich.linked ? ['auror-immich'] : [], ha.linked ? ['auror-ha'] : [], 'lg-home');
   }
   function sleepStatus() {
     var left = Math.max(0, sleepAt - Date.now());
@@ -122,7 +156,7 @@
       sources: { apps: true, devices: true, channels: 0 }, layout: copy(layout), enabled: true,
       wallpapers: wallpapers(), layoutVersion: 'v' + version,
       jellyfin: jellyfin.linked ? { ok: true, configured: true, server: 'jellyfin.example.org', user: 'Demo' } : { ok: true, configured: false },
-      saver: saver, update: update, tmdb: { ok: true, configured: tmdb.linked }, immich: immichStatus() };
+      saver: saver, update: update, tmdb: { ok: true, configured: tmdb.linked }, immich: immichStatus(), ha: haStatus() };
   }
   function immichStatus() {
     return immich.linked ? { ok: true, configured: true, server: 'immich.example.org', user: 'Demo', saverAlbum: immich.saverAlbum } : { ok: true, configured: false };
@@ -209,6 +243,26 @@
         immich.linked = true;
         version++;
         return { ok: true, user: 'Demo', albums: ALBUMS.length };
+      case '/api/home/ha/status': return haStatus();
+      case '/api/home/ha/states': return ha.linked ? { ok: true, place: 'Casa', chosen: !!ha.chosen, entities: haShown() } : { ok: false, error: 'Home Assistant is not linked' };
+      case '/api/home/ha/act': return haAct(b);
+      case '/api/home/ha/dashboard': return { ok: false, error: DEMO_ONLY };
+      case '/api/home/ha/pair': return { ok: true, url: location.href.replace(/[^/]*$/, '') + 'ha.html?c=demo' };
+      case '/api/home/ha/forget': ha.linked = false; ha.chosen = null; version++; return { ok: true, configured: false };
+      case '/ha/link':
+        if (b.check) return { ok: true, valid: true, linked: ha.linked, place: ha.linked ? 'Casa' : '' };
+        ha.linked = true;
+        version++;
+        return { ok: true, place: 'Casa', version: '2026.10.3', delay: 600 };
+      case '/ha/entities':
+        var shownIds = haShown().map(function (e) { return e.id; });
+        return { ok: true, place: 'Casa', groups: ['climate', 'power', 'covers', 'scenes', 'sensors', 'cameras'], entities: HA.map(function (e) {
+          return { id: e.id, group: e.group, name: e.name, shown: shownIds.indexOf(e.id) !== -1 };
+        }).concat([{ id: 'sensor.umidita_bagno', group: 'sensors', name: 'Umidità bagno', shown: false }, { id: 'switch.irrigazione', group: 'power', name: 'Irrigazione', shown: false }]) };
+      case '/ha/choose':
+        ha.chosen = (b.ids || []).filter(function (id) { return HA.some(function (e) { return e.id === id; }); });
+        version++;
+        return { ok: true, chosen: ha.chosen.length };
       case '/api/home/gallery/pair': return { ok: true, url: location.href.replace(/[^/]*$/, '') + 'photos.html?c=demo' };
       case '/photos/upload': return { ok: false, error: 'Nella demo le foto non si caricano: sulla TV finirebbero qui.', status: 400 };
       case '/api/home/guide': return { ok: true, guide: {} };
@@ -268,7 +322,7 @@
   DemoRequest.prototype.open = function (method, url, async) {
     this._method = method;
     this._url = String(url);
-    this._fake = /^\/(api|jellyfin|tmdb|photos|immich)\//.test(this._url);
+    this._fake = /^\/(api|jellyfin|tmdb|photos|immich|ha)\//.test(this._url);
     if (this._fake) return;
     var self = this, r = this._real = new Real();
     r.open(method, this._url.replace(/^\/assets\//, 'assets/'), async !== false);

@@ -405,6 +405,21 @@ html.faded #stage{opacity:0}
     <div class="gwrap"><div id="folderGrid"></div></div>
   </section>
 
+  <section id="hapanel">
+    <div class="kick" translate="no">Home Assistant</div>
+    <h2 id="haTitle"></h2>
+    <div id="haSub"></div>
+    <div class="gwrap" id="haWrap"><div id="haGrid"></div></div>
+  </section>
+  <div id="haDetail">
+    <div class="kick" id="hdName"></div>
+    <div id="hdTarget"></div>
+    <div id="hdNow"></div>
+    <div id="hdModes"></div>
+    <div id="hdHint" data-t="home.ha.detailHint">Up and down: temperature · Left and right: mode · OK: done</div>
+  </div>
+  <div id="haCam"><img id="haCamImg" alt=""><div id="haCamName"></div></div>
+
   <section id="photos">
     <div class="kick" translate="no">Immich</div>
     <h2 id="phTitle"></h2>
@@ -446,6 +461,8 @@ html.faded #stage{opacity:0}
   var LG_HOME_TILE = 'lg-home';
   // AUROR's Immich tile, in the row once Immich is linked: its albums open here.
   var IMMICH_TILE = 'auror-immich';
+  // And Home Assistant's, once it is linked: its panel opens here too.
+  var HA_TILE = 'auror-ha';
   // The remote's keys as webOS reports them to a page.
   var KEY = { left: 37, up: 38, right: 39, down: 40, ok: 13, back: 461, red: 403, green: 404, yellow: 405 };
   // The More apps tile, last in the Apps row while any app is in the folder.
@@ -493,7 +510,7 @@ html.faded #stage{opacity:0}
     [/crunchyroll/i, 'crunchyroll'], [/emby/i, 'emby'], [/tidal/i, 'tidal'], [/deezer/i, 'deezer'],
     [/apple ?music/i, 'apple-music'], [/steam/i, 'steam'], [/playstation/i, 'playstation'], [/dazn/i, 'dazn'],
     [/paramount/i, 'paramount-plus'], [/vimeo/i, 'vimeo'], [/soundcloud/i, 'soundcloud'], [/rakuten/i, 'rakuten-tv'],
-    [/^sky\b/i, 'sky'], [/^now( tv)?$/i, 'now'], [/prime ?video|amazon/i, 'prime-video'], [/disney/i, 'disney-plus'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser'], [/^immich$/i, 'immich']
+    [/^sky\b/i, 'sky'], [/^now( tv)?$/i, 'now'], [/prime ?video|amazon/i, 'prime-video'], [/disney/i, 'disney-plus'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser'], [/^immich$/i, 'immich'], [/^home ?assistant$/i, 'home-assistant']
   ];
   /*
    * An app with nothing of its own to show gets its colours as a glow across
@@ -531,7 +548,8 @@ html.faded #stage{opacity:0}
     'prime-video': ['#1AB4F0', '#0067A8'],
     'disney-plus': ['#2A6BFF', '#0B1F5C'],
     'browser': ['#3B82F6', '#1E40AF'],
-    'immich': ['#5B6BD6', '#ED79B5']
+    'immich': ['#5B6BD6', '#ED79B5'],
+    'home-assistant': ['#41BDF5', '#0B6E99']
   };
   var APP_ABOUT = {
     'browser': t('home.app.browser', 'The web on the big screen: sites, videos, recipes, timetables, whatever is needed in a hurry.'),
@@ -563,7 +581,8 @@ html.faded #stage{opacity:0}
     'disney-plus': t('home.app.disneyPlus', 'Disney, Pixar, Marvel, Star Wars and National Geographic, all in one place.'),
     'now': t('home.app.now', 'Sky’s films, series and sport without a dish: passes switched on and off as wanted.'),
     'lg-channels': t('home.app.lgChannels', 'Free channels over the internet: films, news and series from years ago. The price is the adverts.'),
-    'immich': t('home.app.immich', 'The photos and videos on the Immich server at home, album by album.')
+    'immich': t('home.app.immich', 'The photos and videos on the Immich server at home, album by album.'),
+    'home-assistant': t('home.app.homeAssistant', 'The house from the sofa: lights, heating, covers, scenes and cameras.')
   };
   // Brands Simple Icons leaves out, by their own colours.
   var BRAND_COLOURS = [
@@ -571,7 +590,7 @@ html.faded #stage{opacity:0}
     [/rai ?play/i, '#1A6FE0', '#0A2E73'], [/mediaset|infinity/i, '#2F62D9', '#172F72']
   ];
   var build = null;
-  var okDownAt = 0, okTimer = null, okLong = false, okInRecents = false, okInFolder = false, okInPhotos = false, backDown = false;
+  var okDownAt = 0, okTimer = null, okLong = false, okInRecents = false, okInFolder = false, okInPhotos = false, okInHa = false, backDown = false;
   var beatFails = 0;
   // The TV's own 12 or 24 hour setting, which the server repeats with each heartbeat.
   var hour12 = false;
@@ -664,6 +683,7 @@ html.faded #stage{opacity:0}
     if (kind === 'app') {
       if (id === LG_HOME_TILE) return { id: LG_HOME_TILE, title: t('home.lgHome', 'LG Home'), lg: true };
       if (id === IMMICH_TILE) return { id: IMMICH_TILE, title: 'Immich', immich: true };
+      if (id === HA_TILE) return { id: HA_TILE, title: 'Home Assistant', ha: true };
       return find(data.apps, id);
     }
     return find(kind === 'dev' ? data.devices : data.channels, id);
@@ -1166,7 +1186,7 @@ html.faded #stage{opacity:0}
   function aim() {
     glide = null;
     hoverKey = null;
-    if (data && layout && !layoutBusy && !state.held && !finder.open && !folder.open && !photos.open) {
+    if (data && layout && !layoutBusy && !state.held && !finder.open && !folder.open && !photos.open && !ha.open) {
       var list = recents.open ? [$('recents')] : document.querySelectorAll('.row');
       for (var i = 0; i < list.length; i++) {
         var wrap = list[i].querySelector('.wrap');
@@ -1207,6 +1227,10 @@ html.faded #stage{opacity:0}
     if (!data || !layout || layoutBusy || state.held || folder.open) return;
     if (photos.open) {
       if (!photos.viewer) photosMove((e.deltaY !== undefined ? e.deltaY : -e.wheelDelta) > 0 ? KEY.down : KEY.up);
+      return;
+    }
+    if (ha.open) {
+      if (!ha.detail && !ha.cam) haMove((e.deltaY !== undefined ? e.deltaY : -e.wheelDelta) > 0 ? KEY.down : KEY.up);
       return;
     }
     var d = e.deltaY !== undefined ? e.deltaY : -e.wheelDelta;
@@ -1264,7 +1288,7 @@ html.faded #stage{opacity:0}
    * it shows has changed.
    */
   var shelfShown = null, shelfRest = null;
-  var shelfData = { jellyfin: null, jellyfinAt: 0, stats: null, statsAt: 0, immich: null, immichAt: 0 };
+  var shelfData = { jellyfin: null, jellyfinAt: 0, stats: null, statsAt: 0, immich: null, immichAt: 0, ha: null, haAt: 0 };
   var IMMICH_TTL_MS = 10 * 60000;
 
   function look() { return (layout && layout.look) || { theme: 'auto', mascots: true, saverBright: false, shelf: {} }; }
@@ -1302,6 +1326,16 @@ html.faded #stage{opacity:0}
             line: (m.count === 1 ? t('home.immich.oneItem', '1 photo or video') : t('home.immich.nItems', '{n} photos and videos', { n: m.count })) +
               (m.place ? ' · ' + m.place : '') };
         }) };
+      }
+      // Home Assistant: the heating's temperatures and the first readings chosen.
+      var hs = it.ha && shelfOn('ha') && shelfData.ha;
+      if (hs && hs.entities) {
+        var readings = hs.entities.filter(function (e) { return e.domain === 'climate' && e.current !== null; }).map(function (e) {
+          return { label: e.name, value: haNum(e.current), unit: '°' };
+        }).concat(hs.entities.filter(function (e) { return e.domain === 'sensor' && !isNaN(+e.state) && e.state !== ''; }).map(function (e) {
+          return { label: e.name, value: haNum(+e.state), unit: e.unit ? ' ' + e.unit : '' };
+        })).slice(0, 4);
+        if (readings.length) return { mode: 'stats', kind: hs.place ? t('home.ha.shelf', 'Home Assistant · {place}', { place: hs.place }) : 'Home Assistant', list: readings };
       }
       if (it.id === DASHBOARD_APP && shelfOn('glasshouse') && shelfData.stats) {
         return { mode: 'stats', kind: t('home.stats.title', 'Glasshouse · The TV now'), stats: shelfData.stats };
@@ -1379,6 +1413,7 @@ html.faded #stage{opacity:0}
           '<div class="ct">' + esc(c.title) + '</div><div class="cs">' + esc(cardLine(c)) + '</div></div>';
       }).join('');
     }
+    if (s.list) return s.list.map(function (x) { return stat(x.label, x.value, x.unit); }).join('');
     var st = s.stats;
     function stat(label, value, unit) {
       return '<div class="stat"><div class="sl">' + esc(label) + '</div><div class="sv">' + esc(value === null ? '—' : value) +
@@ -1452,6 +1487,14 @@ html.faded #stage{opacity:0}
       getJson('/api/home/immich/memories?day=' + todayText(), function (r) {
         if (!r || !r.ok) { shelfData.immichAt = 0; return; }
         shelfData.immich = r;
+        renderShelf();
+      });
+    }
+    if (it.ha && shelfOn('ha') && now - shelfData.haAt > 30000) {
+      shelfData.haAt = now;
+      getJson('/api/home/ha/states', function (r) {
+        if (!r || !r.ok) { shelfData.haAt = 0; return; }
+        shelfData.ha = r;
         renderShelf();
       });
     }
@@ -1697,7 +1740,7 @@ html.faded #stage{opacity:0}
   // editing: the owner's name is being typed, with the TV's keyboard up.
   var settings = { open: false, cat: 0, side: true, row: {}, rows: [], busy: '', pairUrl: null, pairError: '', pairAt: 0, poll: null,
     tmdb: { url: null, error: '', at: 0 }, photos: { url: null, error: '' }, gallery: null, ssh: null, editing: false,
-    immich: { url: null, error: '', at: 0 } };
+    immich: { url: null, error: '', at: 0 }, ha: { url: null, error: '' } };
   var SET_CATS = [
     { id: 'look', label: t('home.set.look', 'Look'),
       desc: t('home.set.lookDesc', 'Home’s theme and the screen saver. Automatic: light from 06:00 to 17:00, dark from 17:00.') },
@@ -1715,6 +1758,8 @@ html.faded #stage{opacity:0}
       desc: t('home.set.jfDesc', 'The server the Top Shelf takes Continue watching and Recently added from.') },
     { id: 'immich', label: 'Immich',
       desc: t('home.set.immichDesc', 'The albums on the Immich server at home, behind the Immich tile in the Apps row.') },
+    { id: 'ha', label: 'Home Assistant',
+      desc: t('home.set.haDesc', 'The house from the TV: the entities chosen, behind the Home Assistant tile in the Apps row, and Home Assistant’s own dashboard.') },
     { id: 'ssh', label: 'SSH',
       desc: t('home.set.sshDesc', 'Root access to the TV from the home network, through the Homebrew Channel. Switching it off ends the sessions open now.') },
     { id: 'more', label: 'Glasshouse',
@@ -1783,8 +1828,11 @@ html.faded #stage{opacity:0}
         ['jellyfin', 'Jellyfin', t('home.set.shelfJfHelp', 'Continue watching, or else Recently added')],
         ['glasshouse', 'Glasshouse', t('home.set.shelfGhHelp', 'Temperature, CPU, memory and Wi-Fi')],
         ['hdmi', t('home.set.shelfHdmi', 'HDMI inputs'), t('home.set.shelfHdmiHelp', 'The name of the device plugged in')],
-        ['immich', 'Immich', t('home.set.shelfImmichHelp', 'Memories of this day in years past')]
-      ].filter(function (r) { return r[0] !== 'immich' || (data.immich && data.immich.configured); }).map(function (r) {
+        ['immich', 'Immich', t('home.set.shelfImmichHelp', 'Memories of this day in years past')],
+        ['ha', 'Home Assistant', t('home.set.shelfHaHelp', 'The heating’s temperatures and the first readings chosen')]
+      ].filter(function (r) {
+        return (r[0] !== 'immich' || (data.immich && data.immich.configured)) && (r[0] !== 'ha' || (data.ha && data.ha.configured));
+      }).map(function (r) {
         var on = shelfOn(r[0]);
         return { kind: 'switch', on: on, label: r[1], help: r[2], value: onText(on),
           act: function () { var part = {}; part[r[0]] = !on; setLook({ shelf: part }); } };
@@ -1829,6 +1877,7 @@ html.faded #stage{opacity:0}
     if (id === 'photos') return photoRows();
     if (id === 'ssh') return sshRows();
     if (id === 'immich') return immichRows();
+    if (id === 'ha') return haRows();
     if (id === 'tiles') {
       return data.order.app.map(function (appId) {
         var a = byId('app', appId);
@@ -1904,10 +1953,11 @@ html.faded #stage{opacity:0}
     if (cat.id === 'search') html += tmdbQrBox();
     if (cat.id === 'photos') html += photosBox();
     if (cat.id === 'immich') html += immichQrBox();
+    if (cat.id === 'ha') html += haQrBox();
     $('setRows').innerHTML = html;
     var svg = $('setRows').querySelector('.qr svg');
     if (svg) qrDraw(svg, cat.id === 'search' ? settings.tmdb.url : cat.id === 'photos' ? settings.photos.url :
-      cat.id === 'immich' ? settings.immich.url : settings.pairUrl);
+      cat.id === 'immich' ? settings.immich.url : cat.id === 'ha' ? settings.ha.url : settings.pairUrl);
   }
 
   function openSettings() {
@@ -1949,6 +1999,11 @@ html.faded #stage{opacity:0}
     }
     if (SET_CATS[i].id === 'ssh') return loadSsh();
     if (SET_CATS[i].id === 'look') return loadImmichAlbums();
+    if (SET_CATS[i].id === 'ha') {
+      requestHaPair();
+      settings.poll = setInterval(pollHa, 3000);
+      return;
+    }
     if (SET_CATS[i].id === 'immich') {
       // A code lasts ten minutes on the server.
       if (!settings.immich.url || Date.now() - settings.immich.at > 9 * 60000) requestImmichPair();
@@ -2147,6 +2202,62 @@ html.faded #stage{opacity:0}
       settings.busy = '';
       if (!r || !r.ok) toast(t('home.set.sshFailed', 'SSH did not change'), r && r.error);
       else settings.ssh = r;
+      renderSettings();
+    });
+  }
+
+  function haRows() {
+    var h = data.ha || { configured: false };
+    var rows = [
+      { kind: 'info', label: t('home.set.jfServer', 'Server'), value: h.configured ? h.server : t('home.set.jfNone', 'Not linked') }
+    ];
+    if (h.configured) {
+      if (h.place) rows.push({ kind: 'info', label: t('home.set.haPlace', 'Home’s name'), value: h.place });
+      rows.push({ kind: 'info', label: t('home.set.haShown', 'On the TV'),
+        value: h.chosen === null ? t('home.set.haFirstPick', 'A first pick') : t('home.set.haChosen', '{n} chosen', { n: h.chosen }) });
+      rows.push({ kind: 'link', label: t('home.set.haDashboard', 'Open Home Assistant’s dashboard'), help: t('home.set.haDashboardHelp', 'In the TV’s browser; it asks to sign in the first time'),
+        value: '', act: function () {
+          postJson('/api/home/ha/dashboard', {}, function (r) { if (!r || !r.ok) toast(t('home.openFailed', 'That did not open'), r && r.error); });
+        } });
+      rows.push({ kind: 'action', label: t('home.set.haForget', 'Unlink Home Assistant'), help: t('home.set.haForgetHelp', 'The token is removed from the TV, and the tile from the row'),
+        value: '', act: forgetHa });
+    }
+    return rows;
+  }
+
+  function haQrBox() {
+    var h = (data && data.ha) || {};
+    return '<div class="qrbox"><div class="qr">' + (settings.ha.url ? '<svg shape-rendering="crispEdges"></svg>' : '<span>' + esc(settings.ha.error || '…') + '</span>') + '</div>' +
+      '<div><div class="qt">' + esc(h.configured ? t('home.set.haChoose', 'Choose from the phone what the TV shows') : t('home.set.haLink', 'Link Home Assistant from the phone')) + '</div>' +
+      '<div class="qd">' + esc(t('home.set.haQrDesc', 'Scan the code: the address and a long-lived access token are entered on the phone, then the entities for the TV are chosen there. The token stays on the TV only.')) + '</div>' +
+      (settings.ha.url ? '<div class="qu" translate="no">' + esc(settings.ha.url) + '</div>' : '') + '</div></div>';
+  }
+
+  function requestHaPair() {
+    postJson('/api/home/ha/pair', {}, function (r) {
+      if (r && r.ok && r.url) { settings.ha.url = r.url; settings.ha.error = ''; }
+      else { settings.ha.url = null; settings.ha.error = (r && r.error) || t('home.set.jfNoCode', 'No code: the TV did not answer'); }
+      renderSettings();
+    });
+  }
+
+  function pollHa() {
+    getJson('/api/home/ha/status', function (r) {
+      if (!r || !r.ok || !data) return;
+      var was = data.ha || {};
+      if (r.configured === !!was.configured && r.server === was.server && r.chosen === was.chosen) return;
+      data.ha = r;
+      if (r.configured && !was.configured) toast(t('home.set.haLinked', 'Home Assistant linked'), t('home.set.haLinkedSub', 'Its tile is in the Apps row'));
+      load();
+      renderSettings();
+    });
+  }
+
+  function forgetHa() {
+    postJson('/api/home/ha/forget', {}, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      data.ha = { configured: false };
+      load();
       renderSettings();
     });
   }
@@ -2549,6 +2660,10 @@ html.faded #stage{opacity:0}
       postJson('/api/home/open', { kind: 'app', id: it.id });
       return openPhotos();
     }
+    if (it.ha) {
+      postJson('/api/home/open', { kind: 'app', id: it.id });
+      return openHa();
+    }
     fadeThenOpen(it.overlay === true, function (done) {
       postJson('/api/home/open', { kind: kind, id: it.id }, function (r) {
         done(!!(r && r.ok));
@@ -2598,6 +2713,7 @@ html.faded #stage{opacity:0}
       (settings.open ? ' settings' : '') + (faultShown ? ' fault' : '') + (inputs ? ' inputs' : '') +
       (finder.open ? ' finding' : '') + (finder.typing ? ' typing' : '') + (searchOn() ? '' : ' no-search') + (folder.open ? ' folder' : '') +
       (photos.open ? ' photos' : '') + (photos.viewer ? ' viewing' : '') +
+      (ha.open ? ' ha' : '') + (ha.detail ? ' ha-detail' : '') + (ha.cam ? ' ha-cam' : '') +
       // A photo of the owner's behind Home: the shelf and the rows are shaded to stay legible on it.
       (wallSrc ? ' photo' : '');
   }
@@ -2883,6 +2999,286 @@ html.faded #stage{opacity:0}
     if (click) photosKey(KEY.ok);
   }
 
+  // ---------------------------------------------------------------- Home Assistant
+
+  /*
+   * The Home Assistant tile's panel, over Home: the entities chosen for the
+   * TV as tiles four to a line, in the order of their kinds, and last the way
+   * to Home Assistant's own dashboard. OK turns a light or switch on or off,
+   * runs a scene or script, opens or closes a cover, sets heating or air
+   * conditioning in a panel of its own (Up and Down the temperature, Left and
+   * Right the mode), and shows a camera full screen, live. The states are
+   * asked again every few seconds while it is open (lib/auror-ha).
+   */
+  var HA_COLS = 4, HA_W = 384, HA_GAP = 40, HA_PITCH = 248, HA_VIEW_H = 760, HA_POLL_MS = 5000;
+  var ha = { open: false, list: [], place: '', chosen: true, col: 0, top: 0, poll: null, error: '', detail: null, cam: null, setTimer: null };
+  var HA_ICONS = {
+    climate: '<path d="M12 3v11.5"/><circle cx="12" cy="17.5" r="3.5"/><path d="M15 6h3M15 9.5h2"/>',
+    power: '<path d="M9 17h6M10 20.5h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9V15h7v-1.1A6 6 0 0 0 12 3z"/>',
+    covers: '<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M4 8h16M4 12h16M4 16h16"/>',
+    scenes: '<path d="M8 5v14l11-7z"/>',
+    sensors: '<path d="M4 18l5-6 4 3 7-9"/>',
+    cameras: '<rect x="3" y="7" width="13" height="10" rx="2"/><path d="M16 11l5-3v8l-5-3"/>',
+    dashboard: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>'
+  };
+  var HA_DASHBOARD = { id: '#dashboard', group: 'dashboard', domain: 'dashboard' };
+
+  function haCamUrl(id, live) { return '/api/home/ha/camera?id=' + encodeURIComponent(id) + (live ? '&live=1' : '&t=' + Math.floor(Date.now() / 10000)); }
+  function haItems() { return ha.list.concat([HA_DASHBOARD]); }
+  function haNum(v, unit) { return v === null || v === undefined ? '—' : (Math.round(v * 10) / 10) + (unit || ''); }
+
+  function haOn(e) {
+    return e.state === 'on' || e.state === 'open' || e.state === 'opening' || (e.domain === 'climate' && e.state !== 'off');
+  }
+
+  function haStateText(e) {
+    var d = e.domain;
+    if (e.state === 'unavailable' || e.state === 'unknown') return t('home.ha.unavailable', 'Unavailable');
+    var on = e.state === 'on';
+    if (d === 'light') return on ? (e.brightness !== null ? t('home.ha.onAt', 'On · {n}%', { n: e.brightness }) : t('home.ha.on', 'On')) : t('home.ha.off', 'Off');
+    if (d === 'binary_sensor' && /^(door|window|garage_door|opening)$/.test(e.deviceClass)) return on ? t('home.ha.open', 'Open') : t('home.ha.closed', 'Closed');
+    if (d === 'binary_sensor' && /^(motion|occupancy|presence)$/.test(e.deviceClass)) return on ? t('home.ha.detected', 'Someone there') : t('home.ha.clear', 'Nobody');
+    if (d === 'switch' || d === 'input_boolean' || d === 'fan' || d === 'binary_sensor') return on ? t('home.ha.on', 'On') : t('home.ha.off', 'Off');
+    if (d === 'cover') {
+      var words = { open: t('home.ha.open', 'Open'), closed: t('home.ha.closed', 'Closed'), opening: t('home.ha.opening', 'Opening'), closing: t('home.ha.closing', 'Closing') };
+      return (words[e.state] || e.state) + (e.position !== null && e.position !== undefined ? ' · ' + e.position + '%' : '');
+    }
+    if (d === 'climate') return haModeText(e.state) + (e.target !== null ? ' · ' + haNum(e.target, '°') : '');
+    if (d === 'scene' || d === 'script') return t('home.ha.run', 'OK to run');
+    if (d === 'camera') return t('home.ha.watch', 'OK to watch');
+    return e.state;
+  }
+
+  function haModeText(m) {
+    var modes = { off: t('home.ha.modeOff', 'Off'), heat: t('home.ha.modeHeat', 'Heat'), cool: t('home.ha.modeCool', 'Cool'), auto: t('home.ha.modeAuto', 'Auto'),
+      heat_cool: t('home.ha.modeHeatCool', 'Heat and cool'), dry: t('home.ha.modeDry', 'Dry'), fan_only: t('home.ha.modeFan', 'Fan') };
+    return modes[m] || m;
+  }
+
+  // What the heating or air conditioning is doing now, as against its mode.
+  function haActionText(a) {
+    var actions = { heating: t('home.ha.actHeating', 'Heating'), cooling: t('home.ha.actCooling', 'Cooling'), idle: t('home.ha.actIdle', 'Resting'),
+      drying: t('home.ha.actDrying', 'Drying'), fan: t('home.ha.actFan', 'Fan only'), off: t('home.ha.modeOff', 'Off') };
+    return actions[a] || a;
+  }
+
+  function haTileHtml(e) {
+    var icon = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (HA_ICONS[e.group] || '') + '</svg>';
+    if (e.group === 'dashboard') {
+      return '<span class="hi">' + icon + '</span><div class="hn">' + esc(t('home.ha.dashboard', 'The full dashboard')) + '</div>' +
+        '<div class="hs">' + esc(t('home.ha.dashboardSub', 'Home Assistant, in the TV’s browser')) + '</div>';
+    }
+    if (e.group === 'cameras') {
+      return '<img class="hc" src="' + haCamUrl(e.id) + '" alt=""><div class="hshade"></div><span class="hi">' + icon + '</span>' +
+        '<div class="hn">' + esc(e.name) + '</div><div class="hs">' + esc(haStateText(e)) + '</div>';
+    }
+    var big = e.domain === 'climate' ? haNum(e.current, '°') : e.domain === 'sensor' ? haNum(isNaN(+e.state) ? null : +e.state, e.unit ? ' ' + e.unit : '') : '';
+    if (e.domain === 'sensor' && isNaN(+e.state)) big = e.state;
+    return '<span class="hi">' + icon + '</span>' + (big ? '<div class="hb">' + esc(big) + '</div>' : '') +
+      '<div class="hn">' + esc(e.name) + '</div><div class="hs">' + esc(e.domain === 'sensor' ? '' : haStateText(e)) + '</div>';
+  }
+
+  function openHa() {
+    ha.open = true;
+    ha.col = 0;
+    ha.top = 0;
+    ha.error = '';
+    stageClass();
+    renderHa(true);
+    loadHa();
+    clearInterval(ha.poll);
+    ha.poll = setInterval(function () { if (!ha.detail) loadHa(); }, HA_POLL_MS);
+  }
+
+  function closeHa() {
+    closeHaCam();
+    ha.detail = null;
+    clearInterval(ha.poll);
+    ha.poll = null;
+    ha.open = false;
+    $('haGrid').innerHTML = '';
+    stageClass();
+  }
+
+  function loadHa() {
+    getJson('/api/home/ha/states', function (r) {
+      if (!ha.open) return;
+      if (!r || !r.ok) { ha.error = (r && r.error) || t('home.ha.unreachable', 'Home Assistant did not answer'); return renderHa(); }
+      var changed = r.entities.map(function (e) { return e.id; }).join() !== ha.list.map(function (e) { return e.id; }).join();
+      ha.list = r.entities;
+      ha.place = r.place;
+      ha.chosen = r.chosen;
+      ha.error = '';
+      renderHa(changed);
+      if (ha.detail) renderHaDetail();
+    });
+  }
+
+  // Built again when the entities change; otherwise each tile is brought up to date in place.
+  function renderHa(rebuild) {
+    var items = haItems(), grid = $('haGrid');
+    $('haTitle').textContent = ha.place || 'Home Assistant';
+    $('haSub').textContent = ha.error || (ha.chosen ? t('home.ha.count', '{n} on the TV', { n: ha.list.length })
+      : t('home.ha.firstPick', '{n} picked to start with · choose them from the phone, in Settings', { n: ha.list.length }));
+    if (rebuild) {
+      grid.innerHTML = items.map(function (e, i) {
+        return '<div class="ht" data-h="' + i + '" style="left:' + (i % HA_COLS) * (HA_W + HA_GAP) + 'px;top:' + Math.floor(i / HA_COLS) * HA_PITCH + 'px"></div>';
+      }).join('');
+      grid.style.height = Math.ceil(items.length / HA_COLS) * HA_PITCH + 'px';
+    }
+    var tiles = grid.querySelectorAll('.ht');
+    for (var i = 0; i < tiles.length && i < items.length; i++) {
+      var e = items[i], html = haTileHtml(e);
+      if (tiles[i].getAttribute('data-html') !== html) { tiles[i].innerHTML = html; tiles[i].setAttribute('data-html', html); }
+      var cls = 'ht g-' + e.group + (e.domain !== 'dashboard' && haOn(e) ? ' on' : '') + (i === ha.col ? ' focus' : '');
+      if (tiles[i].className !== cls) tiles[i].className = cls;
+    }
+    haScroll();
+  }
+
+  function haScroll() {
+    var line = Math.floor(ha.col / HA_COLS), view = Math.max(1, Math.floor(HA_VIEW_H / HA_PITCH));
+    if (line < ha.top) ha.top = line;
+    if (line > ha.top + view - 1) ha.top = line - view + 1;
+    var grid = $('haGrid');
+    grid.style.webkitTransform = grid.style.transform = 'translateY(' + (-ha.top * HA_PITCH) + 'px)';
+  }
+
+  function haMove(k) {
+    var n = haItems().length, c = ha.col;
+    if (k === KEY.left && c % HA_COLS > 0) c--;
+    else if (k === KEY.right && c % HA_COLS < HA_COLS - 1 && c + 1 < n) c++;
+    else if (k === KEY.up && c - HA_COLS >= 0) c -= HA_COLS;
+    else if (k === KEY.down && Math.floor(c / HA_COLS) < Math.floor((n - 1) / HA_COLS)) c = Math.min(n - 1, c + HA_COLS);
+    else return;
+    ha.col = c;
+    renderHa();
+  }
+
+  function haAct(body, done) {
+    postJson('/api/home/ha/act', body, function (r) {
+      if (!r || !r.ok) return toast(t('home.ha.failed', 'Home Assistant did not do it'), r && r.error);
+      ha.list = r.entities;
+      renderHa();
+      if (ha.detail) renderHaDetail();
+      if (done) done();
+    });
+  }
+
+  function haPress() {
+    var e = haItems()[ha.col];
+    if (!e) return;
+    if (e.group === 'dashboard') {
+      return postJson('/api/home/ha/dashboard', {}, function (r) {
+        if (!r || !r.ok) toast(t('home.openFailed', 'That did not open'), r && r.error);
+      });
+    }
+    var d = e.domain;
+    if (d === 'climate') return openHaDetail(e.id);
+    if (d === 'camera') return openHaCam(e.id);
+    if (d === 'scene' || d === 'script') return haAct({ id: e.id, action: 'run' }, function () { toast(e.name, t('home.ha.started', 'Started')); });
+    if (d === 'sensor' || d === 'binary_sensor') return;
+    haAct({ id: e.id, action: 'toggle' });
+  }
+
+  function haKey(k) {
+    if (ha.cam) return haCamKey(k);
+    if (ha.detail) return haDetailKey(k);
+    if (k === KEY.ok) return haPress();
+    haMove(k);
+  }
+
+  function haBack() {
+    if (ha.cam) return closeHaCam();
+    if (ha.detail) { ha.detail = null; stageClass(); return renderHa(); }
+    closeHa();
+  }
+
+  // -------------------------------------------- heating and air conditioning
+
+  function haFind(id) {
+    for (var i = 0; i < ha.list.length; i++) if (ha.list[i].id === id) return ha.list[i];
+    return null;
+  }
+
+  function openHaDetail(id) {
+    var e = haFind(id);
+    ha.detail = { id: id, target: e ? e.target : null };
+    stageClass();
+    renderHaDetail();
+  }
+
+  function renderHaDetail() {
+    var e = haFind(ha.detail.id);
+    if (!e) return;
+    $('hdName').textContent = e.name;
+    $('hdTarget').textContent = haNum(ha.detail.target !== null ? ha.detail.target : e.target, '°');
+    $('hdNow').textContent = t('home.ha.now', 'Now {t}', { t: haNum(e.current, '°') }) + (e.humidity !== null ? ' · ' + haNum(e.humidity, '%') : '') +
+      (e.action ? ' · ' + haActionText(e.action) : '');
+    $('hdModes').innerHTML = e.modes.map(function (m) { return '<span class="hm' + (m === e.state ? ' on' : '') + '">' + esc(haModeText(m)) + '</span>'; }).join('');
+  }
+
+  // Up and Down move the temperature at once on screen; it is sent once they rest.
+  function haDetailKey(k) {
+    var e = haFind(ha.detail.id);
+    if (!e) return;
+    if (k === KEY.ok) { ha.detail = null; stageClass(); return renderHa(); }
+    if (k === KEY.up || k === KEY.down) {
+      var now = ha.detail.target !== null ? ha.detail.target : (e.target !== null ? e.target : 20);
+      var next = Math.round((now + (k === KEY.up ? e.step : -e.step)) * 10) / 10;
+      if (e.min !== null) next = Math.max(e.min, next);
+      if (e.max !== null) next = Math.min(e.max, next);
+      ha.detail.target = next;
+      renderHaDetail();
+      clearTimeout(ha.setTimer);
+      var id = e.id;
+      ha.setTimer = setTimeout(function () { haAct({ id: id, action: 'temperature', value: next }); }, 900);
+      return;
+    }
+    if ((k === KEY.left || k === KEY.right) && e.modes.length) {
+      var at = e.modes.indexOf(e.state), to = e.modes[(at + (k === KEY.right ? 1 : e.modes.length - 1)) % e.modes.length];
+      haAct({ id: e.id, action: 'mode', value: to });
+    }
+  }
+
+  // -------------------------------------------- cameras
+
+  function haCameras() { return ha.list.filter(function (e) { return e.domain === 'camera'; }); }
+
+  function openHaCam(id) {
+    var e = haFind(id);
+    ha.cam = id;
+    $('haCamImg').src = haCamUrl(id, true);
+    $('haCamName').textContent = e ? e.name : '';
+    stageClass();
+  }
+
+  function closeHaCam() {
+    if (!ha.cam) return;
+    ha.cam = null;
+    // Ends the stream from Home Assistant.
+    $('haCamImg').src = '';
+    stageClass();
+  }
+
+  function haCamKey(k) {
+    var cams = haCameras(), at = -1;
+    cams.forEach(function (c, i) { if (c.id === ha.cam) at = i; });
+    if (k === KEY.ok) return closeHaCam();
+    if ((k === KEY.left || k === KEY.right) && cams.length > 1) {
+      openHaCam(cams[(at + (k === KEY.right ? 1 : cams.length - 1)) % cams.length].id);
+    }
+  }
+
+  function haPointer(target, click) {
+    if (ha.cam || ha.detail) { if (click) haKey(KEY.ok); return; }
+    while (target && target !== document.body && !(target.hasAttribute && target.hasAttribute('data-h'))) target = target.parentNode;
+    if (!target || target === document.body) return;
+    var i = +target.getAttribute('data-h');
+    if (i !== ha.col) { ha.col = i; renderHa(); }
+    if (click) haPress();
+  }
+
   // ---------------------------------------------------------------- more apps
 
   var folder = { open: false, col: 0, apps: [] };
@@ -2926,10 +3322,10 @@ html.faded #stage{opacity:0}
   }
 
   function openFromFolder(app) {
-    if (app.immich) {
+    if (app.immich || app.ha) {
       closeFolder();
       postJson('/api/home/open', { kind: 'app', id: app.id });
-      return openPhotos();
+      return app.ha ? openHa() : openPhotos();
     }
     fadeThenOpen(app.overlay === true, function (done) {
       postJson('/api/home/open', { kind: 'app', id: app.id }, function (r) {
@@ -3647,7 +4043,8 @@ html.faded #stage{opacity:0}
       okInRecents = recents.open || settings.open;
       okInFolder = folder.open;
       okInPhotos = photos.open;
-      if (okInRecents || okInFolder || okInPhotos) return;
+      okInHa = ha.open;
+      if (okInRecents || okInFolder || okInPhotos || okInHa) return;
       okTimer = setTimeout(function () {
         okLong = true;
         if (state.held || state.top >= 0) return;
@@ -3662,6 +4059,7 @@ html.faded #stage{opacity:0}
       if (settings.open) return closeSettings();
       if (folder.open) return closeFolder();
       if (photos.open) return photosBack();
+      if (ha.open) return haBack();
       if (recents.open || recents.loading) return closeRecents();
       if (state.arranging && state.held) { state.held = false; return toggleHidden(); }
       if (state.arranging) return setArranging(false);
@@ -3669,6 +4067,7 @@ html.faded #stage{opacity:0}
     }
     if (folder.open) { e.preventDefault(); return folderKey(k); }
     if (photos.open) { e.preventDefault(); return photosKey(k); }
+    if (ha.open) { e.preventDefault(); return haKey(k); }
     if (recents.open) { e.preventDefault(); return recentsKey(k); }
     if (settings.open) { e.preventDefault(); return settingsKey(k); }
     if (state.arranging) { arrangeKey(k); e.preventDefault(); return; }
@@ -3695,7 +4094,8 @@ html.faded #stage{opacity:0}
     }
     if (okInFolder) { if (folder.open) folderKey(KEY.ok); return; }
     if (okInPhotos) { if (photos.open) photosKey(KEY.ok); return; }
-    if (recents.open || recents.loading || folder.open || photos.open) return;
+    if (okInHa) { if (ha.open) haKey(KEY.ok); return; }
+    if (recents.open || recents.loading || folder.open || photos.open || ha.open) return;
     if (state.arranging) arrangeKey(KEY.ok);
     else if (state.top >= 0) pressTop(state.top);
     else activate();
@@ -3721,6 +4121,7 @@ html.faded #stage{opacity:0}
     if (layoutBusy || !data || !layout) return;
     if (settings.open) return settingsPointer(target, false);
     if (photos.open) return photosPointer(target, false);
+    if (ha.open) return haPointer(target, false);
     if (finder.open) return finderPointer(target);
     if (folder.open) {
       var inFolder = tileAt(target);
@@ -3760,6 +4161,7 @@ html.faded #stage{opacity:0}
   function onClick(e) {
     if (!data || !layout || layoutBusy) return;
     if (photos.open) return photosPointer(e.target, true);
+    if (ha.open) return haPointer(e.target, true);
     if (folder.open) {
       var picked = tileAt(e.target);
       if (!picked || !picked.hasAttribute('data-f')) return closeFolder();
@@ -4019,6 +4421,7 @@ html.faded #stage{opacity:0}
     state.top = -1;
     if (settings.open) closeSettings();
     if (photos.open) closePhotos();
+    if (ha.open) closeHa();
     // Back from an app, Home is as it was left: the same tile in focus and
     // every row where it was scrolled, brought to rest where it was headed.
     state.bar = -1;

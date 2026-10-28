@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title data-t="haphone.title">Home Assistant on the TV</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<style>
+/* Opened from the QR code in Glasshouse Home's Home Assistant settings, on a
+   phone or computer on the same network: the address and token the TV asks
+   Home Assistant with, then which entities the TV shows. AUROR's colours,
+   light or dark as the device is. */
+@font-face{font-family:"Space Grotesk";src:url("/assets/fonts/SpaceGrotesk.ttf") format("truetype");font-weight:300 700}
+@font-face{font-family:"Space Mono";src:url("/assets/fonts/SpaceMono-Regular.ttf") format("truetype");font-weight:400}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#f3f5f7;color:#111827}
+body{font:16px/1.5 "Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:max(28px,env(safe-area-inset-top)) 20px 40px;max-width:480px;margin:0 auto}
+.kick{display:flex;align-items:center;gap:10px;font:14px "Space Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:#374151}
+.kick:before{content:"";width:8px;height:8px;border-radius:2px;background:#f5a000}
+h1{font-weight:300;font-size:34px;line-height:1.1;letter-spacing:-.5px;margin:12px 0 10px}
+.sub{color:#5d6472;font-size:15px;margin-bottom:22px}
+label{display:block;font-size:13px;color:#5d6472;margin:18px 0 6px}
+input,select{width:100%;font:inherit;color:inherit;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px}
+input:focus,select:focus{outline:2px solid #d98c00;outline-offset:2px}
+.note{font-size:13px;color:#5d6472;margin-top:6px}
+button{width:100%;margin-top:28px;font:inherit;font-weight:600;color:#111827;background:#f5a000;border:0;border-radius:10px;padding:14px}
+button:disabled{opacity:.5}
+.msg{margin-top:16px;font-size:15px;min-height:1.5em}
+.msg.err{color:#b42318}
+#userRow[hidden]{display:none}
+.done h1{margin-top:18vh}
+ol{margin:10px 0 0 20px;color:#5d6472;font-size:14px}
+ol li{margin:3px 0}
+@media (prefers-color-scheme:dark){
+  ol{color:#99a2af}
+  html,body{background:#15191f;color:#e0e4ea}
+  .kick{color:#f5a000}
+  .sub,label,.note{color:#99a2af}
+  input,select{background:#1c2028;border-color:rgba(255,255,255,.12)}
+  input:focus,select:focus{outline-color:#f5a000}
+  .msg.err{color:#ff8a80}
+}
+fieldset{border:0;margin:22px 0 0}
+legend{font:13px "Space Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:#5d6472;margin-bottom:6px}
+.ent{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #e5e7eb;font-size:15px}
+.ent input{width:20px;height:20px;flex:0 0 auto;accent-color:#f5a000}
+.ent small{display:block;color:#5d6472;font:12px "Space Mono",monospace}
+#filter{margin-top:6px}
+.bar2{position:sticky;bottom:0;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:inherit}
+.bar2 button{margin-top:0}
+.linkmore{display:block;margin-top:18px;font-size:14px;color:inherit}
+@media (prefers-color-scheme:dark){
+  legend,.ent small{color:#99a2af}
+  .ent{border-color:rgba(255,255,255,.12)}
+}
+</style>
+</head>
+<body>
+<main id="form" hidden>
+  <div class="kick" translate="no">Glasshouse Home</div>
+  <h1 data-t="haphone.linkTitle">Link Home Assistant</h1>
+  <p class="sub" data-t="haphone.sub">The Home Assistant tile in the Apps row shows the entities chosen for the TV: lights, heating and air conditioning, covers, scenes, sensors and cameras. The token stays on the TV only.</p>
+
+  <label for="server" data-t="haphone.server">Home Assistant’s address</label>
+  <input id="server" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.10:8123" translate="no">
+  <p class="note" data-t="haphone.serverNote">Its local address works best: the TV may not know newer certificates.</p>
+
+  <label for="token" data-t="haphone.token">Long-lived access token</label>
+  <input id="token" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" translate="no">
+  <ol>
+    <li data-t="haphone.step1">In Home Assistant: the profile, Security, Long-lived access tokens, Create token.</li>
+    <li data-t="haphone.step2">Name it, for instance AUROR TV, and copy it here: it is shown only once.</li>
+  </ol>
+
+  <button id="link" type="button" data-t="haphone.link">Link</button>
+  <p class="msg" id="msg1" role="status"></p>
+</main>
+
+<main id="pick" hidden>
+  <div class="kick" translate="no">Glasshouse Home</div>
+  <h1 data-t="haphone.pickTitle">What the TV shows</h1>
+  <p class="sub" id="pickSub"></p>
+  <input id="filter" type="search" placeholder="Search" data-t-placeholder="haphone.filter" autocomplete="off">
+  <div id="groups"></div>
+  <div class="bar2">
+    <button id="save" type="button" data-t="haphone.save">Save</button>
+    <p class="msg" id="msg2" role="status"></p>
+  </div>
+  <a href="#" class="linkmore" id="relink" data-t="haphone.relink">Link another Home Assistant</a>
+</main>
+
+<main id="gone" class="done" hidden>
+  <div class="kick" translate="no">Glasshouse Home</div>
+  <h1 data-t="haphone.expiredTitle">This link has expired</h1>
+  <p class="sub" id="goneWhy"></p>
+</main>
+
+<script src="/assets/i18n.js"></script>
+<script>
+(function () {
+  var code = (location.search.match(/[?&]c=([0-9a-f]+)/) || [])[1] || '';
+  function $(id) { return document.getElementById(id); }
+  var GROUP_NAMES = {
+    climate: t('haphone.climate', 'Heating and air conditioning'),
+    power: t('haphone.power', 'Lights and switches'),
+    covers: t('haphone.covers', 'Covers'),
+    scenes: t('haphone.scenes', 'Scenes and scripts'),
+    sensors: t('haphone.sensors', 'Sensors'),
+    cameras: t('haphone.cameras', 'Cameras')
+  };
+  var list = [];
+
+  function say(el, text, err) { $(el).textContent = text || ''; $(el).className = 'msg' + (err ? ' err' : ''); }
+  function show(id) { ['form', 'pick', 'gone'].forEach(function (m) { $(m).hidden = m !== id; }); }
+
+  function request(method, url, body, cb) {
+    var xhr = new XMLHttpRequest();
+    xhr.open(method, url + (method === 'GET' ? (url.indexOf('?') === -1 ? '?' : '&') + 'c=' + code : ''), true);
+    if (body) xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = function () {
+      var r = {};
+      try { r = JSON.parse(xhr.responseText); } catch (e) {}
+      if (r && r.expired) { show('gone'); $('goneWhy').textContent = r.error || ''; return; }
+      cb(r);
+    };
+    xhr.onerror = function () { cb(null); };
+    if (body) body.c = code;
+    xhr.send(body ? JSON.stringify(body) : null);
+  }
+  function unreachable(el) { say(el, t('haphone.unreachable', 'Could not reach the TV. Check this device is on the same network.'), true); }
+
+  function render() {
+    var words = $('filter').value.toLowerCase(), html = '';
+    Object.keys(GROUP_NAMES).forEach(function (g) {
+      var inGroup = list.filter(function (e) { return e.group === g && (!words || (e.name + ' ' + e.id).toLowerCase().indexOf(words) !== -1); });
+      if (!inGroup.length) return;
+      html += '<fieldset><legend>' + GROUP_NAMES[g] + '</legend>' + inGroup.map(function (e) {
+        return '<label class="ent"><input type="checkbox" data-id="' + e.id + '"' + (e.shown ? ' checked' : '') + '><span>' +
+          e.name.replace(/[&<>"]/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]; }) +
+          '<small translate="no">' + e.id + '</small></span></label>';
+      }).join('') + '</fieldset>';
+    });
+    $('groups').innerHTML = html || '<p class="sub">' + t('haphone.none', 'Nothing here the TV can show.') + '</p>';
+    var boxes = $('groups').querySelectorAll('input');
+    for (var i = 0; i < boxes.length; i++) {
+      boxes[i].onchange = function () {
+        var id = this.getAttribute('data-id'), on = this.checked;
+        list.forEach(function (e) { if (e.id === id) e.shown = on; });
+        count();
+      };
+    }
+    count();
+  }
+
+  function count() {
+    var n = list.filter(function (e) { return e.shown; }).length;
+    $('pickSub').textContent = t('haphone.pickSub', '{n} chosen for the TV, in the order of the kinds below.', { n: n });
+  }
+
+  function loadEntities() {
+    show('pick');
+    say('msg2', t('haphone.loading', 'Asking Home Assistant…'));
+    request('GET', '/ha/entities', null, function (r) {
+      if (!r) return unreachable('msg2');
+      if (!r.ok) return say('msg2', r.error, true);
+      list = r.entities;
+      say('msg2', '');
+      render();
+    });
+  }
+
+  $('filter').oninput = render;
+  $('relink').onclick = function (e) { e.preventDefault(); show('form'); };
+
+  $('link').onclick = function () {
+    var server = $('server').value.trim(), token = $('token').value.trim();
+    if (!server) { $('server').focus(); return say('msg1', t('haphone.needServer', 'Enter Home Assistant’s address.'), true); }
+    if (!token) { $('token').focus(); return say('msg1', t('haphone.needToken', 'Enter the token.'), true); }
+    $('link').disabled = true;
+    say('msg1', t('haphone.trying', 'Trying Home Assistant…'));
+    request('POST', '/ha/link', { server: server, token: token }, function (r) {
+      $('link').disabled = false;
+      if (!r) return unreachable('msg1');
+      if (!r.ok) return say('msg1', r.error || t('haphone.failed', 'That did not work. Try again.'), true);
+      loadEntities();
+    });
+  };
+
+  $('save').onclick = function () {
+    var ids = list.filter(function (e) { return e.shown; }).map(function (e) { return e.id; });
+    $('save').disabled = true;
+    request('POST', '/ha/choose', { ids: ids }, function (r) {
+      $('save').disabled = false;
+      if (!r) return unreachable('msg2');
+      if (!r.ok) return say('msg2', r.error, true);
+      say('msg2', t('haphone.saved', 'Saved: the TV shows {n}.', { n: r.chosen }));
+    });
+  };
+
+  request('POST', '/ha/link', { check: true }, function (r) {
+    if (!r) { show('form'); return unreachable('msg1'); }
+    if (r.linked) loadEntities(); else show('form');
+  });
+})();
+</script>
+</body>
+</html>
