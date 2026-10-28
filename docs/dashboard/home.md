@@ -26,7 +26,7 @@ The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand
 
 ### Settings from a browser
 
-The web dashboard's **Home** tab has an **AUROR** section with the same, while Glasshouse Home is on: the owner's name, the network, the sleep timer, the photos behind Home (**Manage** opens their page in a new tab), Immich (**Link** opens its page, **Unlink**, the screen saver's album and the memories on the Top Shelf) and SSH.
+The web dashboard's **Home** tab has an **AUROR** section with the same, while Glasshouse Home is on: the owner's name, the network, the sleep timer, the photos behind Home (**Manage** opens their page in a new tab), Immich (**Link** opens its page, **Unlink**, the screen saver's album and the memories on the Top Shelf), Home Assistant (**Link** or **Choose** opens its page, **Unlink**, and its readings on the Top Shelf) and SSH.
 
 ### Settings on the TV
 
@@ -36,13 +36,14 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 
 
 * **Look**: the owner's name for the greeting, typed on the TV's keyboard, the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza. With Immich linked, the screen saver can show Immich's photos instead, from an album or the whole library.
-* **Top Shelf**: what Jellyfin, Glasshouse, Immich and the HDMI inputs show there.
+* **Top Shelf**: what Jellyfin, Glasshouse, Immich, Home Assistant and the HDMI inputs show there.
 * **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), then hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
 * **Tiles**: which apps show. LG's Home always does.
 * **Backgrounds**: photos behind Home, one of them or all in turn, added from a phone or computer (see [Backgrounds](#backgrounds)).
 * **Search**: the switch, and TMDB's key, linked from a phone by a QR code (see [Search](#search)).
 * **Jellyfin**: the server and user linked, and a QR code. Scanned with a phone on the same network, it opens a page for the server's address and an API key (Jellyfin's **Dashboard › API Keys**), so neither is typed with the remote. The code lasts ten minutes and links once; the details are tried before they are kept, and the key is kept on the TV only, in `/var/lib/tvweb/jellyfin.json`.
 * **Immich**: the server and user linked, and a QR code, as for Jellyfin (see [Immich](#immich)).
+* **Home Assistant**: the server and home linked, how many entities the TV shows, **Open Home Assistant's dashboard**, **Unlink**, and a QR code for linking and choosing from a phone (see [Home Assistant](#home-assistant)).
 * **SSH**: the Homebrew Channel's SSH server, on or off. Switched on, it starts at once and at every start of the TV, as the Homebrew Channel's own setting; off, it stops, ending the sessions open. The rows say whether it is listening on port 22, whether a key or the root password lets in (the Homebrew Channel's `alpine` until changed, while there are no keys) and the address to connect to.
 * **Glasshouse**: AUROR's automatic updates, **Update now**, which asks for AUROR's latest release and installs it at once, the version installed, and Glasshouse's TV app, for everything else.
 
@@ -128,6 +129,20 @@ Once an [Immich](https://immich.app) server is linked, an **Immich** tile joins 
 With the Immich tile focused, the Top Shelf shows this day in years past from Immich's memories, up to three years with how many photos and where, when the key has `memory.read`; without memories it shows the tile's name.
 
 **Settings › Immich** on the TV shows a QR code: scanned with a phone on the same network, it opens a page for the server's address (its port is usually 2283) and an API key, made in Immich under **Account settings › API keys** with `album.read`, `asset.read` and `asset.view`, and `memory.read` for the memories. The key is tried on the albums before it is kept, on the TV only, in `/var/lib/tvweb/immich.json`; the view never has it, as the server passes the pictures and videos on with the key added. Albums come from the timeline on current Immich releases, and with the album itself from Immich 1.
+
+## Home Assistant
+
+![Home Assistant's entities over Home: heating, lights, covers, scenes, sensors and cameras as tiles four to a line](../screenshots/auror-ha.jpg)
+
+Once a [Home Assistant](https://www.home-assistant.io) server is linked, a **Home Assistant** tile joins the Apps row. **OK** opens the entities chosen for the TV as tiles, four to a line, grouped as heating and air conditioning, lights and switches, covers, scenes and scripts, sensors and cameras, with their state asked again every five seconds while the panel is open. **OK** on a tile turns a light, switch or fan on or off, opens or closes a cover, runs a scene or script, and shows a camera full screen, live, where **Left** and **Right** go to the next camera. Sensors are read only. The last tile opens Home Assistant's own dashboard in the TV's browser, for everything else.
+
+![The heating's panel: the target temperature large, the room's now, and its modes](../screenshots/auror-ha-heating.jpg)
+
+**OK** on heating or air conditioning opens its own panel: **Up** and **Down** change the target temperature by the entity's step, sent once the keys rest, and **Left** and **Right** change its mode. With the tile focused, the Top Shelf shows up to four readings: the rooms' temperatures, then the sensors chosen.
+
+**Settings › Home Assistant** on the TV shows a QR code. The page it opens on a phone takes Home Assistant's address (its port is usually 8123; the local address is best, as the TV may not know newer certificates) and a long-lived access token, made in Home Assistant under the profile's **Security** tab. The token is tried before it is kept, on the TV only, in `/var/lib/tvweb/auror-ha.json`; the view never has it, as the server asks Home Assistant and passes the cameras on. The same page then lists the entities by kind to choose those the TV shows, 80 at most; until a choice is saved, the TV shows a first pick of up to 40: heating, lights, covers, scenes, cameras and temperature, humidity, power and air quality sensors. Only the entities chosen can be acted on, with the services each kind has here. Locks and alarms are not offered.
+
+This is separate from the [MQTT bridge](../HOME-ASSISTANT.md), which puts the TV into Home Assistant.
 
 ## Backgrounds
 

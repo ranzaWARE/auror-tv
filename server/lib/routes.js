@@ -23,6 +23,7 @@ var devtools = require('./devtools');
 var names = require('./names');
 var aurorUpdate = require('./auror-autoupdate');
 var aurorTv = require('./auror-tv');
+var aurorHa = require('./auror-ha');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
 var HA_ENTITIES = ha.HA_ENTITIES;
@@ -1150,6 +1151,7 @@ function handleHomeRoute(req, res, u, pathname) {
           c.jellyfin = homeModule.jellyfin.status();
           c.tmdb = homeModule.search.status();
           c.immich = homeModule.immich.status();
+          c.ha = aurorHa.status();
           c.update = aurorUpdate.status();
           c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
             available: !screensaversModule.heldBack() } : null;
@@ -1189,6 +1191,10 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/immich/albums') return homeModule.immich.albums(reply);
     if (pathname === '/api/home/immich/album') return homeModule.immich.album(String(u.query && u.query.id || ''), reply);
     if (pathname === '/api/home/immich/thumb') return homeModule.immich.thumb(u.query || {}, res);
+    // Home Assistant's panel (lib/auror-ha), through this server with the token added.
+    if (pathname === '/api/home/ha/status') return reply(aurorHa.status());
+    if (pathname === '/api/home/ha/states') return aurorHa.states(reply);
+    if (pathname === '/api/home/ha/camera') return aurorHa.camera(u.query || {}, res);
     if (pathname === '/api/home/immich/memories') return homeModule.immich.memories(String(u.query && u.query.day || ''), reply);
     // For the AUROR · Immich screen saver, which asks from the TV itself.
     if (pathname === '/api/home/immich/saver') return homeModule.immich.saverPhotos(reply);
@@ -1262,6 +1268,10 @@ function handleHomeRoute(req, res, u, pathname) {
       }
       if (pathname === '/api/home/gallery/pair') return reply(homeModule.gallery.pair(lanOrigin()));
       if (pathname === '/api/home/immich/pair') return reply(homeModule.immich.pair(lanOrigin()));
+      if (pathname === '/api/home/ha/pair') return reply(aurorHa.pair(lanOrigin()));
+      if (pathname === '/api/home/ha/forget') return aurorHa.forget(reply);
+      if (pathname === '/api/home/ha/act') return aurorHa.act(body, reply);
+      if (pathname === '/api/home/ha/dashboard') return aurorHa.openDashboard(reply);
       if (pathname === '/api/home/immich/forget') return homeModule.immich.forget(reply);
       if (pathname === '/api/home/immich/saver') return homeModule.immich.setSaverAlbum(body && body.album !== undefined ? body.album : null, reply);
       if (pathname === '/api/home/recents') {
@@ -1342,6 +1352,27 @@ function handlePhotosPhone(req, res, u, pathname) {
       if (pathname === '/photos/remove') return answer(gallery.remove(body.id));
       if (pathname === '/photos/use') return answer(gallery.setSettings({ mode: 'one', photo: body.id }));
       answer(gallery.setSettings({ mode: body.mode, every: body.every }));
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+// The phone's page for Home Assistant's address and token, and the entities for the TV (lib/auror-ha).
+function handleHaPhone(req, res, u, pathname) {
+  var answer = function (r) { send(res, r.ok ? 200 : (r.expired ? 403 : 400), JSON.stringify(r)); };
+  if (pathname === '/ha' && req.method === 'GET') {
+    var page = assetPath('ha-phone.html');
+    if (!page) return send(res, 404, 'page missing', 'text/plain');
+    return fs.readFile(page, function (err, buf) {
+      if (err) return send(res, 500, 'could not read the page', 'text/plain');
+      send(res, 200, buf, 'text/html; charset=utf-8');
+    });
+  }
+  if (pathname === '/ha/entities' && req.method === 'GET') return aurorHa.entities(String((u.query && u.query.c) || ''), answer);
+  if ((pathname === '/ha/link' || pathname === '/ha/choose') && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      if (pathname === '/ha/link') return aurorHa.link(body, answer);
+      aurorHa.choose(body, answer);
     });
   }
   send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
@@ -1450,11 +1481,12 @@ function handleRequest(req, res) {
     }));
   }
 
-  // Jellyfin, TMDB, Immich and AUROR's photos from a phone: the one-time code in the TV's QR code stands in for the token.
+  // Jellyfin, TMDB, Immich, Home Assistant and AUROR's photos from a phone: the one-time code in the TV's QR code stands in for the token.
   if ((pathname === '/jellyfin' || pathname === '/jellyfin/link') && homeModule) return handleJellyfinPhone(req, res, u, pathname);
   if ((pathname === '/tmdb' || pathname === '/tmdb/link') && homeModule) return handleTmdbPhone(req, res, pathname);
   if ((pathname === '/photos' || pathname.indexOf('/photos/') === 0) && homeModule) return handlePhotosPhone(req, res, u, pathname);
   if ((pathname === '/immich' || pathname === '/immich/link') && homeModule) return handleImmichPhone(req, res, pathname);
+  if (pathname === '/ha' || pathname.indexOf('/ha/') === 0) return handleHaPhone(req, res, u, pathname);
 
   if (pathname.indexOf('/api/') === 0 && !authed(u.query, req)) {
     return send(res, 401, JSON.stringify({ ok: false, error: 'bad or missing token' }));

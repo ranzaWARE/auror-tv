@@ -311,9 +311,9 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 #setSide .kick{margin-top:52px}
 #setTitle{margin-top:18px;font-size:80px;font-weight:300;letter-spacing:-2px;line-height:1}
 #setDesc{margin-top:22px;font-size:24px;line-height:1.45;color:#99a2af;min-height:105px}
-/* Ten sections: a little tighter than the rows, so the last stays on screen. */
+/* Eleven sections: tighter than the rows, so the last stays on screen. */
 #setNav{margin-top:24px}
-.setcat{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:52px;margin-bottom:4px;padding:0 20px;border-radius:10px;
+.setcat{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:48px;margin-bottom:4px;padding:0 20px;border-radius:10px;
   border:1px solid transparent;font-size:28px;color:#99a2af;outline:3px solid transparent;outline-offset:4px}
 .setcat:before{content:"";width:10px;height:10px;border-radius:2px;margin-right:16px;background:transparent}
 .setcat.current{background:#23272e;border-color:rgba(255,255,255,.08);color:#e0e4ea;font-weight:600}
@@ -512,3 +512,58 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 #vwWhen{font-size:36px;font-weight:300}
 #vwWhere{margin-top:4px;font-size:22px;color:rgba(255,255,255,.75)}
 #vwPos{position:absolute;right:120px;bottom:60px;font-family:"Space Mono",monospace;font-size:18px;color:rgba(255,255,255,.75)}
+
+/* ---- Home Assistant: the entities as tiles over Home, heating's own panel, a camera full screen ---- */
+#hapanel{position:absolute;left:0;top:0;width:1920px;height:1080px;padding:72px 120px 0;background:#15191f;z-index:3;
+  visibility:hidden;opacity:0;-webkit-transition:opacity .22s,visibility 0s .22s;transition:opacity .22s,visibility 0s .22s}
+.ha #hapanel{visibility:visible;opacity:1;-webkit-transition-delay:0s;transition-delay:0s}
+.light #hapanel{background:#f3f5f7}
+#hapanel h2{font-size:56px;font-weight:300;letter-spacing:-.5px;line-height:1.15;margin:14px 0 6px;color:#e0e4ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.light #hapanel h2{color:#111827}
+#haSub{font-family:"Space Mono",monospace;font-size:18px;color:#99a2af;text-transform:uppercase;letter-spacing:.04em}
+.light #haSub{color:#5d6472}
+#haWrap{position:relative;height:836px;margin:16px -16px 0;padding:24px 16px 0;overflow:hidden}
+#haGrid{position:relative;-webkit-transition:-webkit-transform .28s cubic-bezier(.2,.7,.2,1);transition:transform .28s cubic-bezier(.2,.7,.2,1)}
+.ht{position:absolute;width:384px;height:200px;padding:24px 26px;border-radius:12px;background:#1c2028;border:1px solid rgba(255,255,255,.08);overflow:hidden;
+  outline:3px solid transparent;outline-offset:4px;
+  -webkit-transition:-webkit-transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s,background-color .2s;transition:transform .12s cubic-bezier(.2,.7,.2,1),box-shadow .12s,outline-color .12s,background-color .2s}
+.ht.focus{background:#23272e;outline-color:#f5a000;box-shadow:0 18px 36px rgba(0,0,0,.55);-webkit-transform:scale(1.04);transform:scale(1.04)}
+.ht .hi{display:block;width:40px;height:40px;color:#99a2af}
+.ht .hi svg{display:block;width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ht .hb{position:absolute;right:26px;top:22px;font-size:44px;font-weight:300;letter-spacing:-1px;color:#e0e4ea}
+.ht .hn{position:absolute;left:26px;right:26px;bottom:52px;font-size:26px;font-weight:500;color:#e0e4ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ht .hs{position:absolute;left:26px;right:26px;bottom:20px;font-size:19px;color:#99a2af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ht.on .hi{color:#f5a000}
+.ht.on{background:#2a2418;border-color:rgba(245,160,0,.35)}
+.ht.on.focus{background:#33291a}
+.ht.g-cameras{padding:0}
+.ht.g-cameras .hc{position:absolute;left:0;top:0;width:384px;height:200px;object-fit:cover;background:#23272e}
+.ht .hshade{position:absolute;left:0;right:0;bottom:0;height:120px;background:-webkit-linear-gradient(top,rgba(0,0,0,0),rgba(0,0,0,.7));background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.7))}
+.ht.g-cameras .hi{position:absolute;left:26px;top:22px;color:#fff}
+.ht.g-cameras .hn,.ht.g-cameras .hs{color:#fff}
+.ht.g-dashboard{border-style:dashed}
+.light .ht{background:#fff;border-color:#e5e7eb}
+.light .ht.focus{background:#fff;outline-color:#d98c00;box-shadow:0 14px 30px rgba(17,24,39,.18)}
+.light .ht .hn,.light .ht .hb{color:#111827}
+.light .ht .hs,.light .ht .hi{color:#5d6472}
+.light .ht.on{background:#fff4dc;border-color:rgba(217,140,0,.4)}
+.light .ht.on .hi{color:#b36b00}
+.light .ht.g-cameras .hn,.light .ht.g-cameras .hs,.light .ht.g-cameras .hi{color:#fff}
+#haDetail{position:absolute;left:0;top:0;width:1920px;height:1080px;padding:200px 0 0;text-align:center;background:rgba(21,25,31,.97);z-index:4;
+  visibility:hidden;opacity:0;-webkit-transition:opacity .2s,visibility 0s .2s;transition:opacity .2s,visibility 0s .2s}
+.ha-detail #haDetail{visibility:visible;opacity:1;-webkit-transition-delay:0s;transition-delay:0s}
+.light #haDetail{background:rgba(243,245,247,.97)}
+#haDetail .kick{-webkit-justify-content:center;justify-content:center}
+#hdTarget{margin-top:30px;font-size:220px;font-weight:300;letter-spacing:-8px;line-height:1;color:#e0e4ea;-webkit-font-feature-settings:"tnum";font-feature-settings:"tnum"}
+#hdNow{margin-top:20px;font-size:30px;color:#99a2af}
+#hdModes{margin-top:56px}
+#hdModes .hm{display:inline-block;margin:0 10px;padding:12px 28px;border-radius:10px;border:1px solid rgba(255,255,255,.12);font-size:26px;color:#99a2af}
+#hdModes .hm.on{background:#f5a000;border-color:#f5a000;color:#111827;font-weight:600}
+#hdHint{position:absolute;left:0;right:0;bottom:80px;font-family:"Space Mono",monospace;font-size:18px;color:#5d6472;text-transform:uppercase;letter-spacing:.04em}
+.light #hdTarget{color:#111827}
+.light #hdNow,.light #hdModes .hm{color:#5d6472;border-color:#e5e7eb}
+#haCam{position:absolute;left:0;top:0;width:1920px;height:1080px;background:#000;z-index:5;
+  visibility:hidden;opacity:0;-webkit-transition:opacity .2s,visibility 0s .2s;transition:opacity .2s,visibility 0s .2s}
+.ha-cam #haCam{visibility:visible;opacity:1;-webkit-transition-delay:0s;transition-delay:0s}
+#haCamImg{display:block;width:1920px;height:1080px;object-fit:contain}
+#haCamName{position:absolute;left:120px;bottom:56px;font-size:30px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.8)}

@@ -207,6 +207,8 @@ its ID, and missing or unusable IDs and non-CEC inputs open the port alone.
 
 `test-auror-immich.js` runs a stand-in Immich: a code that links once and a refused key that keeps nothing, the server's address tidied and the key kept readable by root only, the albums newest first, an album from the timeline's columns or, from Immich 1, with the album, pictures passed through only at the view's sizes, a video's range passed on, this day's memories newest first and none without `memory.read`, and the screen saver's photos from the library at random or the album chosen.
 
+`test-auror-ha.js` runs a stand-in Home Assistant: a stale code or a refused token keeps nothing, the address tidied and the token kept readable by root only, a first pick before anything is chosen without locks or other sensors, the phone's list and a choice saved without a lock or a bad id, only chosen entities acted on and only with their kind's services, a temperature out of range and a mode the entity lacks refused, only a chosen camera passed through, the dashboard opened in the TV's browser, and a choice kept when the same server is linked again.
+
 `test-auror-tv.js` covers AUROR's top bar and SSH setting: Wi-Fi, cable or no network and online, limited or off, kept for 15 s; the sleep timer's steps, its toast a minute before and switching off, cancelled when the TV goes off another way and kept across a restart of the server; and SSH's flag, with dropbear started once and only dropbear stopped.
 
 `test-home-recent-apps.js` exercises the recent-app HTTP routes: refused and
