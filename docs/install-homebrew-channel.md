@@ -1,5 +1,7 @@
 # Installing from the Homebrew Channel
 
+AUROR has its own repository for the Homebrew Channel. In the Homebrew Channel, the gear, then **Add repository**, takes its address, `https://ranzaware.github.io/auror-tv/hbc.json`; back in the list, **AUROR TV** installs over Glasshouse, which keeps its settings, and the Homebrew Channel offers each AUROR release after. Glasshouse's own **Install app from a URL or file** refuses its own package, so AUROR cannot be installed from there.
+
 1. Open the Homebrew Channel, find **Glasshouse**, and install it.
 2. Open **Glasshouse** from the home screen. The first launch puts the server in place, which takes a few seconds.
 3. Setup asks whether phones and computers on the network may use the dashboard, and whether to connect Home Assistant. Broker details are typed on a phone, which scans a code from the TV. Both can be changed later in the **Settings** tab.

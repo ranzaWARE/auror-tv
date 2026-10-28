@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   package:
@@ -40,3 +41,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" dist/*.ipk dist/*.manifest.json --clobber
+
+      # The site's hbc.json, AUROR's repository for the Homebrew Channel, lists
+      # the latest release's manifest: rebuilt once it is attached.
+      - name: republish the Homebrew Channel listing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs-publish.yml --repo "$GITHUB_REPOSITORY" --ref main
