@@ -30,6 +30,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 
 #topbar{position:absolute;top:56px;right:120px;display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start}
 #when{width:auto !important;margin-right:28px;text-align:right}
+/* Switched off on the dashboard, the clock leaves the buttons in the corner. */
+.no-clock #when{display:none}
 /* Figures of one width, so the clock keeps its place as the minutes change. */
 #clock{font-size:40px !important;line-height:1.15 !important;font-weight:400 !important;letter-spacing:-1px !important;
   -webkit-font-feature-settings:"tnum";font-feature-settings:"tnum"}
@@ -217,14 +219,19 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .ch .nm,.ch .next{color:#99a2af !important}
 .ch .bar{background:rgba(255,255,255,.12) !important}
 .ch .bar i{background:#f5a000 !important}
-.dev.focus,.ch.focus{background:#23272e !important;outline-color:#f5a000 !important;box-shadow:0 22px 44px rgba(0,0,0,.6);
+/* The Recommended row's cards, framed as the inputs are. */
+.rec{background:#1c2028 !important;border:1px solid rgba(255,255,255,.08);border-radius:10px !important;outline:3px solid transparent;outline-offset:4px}
+.rec .cat{color:#99a2af !important}
+.light .rec{background:#fff !important;border-color:#e5e7eb}
+.light .rec .cat{color:#5d6472 !important}
+.dev.focus,.ch.focus,.rec.focus{background:#23272e !important;outline-color:#f5a000 !important;box-shadow:0 22px 44px rgba(0,0,0,.6);
   -webkit-transform:translateY(-6px) scale(1.06);transform:translateY(-6px) scale(1.06)}
 .arranging .dev.held,.arranging .ch.held{outline-style:dashed !important}
 .light .dev,.light .ch{background:#fff !important;border-color:#e5e7eb}
 .light .dev .path,.light .dev .st,.light .ch .nm,.light .ch .next{color:#5d6472 !important}
 .light .dev.last .st em{color:#b47400 !important}
 .light .ch .bar{background:rgba(17,24,39,.1) !important}
-.light .dev.focus,.light .ch.focus{background:#fff !important;outline-color:#d98c00 !important;box-shadow:0 16px 36px rgba(17,24,39,.18)}
+.light .dev.focus,.light .ch.focus,.light .rec.focus{background:#fff !important;outline-color:#d98c00 !important;box-shadow:0 16px 36px rgba(17,24,39,.18)}
 #rows .row[data-key="dev"] .wrap{padding-top:24px;padding-bottom:20px}
 
 /* ---- Arranging: the row's order as a chip, and a bar along the bottom ---- */

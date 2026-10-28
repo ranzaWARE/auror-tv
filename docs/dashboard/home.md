@@ -7,7 +7,7 @@
 
 ## What is on screen
 
-Glasshouse Home displays a Top Shelf over up to three rows (any row with no visible items is automatically hidden). The Top Shelf shows the focused tile, fading in as the focus moves:
+Glasshouse Home displays a Top Shelf over up to four rows (any row with no visible items is automatically hidden). The Top Shelf shows the focused tile, fading in as the focus moves:
 
 * **Jellyfin**: Continue watching, or Recently added when nothing is under way, or that the server is not answering. It is linked from a phone, in **Settings › Jellyfin** (below).
 * **Glasshouse**: the SoC temperature, CPU, memory in use and Wi-Fi signal, from `/api/stats`, read again every 10 s while it has the focus.
@@ -73,6 +73,12 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
 
     Favourite live TV channels added from the dashboard or TV app, showing the current broadcast programme from the TV guide when available.
 
+-   **Recommended**
+
+    ---
+
+    The titles the TV's apps put on LG's Home, such as Netflix's *Continue watching*, Prime Video's picks, Disney+, HBO Max and YouTube, as a row of cards with each app's picture, title and category. **OK** opens the app at that title. With an app in focus on the Apps row, by the keys or the pointer, the row shows only that app's cards (*From Netflix*), and **Down** reaches them; on a tile with no cards, such as an input or LG Home, it shows every app's, in the Apps row's order. An app hidden there shows none. The row starts under Apps and is moved like the others, but its cards are not arranged one by one. **Off by default**: switch it on in the Recommended row's settings on the dashboard or in the TV app. The pictures are loaded from each app's own servers, as on LG's Home; nothing else is sent. Tried on webOS 10. On a C2 with webOS 9.2 the TV listed no apps' titles, so the row stays hidden there and the switch says none are listed.
+
 -   **Recent apps (`Back` button)**
 
     ---
@@ -92,6 +98,12 @@ The gear opens Glasshouse Home's own settings, worked with the remote:
     **Last watched** (the top strip and the marker on that input's tile), **App count** (the "4 of 18 shown" beside Apps) and **CEC addresses** (on each input tile) are on by default, and each can be switched off from either dashboard's Home tab.
 
     The top strip stays empty until the saved layout loads. Switching **Last watched** off leaves the clock in place.
+
+-   **Clock**
+
+    ---
+
+    **Clock and date** is on by default, in the top right corner with the top bar's buttons to its left; switched off, the buttons keep the corner. AUROR's rows sit along the bottom already, so neither dashboard offers Glasshouse's **Rows along the bottom** or **Alternative View**.
 
 -   **Fade in and out**
 
@@ -152,14 +164,23 @@ On the TV or on that page, **Background** is **No photo** (Glasshouse's wallpape
 
 ## Wallpapers
 
-By default, Glasshouse Home uses AUROR's plain dark or light background (and leaves the TV's [screen saver](screen-savers.md) untouched). A picture can be set for each of four times of day: **Morning** (06:00 to 11:00), **Afternoon** (11:00 to 17:00), **Evening** (17:00 to 21:00) and **Night** (21:00 to 06:00).
+By default, Glasshouse Home uses AUROR's plain dark or light background (and leaves the TV's [screen saver](screen-savers.md) untouched). It can instead show a picture for each of four times of day: **Morning** (06:00 to 11:00), **Afternoon** (11:00 to 17:00), **Evening** (17:00 to 21:00) and **Night** (21:00 to 06:00).
+
+The **Wallpaper** section offers four choices:
+
+* **Black**, the default: no picture, so AUROR's plain background.
+* **Landscape**, a loch at four times of day, and **Abstract**, four flowing abstract pictures. A set is downloaded to the TV when it is chosen, about 820 KB, from [glasshouse-wallpapers](https://github.com/rorygallagher2024/glasshouse-wallpapers), so it adds nothing to the Glasshouse download. Only the chosen set is kept on the TV.
+* **Your own**: pictures uploaded from the browser, one for each time of day. They are kept while a set or Black is chosen, and come back with **Your own**. Uploading a picture chooses **Your own**.
 
 The web dashboard's **Wallpaper** section shows the day as a strip from midnight to midnight, each time of day filled with its picture across its hours and a marker at the time now, and below it each time of day as a small Glasshouse Home: its picture behind the clock in the chosen text colour, so how readable the clock will be shows before it is on the TV. The time of day showing now is marked **Now**.
 
+With **Your own** chosen:
+
 * Choosing a time of day, on the strip or its preview, or dropping an image on it, sets its picture. JPEG, PNG and WebP images up to 25 MB are taken; the browser scales each to fit 1920 × 1080 as a JPEG before saving it to `/var/lib/tvweb/home-wallpaper-uploads` on the TV.
 * **Replace** and **Remove** under a time of day change or remove its picture alone; one without a picture has the plain background.
-* **Add example pictures** fills every time of day without a picture from an example set, a loch at four times of day, and leaves the ones already chosen. The set is downloaded to the TV only when the button is pressed, about 820 KB in all, from [glasshouse-wallpapers](https://github.com/rorygallagher2024/glasshouse-wallpapers). The button is hidden once every time of day has a picture.
 * **Remove all** puts the plain background back for every time of day.
+
+The TV app's **Wallpaper** row moves through the four choices with OK.
 
 === "A photo behind Home"
 
@@ -216,7 +237,7 @@ Rows and tiles can be arranged from the **web dashboard**, the **TV app**, or **
 
 The Home tab's **Home customisation** section holds what applies to whichever Home is the TV's, in one column with each switch on the right:
 
-* While Glasshouse Home is on: **Open Home at power-on**, Glasshouse Home's own options (**Hide LG's Home while the TV starts**, **Picture details**, **Last watched**, **App count**, **CEC addresses**, **Search**, **Fade in and out**).
+* While Glasshouse Home is on: **Open Home at power-on**, Glasshouse Home's own options (**Hide LG's Home while the TV starts**, **Picture details**, **Clock and date**, **Last watched**, **App count**, **CEC addresses**, **Search**, **Fade in and out**).
 * While LG's Home is: **Open Home at power-on**, **Home screen layout** and **Hide home screen system apps**.
 
 Each appears where the TV has it. A TV Glasshouse Home is not offered on, such as a B8 with webOS 4.4, still has the Home tab for these; there it holds Open Home at power-on and Hide home screen system apps. The TV app's Home section has the same rows.
