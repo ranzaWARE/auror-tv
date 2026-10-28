@@ -131,11 +131,12 @@ change is merged.
 
 AUROR's releases come from [`auror.yml`](https://github.com/ranzaWARE/auror-tv/blob/main/.github/workflows/auror.yml). Each morning it merges Glasshouse's latest release into main; when that merges clean and every check above passes, it pushes main and publishes an AUROR release with the `.ipk` and its manifest attached, which TVs install on their own. When it does not merge clean, it opens a pull request to merge it by hand. A push to main that changes the server is released the same way. AUROR versions keep Glasshouse's major and minor and count AUROR's builds in the patch from 101 (0.122.101, 0.122.102, then 0.123.101), so they stay valid webOS package versions and never meet a Glasshouse one; [`scripts/auror-release.py`](https://github.com/ranzaWARE/auror-tv/blob/main/scripts/auror-release.py) has the rules. GitHub's own token cannot push a merge that changes a workflow, so the repository needs an `AUROR_TOKEN` secret: a token with Contents, Pull requests and Workflows write access on it. AUROR's fork carries none of Glasshouse's tags, so the entity stability step fetches them from Glasshouse first.
 
-[`scripts/auror-demo.py`](https://github.com/ranzaWARE/auror-tv/blob/main/scripts/auror-demo.py) builds AUROR's demo, the real view with `scripts/auror-demo/api.js` answering for the TV in the browser. `docs-publish.yml` builds it into the site at `/demo/` whenever the view, the demo or the docs change on main. `./scripts/auror-demo.py site/demo` builds it locally; any static server then serves it.
+[`scripts/auror-demo.py`](https://github.com/ranzaWARE/auror-tv/blob/main/scripts/auror-demo.py) builds AUROR's demo, the real view with `scripts/auror-demo/api.js` answering for the TV in the browser. `docs-publish.yml` builds it into the site at `/demo/` whenever the view, the demo or the docs change on main. `./scripts/auror-demo.py site/demo` builds it locally; any static server then serves it. The same job writes `site/hbc.json` with [`scripts/auror-hbc-repo.py`](https://github.com/ranzaWARE/auror-tv/blob/main/scripts/auror-hbc-repo.py): AUROR's repository for the Homebrew Channel, one package with the latest release's manifest in it.
 
 Publishing a release runs [`homebrew-channel.yml`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/homebrew-channel.yml), which builds the `.ipk`,
 attaches it and the Homebrew Channel manifest to the release, and records the
-package's sha256 in the manifest.
+package's sha256 in the manifest. It then runs `docs-publish.yml` again, so
+`hbc.json` lists the release just attached.
 
 A release's notes open with a short summary for people using Glasshouse, one
 to three plain lines, then a `## Details` heading with the full notes and their
