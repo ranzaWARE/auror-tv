@@ -79,6 +79,7 @@ var LG_HOME_TILE = 'lg-home';
 // AUROR's Immich tile: the view opens the albums itself.
 var IMMICH_TILE = 'auror-immich';
 var HA_TILE = 'auror-ha';
+var LG_SETTINGS_APP = 'com.palm.app.settings';
 /*
  * LG's notifications and search, reached from its Home's sidebar and from no
  * other screen. Neither has a launch point, so the Apps row lists them from
@@ -991,6 +992,11 @@ function open(body, cb) {
   if (kind === 'app' && ((id === IMMICH_TILE && immich.status().configured) || (id === HA_TILE && aurorHa.status().configured))) {
     noteOpened('app', id);
     return cb({ ok: true });
+  }
+  // AUROR's network button: LG's own network settings, and no other page of them.
+  if (kind === 'settings') {
+    if (id !== 'network') return cb({ ok: false, error: msg('srv.home.unknownTile', 'that is not on Glasshouse Home') });
+    return launch(LG_SETTINGS_APP, { target: 'network' }, cb);
   }
   if (kind === 'app') {
     return launchPoints(function (apps) {
