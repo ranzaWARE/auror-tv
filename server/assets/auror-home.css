@@ -108,6 +108,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
   color:#f5a000;text-transform:uppercase;letter-spacing:.06em}
 .kick:before{content:"";width:10px;height:10px;border-radius:2px;background:#f5a000;margin-right:12px;-webkit-flex:0 0 auto;flex:0 0 auto}
 .light .kick{color:#374151}
+/* An app's shelf names only what sets it apart, Last opened; otherwise the line keeps its place, empty. */
+#brandKind:empty{visibility:hidden}
 #shelfTitle{font-size:96px;font-weight:300;letter-spacing:-2px;line-height:1.1;margin-top:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #shelfSub{font-size:24px;color:#99a2af;margin-top:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .light #shelfSub{color:#5d6472}

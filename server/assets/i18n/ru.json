@@ -458,7 +458,6 @@
  "home.layout": {"text": "Ряды и плитки", "from": "Rows and tiles"},
  "home.layoutDesc": {"text": "Приложения и входы берутся с телевизора: скройте ненужные. Каналы — только те, что добавлены здесь. Удержание OK на Glasshouse Home расставляет ту же раскладку прямо на телевизоре.", "from": "Apps and inputs come from the TV: hide the ones not wanted. Channels are only the ones added here. Holding OK on Glasshouse Home arranges the same layout on the TV."},
  "home.lgHome": {"text": "LG Home", "from": "LG Home"},
- "home.now.app": {"text": "Приложение на этом телевизоре", "from": "App on this TV"},
  "home.now.channel": {"text": "Канал {number}", "from": "Channel {number}"},
  "home.now.lastOpened": {"text": "Открыто последним", "from": "Last opened"},
  "home.openFailed": {"text": "Не удалось открыть", "from": "That did not open"},
