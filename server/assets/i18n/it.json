@@ -800,6 +800,8 @@
  "home.set.autoUpdateNew": {"text": "È uscita la v{version}: si installa a TV spenta o di notte", "from": "v{version} is out: it goes in with the TV off or at night"},
  "home.set.back": {"text": "‹ Home", "from": "‹ Home"},
  "home.set.bright": {"text": "Piena", "from": "Full"},
+ "home.set.clock24": {"text": "Orologio a 24 ore", "from": "24-hour clock"},
+ "home.set.clock24Help": {"text": "L’impostazione della TV: la seguono la Home, i salvaschermo e i menu di LG", "from": "The TV’s own setting: Home, the screen savers and LG’s menus follow it"},
  "home.set.dim": {"text": "Attenuata", "from": "Dimmed"},
  "home.set.haChoose": {"text": "Scegli dal telefono cosa mostra la TV", "from": "Choose from the phone what the TV shows"},
  "home.set.haChosen": {"text": "{n} scelte", "from": "{n} chosen"},
