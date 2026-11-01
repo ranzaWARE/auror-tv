@@ -1494,15 +1494,15 @@ html.faded #stage{opacity:0}
     if (kind === 'app') {
       // An app with nothing of its own to show gets its picture, large, like tvOS's
       // static Top Shelf image: its name is already under its tile.
-      if (it.lg) return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.shelf.lgHome', 'Back to LG’s Home'));
+      if (it.lg) return brandShelf(it, '', t('home.shelf.lgHome', 'Back to LG’s Home'));
       if (isJellyfin(it) && shelfOn('jellyfin')) {
         var jf = shelfData.jellyfin;
         if (jf && (jf.state === 'resume' || jf.state === 'latest')) {
           return { mode: 'cards', items: jf.items.slice(0, 3),
             kind: jf.state === 'resume' ? t('home.jf.resume', 'Jellyfin · Continue watching') : t('home.jf.latest', 'Jellyfin · Recently added') };
         }
-        if (jf && jf.state === 'offline') return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.jf.offline', 'Server not reachable · Press OK to open the app'));
-        if (jf && jf.state === 'empty') return brandShelf(it, t('home.now.app', 'App on this TV'), t('home.jf.empty', 'Nothing new on the server · Press OK to open'));
+        if (jf && jf.state === 'offline') return brandShelf(it, '', t('home.jf.offline', 'Server not reachable · Press OK to open the app'));
+        if (jf && jf.state === 'empty') return brandShelf(it, '', t('home.jf.empty', 'Nothing new on the server · Press OK to open'));
       }
       // Immich: this day in years past, from its memories, else its name.
       var mem = it.immich && shelfOn('immich') && shelfData.immich;
@@ -1530,7 +1530,7 @@ html.faded #stage{opacity:0}
         return { mode: 'stats', kind: t('home.stats.title', 'Glasshouse · The TV now'), stats: shelfData.stats };
       }
       var lastApp = layout.showLastOn !== false && lastOn.kind === 'app' && lastOn.appId === it.id;
-      return brandShelf(it, lastApp ? t('home.now.lastOpened', 'Last opened') : t('home.now.app', 'App on this TV'), open);
+      return brandShelf(it, lastApp ? t('home.now.lastOpened', 'Last opened') : '', open);
     }
     if (kind === 'dev') {
       var lastDev = layout.showLastOn !== false && lastOn.kind === 'input' && lastOn.port === it.port;
