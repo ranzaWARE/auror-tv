@@ -63,7 +63,7 @@ assets/ui/ui.css assets/ui/core.js assets/ui/theme.js assets/ui/format.js assets
 assets/ui/update.js assets/ui/controls.js assets/ui/privacy.js assets/ui/lgsettings.js assets/ui/game.js \
 assets/ui/system.js assets/ui/history.js assets/ui/ssh.js assets/ui/screentime.js assets/ui/apps.js assets/ui/install.js assets/ui/home.js assets/ui/auror.js assets/ui/tabs.js assets/ui/servicemenu.js \
 assets/ui/oled.js assets/ui/screensavers.js assets/ui/mqtt.js assets/ui/tools.js assets/ui/search-aliases.js assets/ui/search.js assets/ui/main.js assets/ui/audio.js assets/ui/picture.js \
-assets/qr.js assets/i18n.js assets/i18n/es.json assets/i18n/de.json assets/i18n/ru.json assets/i18n/hu.json assets/i18n/it.json assets/setup.html assets/setup-phone.html \
+assets/qr.js assets/i18n.js assets/i18n/es.json assets/i18n/de.json assets/i18n/ru.json assets/i18n/hu.json assets/i18n/it.json assets/i18n/ar.json assets/setup.html assets/setup-phone.html \
 assets/dashboard-app/appinfo.json assets/dashboard-app/index.html \
 assets/dashboard-app/packageinfo.json assets/dashboard-app/install-app.sh \
 assets/dashboard-app/assets/icon80.png assets/dashboard-app/assets/icon130.png \
@@ -108,7 +108,8 @@ assets/banners/logo/vimeo.svg assets/banners/logo/youtube-ink.svg assets/banners
 assets/banners/logo/youtube-music.svg assets/banners/logo/youtube.svg \
 assets/screensavers/bokeh/bokeh.png assets/screensavers/bokeh/main.qml \
 assets/screensavers/bokeh/saver.json assets/screensavers/clock/main.qml \
-assets/screensavers/clock/saver.json assets/screensavers/currents/main.qml \
+assets/screensavers/clock/saver.json assets/screensavers/clock-date/main.qml \
+assets/screensavers/clock-date/saver.json assets/screensavers/currents/main.qml \
 assets/screensavers/currents/saver.json assets/screensavers/filament/main.qml \
 assets/screensavers/filament/saver.json assets/screensavers/fireworks/main.qml \
 assets/screensavers/fireworks/saver.json assets/screensavers/fireworks/star.png \
@@ -129,7 +130,7 @@ assets/screensavers/auror-immich/main.qml assets/screensavers/auror-immich/saver
 assets/screensavers/auror/mimus-run-dark.gif assets/screensavers/auror/mimus-run-light.gif \
 assets/screensavers/auror/mimus-sleep-dark.gif assets/screensavers/auror/mimus-sleep-light.gif \
 assets/screensavers/auror/quetza-dark.gif assets/screensavers/auror/quetza-light.gif \
-lib/mqtt.js lib/ha.js lib/updater.js lib/fetch.js lib/repo.js lib/installer.js lib/privacy.js lib/devtools.js lib/oled.js lib/screensavers.js lib/qmlcheck.js lib/saverpoweroff.js lib/idlesaver.js lib/telemetry.js \
+lib/mqtt.js lib/ha.js lib/updater.js lib/fetch.js lib/repo.js lib/installer.js lib/privacy.js lib/devtools.js lib/oled.js lib/screensavers.js lib/qmlcheck.js lib/saverpoweroff.js lib/idlesaver.js lib/typing.js lib/telemetry.js \
 lib/apps.js lib/samrescan.js lib/children.js lib/luna.js lib/piccap.js lib/huesync.js lib/state.js lib/mqtt-state.js lib/notifications.js lib/screentime.js lib/services.js lib/preload.js lib/quickaccess.js lib/remotekeys.js lib/homescreen.js lib/homescreen-webos9.js lib/homescreen-webos10.js lib/say.js lib/controls.js lib/routes.js lib/lgsettings.js lib/game.js lib/topics.js lib/timers.js lib/util.js lib/names.js lib/prometheus.js lib/remotebuttons.js lib/remotebuttons.py lib/logs.js lib/syslog.js lib/ntp.js lib/power.js lib/history.js lib/sshkeys.js lib/remotebattery.js lib/backup.js lib/iconserver.js lib/home.js lib/home-picture.js lib/home-takeover.js lib/home-wallpapers.js lib/home-recent.js lib/home-use.js lib/auror-search.js lib/clock.js lib/home-recent-apps.js lib/home-search.js lib/audio.js lib/home-recommended.js lib/home-jellyfin.js lib/auror-autoupdate.js lib/auror-tv.js lib/auror-gallery.js lib/auror-immich.js lib/auror-ha.js"
 
 for t in tar base64 fold; do

@@ -121,6 +121,8 @@ var lunaFn = null;
 var getMqttStatusFn = null;
 var piccapStatusFn = function (cb) { cb(null); };
 var huesyncStatusFn = function (cb) { cb(null); };
+// Whether LG's on-screen keyboard is up: true, false, or null where the TV does not say.
+var keyboardUpFn = function () { return null; };
 var appsChangedFn = function () {};
 var versionStr = '';
 // With the commit of a git build: what a person reads, and what tells one
@@ -284,7 +286,8 @@ function validateSettings(j) {
    */
   out.device.id = trimmedString(d.id);
   if (!/^[a-z0-9_]{1,64}$/.test(out.device.id)) e.push('device id must be 1-64 characters of a-z, 0-9 or _');
-  out.device.name = trimmedString(d.name);
+  // The Server tab sets the name; a form without it keeps the one saved.
+  if (typeof d.name === 'string') out.device.name = trimmedString(d.name);
 
   // Saved with the MQTT form, whose Launch App select lists the icons' addresses.
   if (j && typeof j.iconServer === 'boolean') out.iconServer = j.iconServer;
@@ -1141,22 +1144,22 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/catalogue') {
       return homeModule.catalogue(function (c) {
-        homeModule.status(function (st) {
-          c.ok = true;
-          c.layout = st.layout;
-          c.enabled = st.enabled;
-          c.wallpapers = homeModule.viewWallpapers();
-          c.layoutVersion = homeModule.layoutVersion();
-          // For the view's own settings.
-          c.jellyfin = homeModule.jellyfin.status();
-          c.tmdb = homeModule.search.status();
-          c.immich = homeModule.immich.status();
-          c.ha = aurorHa.status();
-          c.update = aurorUpdate.status();
-          c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
-            available: !screensaversModule.heldBack() } : null;
-          reply(c);
-        });
+        var st = homeModule.viewStatus();
+        c.ok = true;
+        c.layout = st.layout;
+        c.enabled = st.enabled;
+        c.supported = st.supported;
+        c.wallpapers = st.wallpapers;
+        c.layoutVersion = homeModule.layoutVersion();
+        // For the view's own settings.
+        c.jellyfin = homeModule.jellyfin.status();
+        c.tmdb = homeModule.search.status();
+        c.immich = homeModule.immich.status();
+        c.ha = aurorHa.status();
+        c.update = aurorUpdate.status();
+        c.saver = screensaversModule ? { mode: screensaversModule.screensaverMode(), level: screensaversModule.screensaverLevel(),
+          available: !screensaversModule.heldBack() } : null;
+        reply(c);
       });
     }
     if (pathname === '/api/home/channels') {
@@ -1177,6 +1180,7 @@ function handleHomeRoute(req, res, u, pathname) {
       return homePictureModule.picture(String(u.query && u.query.kind || ''), Number(u.query && u.query.port), reply,
         String(u.query && u.query.app || ''));
     }
+    if (pathname === '/api/home/signal') return homePictureModule.signal(Number(u.query && u.query.port), reply);
     if (pathname === '/api/home/wallpaper') {
       var wallpaper = homeModule.wallpaperPath(String(u.query && u.query.slot || ''));
       if (!wallpaper) return send(res, 404, JSON.stringify({ ok: false, error: 'no wallpaper uploaded' }));
@@ -1229,13 +1233,14 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/beat') {
       if (!postGuard(req, res, 'application/json', false)) return;
-      req.resume();
-      // The view's language, for the screen savers, which have none of their own.
-      homeModule.noteViewLang(say.langOf(req) || 'en');
-      // The hour cycle the view's clock draws, which follows the TV's setting.
-      var beatBody = homeModule.beat();
-      beatBody.clockHour12 = clockHour12();
-      return reply(beatBody);
+      return readJsonBody(req, res, function (body) {
+        // The view's language, for the screen savers, which have none of their own.
+        homeModule.noteViewLang(say.langOf(req) || 'en');
+        // The hour cycle the view's clock draws, which follows the TV's setting.
+        var beatBody = homeModule.beat(body);
+        beatBody.clockHour12 = clockHour12();
+        reply(beatBody);
+      });
     }
     return readJsonBody(req, res, function (body) {
       if (pathname === '/api/home/layout') return homeModule.setLayout(body, reply);
@@ -1527,7 +1532,12 @@ function handleRequest(req, res) {
         });
       });
     }
-    return send(res, 405, JSON.stringify({ ok: false, error: 'method not allowed' }));
+    if (req.method !== 'POST') return send(res, 405, JSON.stringify({ ok: false, error: 'method not allowed' }));
+    if (!config.allowControl) return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    if (!hostAllowed(req)) return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.audio.hostRefused', 'Use the TV address to change the DTS override.') }));
+    return readJsonBody(req, res, function (body) {
+      audioModule.setOverride(body.enabled, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
+    });
   }
 
   if (pathname === '/api/screensaver') {
@@ -1989,6 +1999,18 @@ function handleRequest(req, res) {
     });
   }
 
+  if (pathname === '/api/homescreen/banner' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (!postGuard(req, res, 'image/jpeg', true)) return;
+    if (!homeScreenModule) return refuseUpload(req, res, 'home screen module unavailable', 503);
+    return homeScreenModule.uploadBanner(req, function (r) {
+      if (!r.ok) return refuseUpload(req, res, r.error, r.status || 400);
+      send(res, 200, JSON.stringify(r));
+    });
+  }
+
   if (pathname === '/api/homescreen' && req.method === 'POST') {
     if (!config.allowControl) {
       return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
@@ -2007,8 +2029,9 @@ function handleRequest(req, res) {
       }
       if (body.restore === true) return homeScreenModule.restore(done);
       if (typeof body.part === 'string') return homeScreenModule.setPart(body.part, !!body.shown, done);
+      if (typeof body.banner === 'string') return homeScreenModule.setBanner(body.banner, done);
       if (typeof body.input === 'string') return homeScreenModule.setInput(body.input, !!body.onHome, done);
-      done({ ok: false, error: 'part, input or restore expected' });
+      done({ ok: false, error: 'part, banner, input or restore expected' });
     });
   }
 
@@ -2068,13 +2091,16 @@ function handleRequest(req, res) {
       // Advanced tab.
       piccapStatusFn(function (pc) {
         huesyncStatusFn(function (hs) {
-          if (!pc && !hs && !clockModule && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
+          var keyboardUp = keyboardUpFn();
+          if (!pc && !hs && !clockModule && keyboardUp === null && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
           // Copied, since s is telemetry's cache.
           var copy = {};
           for (var k in s) copy[k] = s[k];
           if (clockModule) copy.clockHour12 = clockHour12();
           if (pc) copy.piccapCapture = pc;
           if (hs) copy.huesyncStreaming = hs;
+          // For the Control tab's keyboard box.
+          if (keyboardUp !== null) copy.keyboardUp = keyboardUp;
           if (u.query.with !== 'settings') return send(res, 200, JSON.stringify(copy));
           // The TV dashboard's System page, which reads one endpoint, also
           // lists the sound and SIMPLINK settings.
@@ -2259,6 +2285,7 @@ function init(opts) {
   if (opts.restartSelf) restartSelfFn = opts.restartSelf;
   if (opts.piccapStatus) piccapStatusFn = opts.piccapStatus;
   if (opts.huesyncStatus) huesyncStatusFn = opts.huesyncStatus;
+  if (opts.keyboardUp) keyboardUpFn = opts.keyboardUp;
   if (opts.repo) repoModule = opts.repo;
   if (opts.installer) installerModule = opts.installer;
   if (opts.prometheus) prometheusModule = opts.prometheus;
