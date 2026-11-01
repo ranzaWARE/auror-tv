@@ -595,3 +595,11 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .ha-cam #haCam{visibility:visible;opacity:1;-webkit-transition-delay:0s;transition-delay:0s}
 #haCamImg{display:block;width:1920px;height:1080px;object-fit:contain}
 #haCamName{position:absolute;left:120px;bottom:56px;font-size:30px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.8)}
+
+/* ---- Glasshouse's live preview, switched on from the dashboard: on the Top Shelf, at its right ---- */
+#shelf #preview{position:absolute;right:120px;top:150px;width:640px;height:360px;margin:0;border-radius:12px;overflow:hidden;z-index:2;
+  box-shadow:0 18px 40px rgba(0,0,0,.45)}
+#shelf #preview:after{border-radius:12px;border-color:rgba(255,255,255,.12)}
+#shelf #preview #pvInfo{color:#e0e4ea}
+.light #shelf #preview:after{border-color:#e5e7eb}
+.arranging #shelf #preview{display:none}
