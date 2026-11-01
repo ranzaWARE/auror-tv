@@ -1875,7 +1875,6 @@
  "home.layoutDesc": {"text": "Las apps y las entradas vienen de la TV: oculta las que no quieras. Los canales son solo los añadidos aquí. Mantener OK en Glasshouse Home organiza el mismo diseño en la TV.", "from": "Apps and inputs come from the TV: hide the ones not wanted. Channels are only the ones added here. Holding OK on Glasshouse Home arranges the same layout on the TV."},
  "home.leftOut": {"text": "Fuera", "from": "Left out"},
  "home.lgHome": {"text": "Inicio de LG", "from": "LG Home"},
- "home.now.app": {"text": "App en esta TV", "from": "App on this TV"},
  "home.now.channel": {"text": "Canal {number}", "from": "Channel {number}"},
  "home.now.lastOpened": {"text": "Último abierto", "from": "Last opened"},
  "home.openFailed": {"text": "No se abrió", "from": "That did not open"},

@@ -458,7 +458,6 @@
  "home.layout": {"text": "Sorok és csempék", "from": "Rows and tiles"},
  "home.layoutDesc": {"text": "Az alkalmazások és a bemenetek listája a TV-ről származik; a nem kívánt elemek elrejthetők. Csak az itt hozzáadott csatornák jelennek meg. Ugyanez az elrendezés a TV-n is módosítható: a Glasshouse Home képernyőjén tartsa lenyomva az OK gombot.", "from": "Apps and inputs come from the TV: hide the ones not wanted. Channels are only the ones added here. Holding OK on Glasshouse Home arranges the same layout on the TV."},
  "home.lgHome": {"text": "LG Kezdőképernyő", "from": "LG Home"},
- "home.now.app": {"text": "Alkalmazás ezen a TV-n", "from": "App on this TV"},
  "home.now.channel": {"text": "{number}. csatorna", "from": "Channel {number}"},
  "home.now.lastOpened": {"text": "Legutóbb megnyitott", "from": "Last opened"},
  "home.openFailed": {"text": "Nem sikerült megnyitni", "from": "That did not open"},

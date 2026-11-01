@@ -754,7 +754,6 @@
  "home.livePreview": {"text": "Anteprima dal vivo", "from": "Live preview"},
  "home.livePreviewDesc": {"text": "Un’immagine dal vivo, senza audio, dell’ingresso o del canale selezionato in Glasshouse Home, in alto a destra, con i dettagli dell’immagine accanto. Porta la TV su quell’ingresso dietro la Home senza accendere nulla, e un canale mostrato così non diventa l’ultimo canale.", "from": "A silent live picture of the input or channel in focus on Glasshouse Home, in the top right, with the picture details beside it. It switches the TV to that input behind Home without waking anything, and a channel shown this way does not become the last channel."},
  "home.net.button": {"text": "Rete", "from": "Network"},
- "home.now.app": {"text": "App su questa TV", "from": "App on this TV"},
  "home.now.channel": {"text": "Canale {number}", "from": "Channel {number}"},
  "home.now.lastOpened": {"text": "Aperta per ultima", "from": "Last opened"},
  "home.openFailed": {"text": "Impossibile aprire", "from": "That did not open"},
