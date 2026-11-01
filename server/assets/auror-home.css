@@ -14,13 +14,26 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 #scrim{display:none}
 .row h2,.tile,#shelf{text-shadow:none !important}
 
-/* Anti burn-in: the whole page wanders a few pixels, slowly and without stopping,
-   so no text or edge stays on the same pixels. Kept under reduced motion: 4 px
-   in two minutes cannot be seen. */
+/* Anti burn-in: the whole page wanders a few pixels, a pixel every 15 s, so no
+   text or edge stays on the same pixels. Kept under reduced motion: a pixel at
+   a time cannot be seen. */
 #drift{position:absolute;left:0;top:0;width:1920px;height:1080px;
   -webkit-animation:auror-drift 480s ease-in-out infinite alternate;animation:auror-drift 480s ease-in-out infinite alternate}
-@-webkit-keyframes auror-drift{0%{-webkit-transform:translate(0,0)}25%{-webkit-transform:translate(4px,-3px)}50%{-webkit-transform:translate(-3px,4px)}75%{-webkit-transform:translate(-4px,-2px)}100%{-webkit-transform:translate(3px,3px)}}
-@keyframes auror-drift{0%{transform:translate(0,0)}25%{transform:translate(4px,-3px)}50%{transform:translate(-3px,4px)}75%{transform:translate(-4px,-2px)}100%{transform:translate(3px,3px)}}
+/* Whole pixels only, a step at a time: at a fraction of one, the shelf's edge
+   and the rows' window were redrawn blurred and in seams, a line flickering
+   across the screen. Each leg's steps are its length in pixels. */
+@-webkit-keyframes auror-drift{
+  0%{-webkit-transform:translate(0,0);-webkit-animation-timing-function:steps(4,end)}
+  25%{-webkit-transform:translate(4px,-4px);-webkit-animation-timing-function:steps(8,end)}
+  50%{-webkit-transform:translate(-4px,4px);-webkit-animation-timing-function:steps(8,end)}
+  75%{-webkit-transform:translate(-4px,-4px);-webkit-animation-timing-function:steps(8,end)}
+  100%{-webkit-transform:translate(4px,4px)}}
+@keyframes auror-drift{
+  0%{transform:translate(0,0);animation-timing-function:steps(4,end)}
+  25%{transform:translate(4px,-4px);animation-timing-function:steps(8,end)}
+  50%{transform:translate(-4px,4px);animation-timing-function:steps(8,end)}
+  75%{transform:translate(-4px,-4px);animation-timing-function:steps(8,end)}
+  100%{transform:translate(4px,4px)}}
 
 /* ---- Top Shelf: 600 px, a little wider than the stage so the drift never shows its edge ---- */
 #shelf{position:absolute;left:-8px;right:-8px;top:-8px;height:608px;background:#1c2028;border-bottom:1px solid rgba(255,255,255,.08);
@@ -315,7 +328,10 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 #setClock{font-size:40px;letter-spacing:-1px;line-height:1.15}
 #setDate{font-size:20px;color:#99a2af;margin-top:2px}
 #setSide{position:absolute;left:112px;top:64px;width:600px}
-#setBack{display:inline-block;font-size:22px;line-height:44px;color:#99a2af}
+#setBack{display:inline-block;font-size:22px;line-height:44px;color:#99a2af;padding:0 14px;margin-left:-14px;border-radius:10px;
+  outline:3px solid transparent;outline-offset:2px}
+#setBack.focus{color:#e0e4ea;background:#23272e;outline-color:#f5a000}
+.light #setBack.focus{color:#111827;background:#fff;outline-color:#d98c00}
 #setSide .kick{margin-top:52px}
 #setTitle{margin-top:18px;font-size:80px;font-weight:300;letter-spacing:-2px;line-height:1}
 #setDesc{margin-top:22px;font-size:24px;line-height:1.45;color:#99a2af;min-height:105px}
@@ -328,7 +344,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .setcat.current:before{background:#f5a000}
 .setcat.focus{outline-color:#f5a000}
 /* A window on the rows: a long list moves under it to keep the focus in view. */
-#setRows{position:absolute;left:808px;top:224px;width:1012px;height:832px;padding:12px 12px 0;overflow:hidden}
+/* Its padding holds the focused row's outline, offset and scale. */
+#setRows{position:absolute;left:796px;top:216px;width:1036px;height:840px;padding:20px 24px 0;overflow:hidden}
 /* Room under the last row for its focus outline. */
 #setTrack{padding-bottom:28px}
 .setrow{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;

@@ -652,6 +652,15 @@ step('with Quick Start+ on, LG\'s Home auto launch is left as the owner had it, 
   });
 });
 
+step('the language the view was shown in is kept for the screen savers', function (done) {
+  start(null);
+  home.noteViewLang('it');
+  assert.strictEqual(home.viewLang(), 'it');
+  home.noteViewLang('../x');
+  assert.strictEqual(home.viewLang(), 'it', 'only a language code');
+  done();
+});
+
 step('the network button opens LG\'s network settings, and no other page of them', function (done) {
   start(null);
   tv.launches = [];

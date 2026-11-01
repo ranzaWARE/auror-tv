@@ -539,6 +539,13 @@ html.faded #stage{opacity:0}
    * none gets its own icon on a colour: the brand's where it is known, else
    * one taken from its name, so the row stays colourful.
    */
+  // Apps standing in for a brand's own, named as it is on their tiles and the Top Shelf.
+  var BRAND_NAMES = [[/^youtube ?ad ?free\b/i, 'YouTube'], [/^ihs ?play$/i, 'Steam Link']];
+  function brandNames(apps) {
+    (apps || []).forEach(function (a) {
+      for (var i = 0; i < BRAND_NAMES.length; i++) if (BRAND_NAMES[i][0].test(a.title || '')) { a.title = BRAND_NAMES[i][1]; return; }
+    });
+  }
   var BANNERS = [
     [/youtube ?music/i, 'youtube-music'], [/youtube/i, 'youtube'], [/jellyfin/i, 'jellyfin'], [/spotify/i, 'spotify'],
     [/netflix/i, 'netflix'], [/plex/i, 'plex'], [/kodi/i, 'kodi'], [/twitch/i, 'twitch'], [/apple ?tv/i, 'apple-tv'],
@@ -1890,6 +1897,9 @@ html.faded #stage{opacity:0}
       }, {
         kind: 'cycle', label: t('home.set.theme', 'Theme'), help: t('home.set.themeHelp', 'The button on Home changes it until the next switch'),
         value: themeText[lk.theme], act: function () { setLook({ theme: themes[(themes.indexOf(lk.theme) + 1) % themes.length] }); }
+      }, {
+        kind: 'switch', on: !hour12, label: t('home.set.clock24', '24-hour clock'), help: t('home.set.clock24Help', 'The TV’s own setting: Home, the screen savers and LG’s menus follow it'),
+        value: onText(!hour12), act: setClock24
       }];
       if (saver && saver.available) {
         rows.push({
@@ -2044,8 +2054,9 @@ html.faded #stage{opacity:0}
     var cat = SET_CATS[settings.cat];
     $('setTitle').textContent = cat.label;
     $('setDesc').textContent = cat.desc;
+    $('setBack').className = settings.onBack ? 'focus' : '';
     $('setNav').innerHTML = SET_CATS.map(function (c, i) {
-      return '<span class="setcat' + (i === settings.cat ? ' current' : '') + (settings.side && i === settings.cat ? ' focus' : '') +
+      return '<span class="setcat' + (i === settings.cat ? ' current' : '') + (settings.side && !settings.onBack && i === settings.cat ? ' focus' : '') +
         '" data-i="' + i + '">' + esc(c.label) + '</span>';
     }).join('');
     var rows = settings.rows = setRows(cat.id);
@@ -2086,9 +2097,19 @@ html.faded #stage{opacity:0}
     if (track) track.style.webkitTransform = track.style.transform = 'translateY(' + (-at) + 'px)';
   }
 
+  function setClock24() {
+    postJson('/api/home/clock', { hour12: !hour12 }, function (r) {
+      if (!r || !r.ok) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
+      hour12 = !hour12;
+      renderNow();
+      renderSettings();
+    });
+  }
+
   function openSettings() {
     settings.open = true;
     settings.side = true;
+    settings.onBack = false;
     settings.cat = 0;
     loadImmichAlbums();
     stageClass();
@@ -2556,8 +2577,15 @@ html.faded #stage{opacity:0}
   function settingsKey(k) {
     var cat = SET_CATS[settings.cat];
     if (k === KEY.back) return closeSettings();
+    // ‹ Home, above the sections: Up from the first reaches it, OK leaves.
+    if (settings.onBack) {
+      if (k === KEY.ok) return closeSettings();
+      if (k === KEY.down || k === KEY.right) settings.onBack = false;
+      return renderSettings();
+    }
     if (settings.side) {
-      if (k === KEY.up || k === KEY.down) selectCat(settings.cat + (k === KEY.up ? -1 : 1));
+      if (k === KEY.up && settings.cat === 0) settings.onBack = true;
+      else if (k === KEY.up || k === KEY.down) selectCat(settings.cat + (k === KEY.up ? -1 : 1));
       else if ((k === KEY.right || k === KEY.ok) && settings.rows.length) settings.side = false;
       return renderSettings();
     }
@@ -2584,6 +2612,7 @@ html.faded #stage{opacity:0}
     var hit = settingsAt(target);
     if (!hit) return;
     if (hit.back) { if (click) closeSettings(); return; }
+    settings.onBack = false;
     var cat = SET_CATS[settings.cat];
     if (hit.cat !== undefined) {
       if (hit.cat === settings.cat && settings.side) return;
@@ -4440,6 +4469,7 @@ html.faded #stage{opacity:0}
       // A reply sent before arranging or saving must not replace local edits.
       if (revision !== layoutRevision || ((layoutBusy || state.arranging) && !whileArranging)) return;
       var firstLoad = !data;
+      brandNames(r.apps);
       data = r;
       layout = r.layout;
       renderNow();

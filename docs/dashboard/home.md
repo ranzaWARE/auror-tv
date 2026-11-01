@@ -14,7 +14,7 @@ Glasshouse Home displays a Top Shelf over up to four rows (any row with no visib
 * **An HDMI input**: the name of the device on it.
 * **Any other app**: its colours as a glow across the shelf with its symbol large and faint, its logo and name, and for well-known apps a line saying what the app is. Jellyfin with nothing to show, and LG's Home, look the same.
 
-Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile. App tiles are 16:9 colour banners that show their name only when focused: well-known apps have their logo in white on the brand's colour, from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0-1.0; Prime Video's from its 14.15.0, before it was removed) and, for Disney+, [Streamline's Logos](https://github.com/webalys-hq/streamline-vectors) (CC BY 4.0), the logos remaining their owners' trademarks, and any other app its own icon on a colour. The clock, following the TV's 12-hour or 24-hour time setting, and the date sit at the top right with a row of buttons, reached with **Up**: [Search](#search) when it is on, the network, the sleep timer, the theme switch, the settings and switching off.
+Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile. App tiles are 16:9 colour banners that show their name only when focused: well-known apps have their logo in white on the brand's colour, from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0-1.0; Prime Video's from its 14.15.0, before it was removed) and, for Disney+, [Streamline's Logos](https://github.com/webalys-hq/streamline-vectors) (CC BY 4.0), the logos remaining their owners' trademarks, and any other app its own icon on a colour. YouTube AdFree and IHSplay, which stand in for YouTube and Steam Link, are named as those on their tiles and the Top Shelf. The clock, following the TV's 12-hour or 24-hour time setting, and the date sit at the top right with a row of buttons, reached with **Up**: [Search](#search) when it is on, the network, the sleep timer, the theme switch, the settings and switching off.
 
 * **Network**: Wi-Fi, a cable or neither, with a dot that is green online, amber when connected with no way out to the internet and red with no network. **OK** opens LG's own network settings, where the network is changed and the TV's address shown.
 * **Sleep timer**: **OK** goes through 30, 60, 90 and 120 minutes, then off, and the button shows the minutes left. The timer runs in the server, so it goes on while an app is in front: a minute before, a toast says so, and the TV is then switched off as by the remote. The TV switched off in any other way cancels it.
@@ -22,7 +22,7 @@ Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile.
 
 At the top left a greeting changes each time Home comes back, by the time of day, with the owner's name when one is set in **Settings › Look**.
 
-The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, slowly and continuously, so no text stays on the same pixels. Every few minutes Mimus runs along the bottom or Quetza flies across the top.
+The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, a whole pixel every 15 seconds, so no text stays on the same pixels and no edge is drawn between two. Every few minutes Mimus runs along the bottom or Quetza flies across the top.
 
 ### Settings from a browser
 
@@ -30,12 +30,12 @@ The web dashboard's **Home** tab has an **AUROR** section with the same, while G
 
 ### Settings on the TV
 
-The gear opens Glasshouse Home's own settings, worked with the remote:
+The gear opens Glasshouse Home's own settings, worked with the remote; **‹ Home**, above the sections, goes back, and a list longer than the screen moves with the focus:
 
 ![Glasshouse Home's settings on the TV, Look open: the owner's name, the theme, the AUROR screen saver and its options](../screenshots/auror-settings.jpg)
 
 
-* **Look**: the owner's name for the greeting, typed on the TV's keyboard, the theme (automatic, light or dark), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza. With Immich linked, the screen saver can show Immich's photos instead, from an album or the whole library.
+* **Look**: the owner's name for the greeting, typed on the TV's keyboard, the theme (automatic, light or dark), the 24-hour clock (the TV's own setting, as on the Advanced tab), the [AUROR screen saver](screen-savers.md) and its brightness, and Mimus and Quetza. With Immich linked, the screen saver can show Immich's photos instead, from an album or the whole library.
 * **Top Shelf**: what Jellyfin, Glasshouse, Immich, Home Assistant and the HDMI inputs show there.
 * **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), then hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
 * **Tiles**: which apps show. LG's Home always does.

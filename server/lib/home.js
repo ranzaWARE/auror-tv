@@ -1588,6 +1588,11 @@ function watchBeat(ms) {
 // What the view is told of its background: AUROR's photo when one is chosen, else Glasshouse's wallpapers.
 function viewWallpapers() { return gallery.wall() || wallpapers.status(); }
 
+// The language the view was last shown in, which the screen savers write their dates in.
+var lastViewLang = 'en';
+function noteViewLang(lang) { if (typeof lang === 'string' && /^[a-z]{2}$/.test(lang)) lastViewLang = lang; }
+function viewLang() { return lastViewLang; }
+
 function beat() {
   lastBeatAt = nowMs();
   beats++;
@@ -2028,6 +2033,8 @@ function stop() {
 }
 
 module.exports = {
+  noteViewLang: noteViewLang,
+  viewLang: viewLang,
   LG_HOME: LG_HOME,
   init: init,
   start: start,
