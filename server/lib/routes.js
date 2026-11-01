@@ -1164,7 +1164,7 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
     if (pathname === '/api/home/now') return homeModule.now(reply);
-    if (pathname === '/api/home/look') return reply({ ok: true, look: homeModule.layout().look });
+    if (pathname === '/api/home/look') return reply({ ok: true, look: homeModule.layout().look, lang: homeModule.viewLang() });
     if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
     if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());
     if (pathname === '/api/home/search/status') return reply(homeModule.search.status());
@@ -1230,6 +1230,8 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/beat') {
       if (!postGuard(req, res, 'application/json', false)) return;
       req.resume();
+      // The view's language, for the screen savers, which have none of their own.
+      homeModule.noteViewLang(say.langOf(req) || 'en');
       // The hour cycle the view's clock draws, which follows the TV's setting.
       var beatBody = homeModule.beat();
       beatBody.clockHour12 = clockHour12();
@@ -1238,6 +1240,8 @@ function handleHomeRoute(req, res, u, pathname) {
     return readJsonBody(req, res, function (body) {
       if (pathname === '/api/home/layout') return homeModule.setLayout(body, reply);
       if (pathname === '/api/home/look') return homeModule.setLook(body, reply);
+      // AUROR's 24-hour clock switch: the TV's own setting (lib/clock), as the Advanced tab's.
+      if (pathname === '/api/home/clock') return doControl('clockHour12', !!(body && body.hour12 === true), reply);
       if (pathname === '/api/home/jellyfin/pair') return reply(homeModule.jellyfin.pair(lanOrigin()));
       if (pathname === '/api/home/jellyfin/forget') return homeModule.jellyfin.forget(reply);
       // The view's AUROR screen saver switch, with its brightness and, as an option, Immich's photos.

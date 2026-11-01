@@ -202,6 +202,7 @@
         for (var s = 0; s < steps.length; s++) if (steps[s] > left) { next = steps[s]; break; }
         sleepAt = next ? Date.now() + next * 60000 : 0;
         return sleepStatus();
+      case '/api/home/clock': return { ok: true };
       case '/api/home/poweroff': return { ok: false, error: 'Nella demo la TV resta accesa.' };
       case '/api/home/ssh':
         if (method === 'POST') { ssh.enabled = ssh.running = b.on === true; ssh.delay = 600; }

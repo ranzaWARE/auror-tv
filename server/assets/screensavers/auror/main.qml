@@ -38,6 +38,8 @@ WebOSWindow {
     property color ink:   level > 0 ? "#e0e4ea" : "#7d8592"
     property color muted: level > 0 ? "#99a2af" : "#5d6472"
     property bool mascots: true
+    // The language Home was last shown in, from the server: the saver has none of its own.
+    property string lang: ""
 
     function two(n) { return n < 10 ? "0" + n : "" + n }
 
@@ -111,6 +113,7 @@ WebOSWindow {
             try {
                 var r = JSON.parse(x.responseText);
                 if (r && r.look && typeof r.look.mascots === "boolean") win.mascots = r.look.mascots;
+                if (r && typeof r.lang === "string" && r.lang !== win.lang) { win.lang = r.lang; win.refresh(); }
             } catch (e) { }
         };
         x.open("GET", win.origin + "/api/home/look");
@@ -120,7 +123,8 @@ WebOSWindow {
     function refresh() {
         var now = new Date();
         clock.text = win.two(now.getHours()) + ":" + win.two(now.getMinutes());
-        date.text = Qt.formatDate(now, "dddd d MMMM").toUpperCase();
+        // Qt.formatDate writes the engine's own locale, English on the TV.
+        date.text = (win.lang ? now.toLocaleDateString(Qt.locale(win.lang), "dddd d MMMM") : Qt.formatDate(now, "dddd d MMMM")).toUpperCase();
     }
 
     Timer { interval: 1000; running: true; repeat: true; onTriggered: win.refresh() }

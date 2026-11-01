@@ -138,7 +138,9 @@ WebOSWindow {
     function when(d) {
         if (!d) return "";
         var p = d.split("-");
-        return Qt.formatDate(new Date(+p[0], +p[1] - 1, +p[2]), "d MMMM yyyy");
+        var day = new Date(+p[0], +p[1] - 1, +p[2]);
+        // Qt.formatDate writes the engine's own locale, English on the TV.
+        return win.lang ? day.toLocaleDateString(Qt.locale(win.lang), "d MMMM yyyy") : Qt.formatDate(day, "d MMMM yyyy");
     }
 
     function next() {
@@ -147,6 +149,22 @@ WebOSWindow {
         win.at = win.at + 1;
         var url = win.origin + "/api/home/immich/thumb?id=" + it.id + "&size=preview";
         if (win.intoA) picA.source = url; else picB.source = url;
+    }
+
+    // The language Home was last shown in, from the server: the saver has none of its own.
+    property string lang: ""
+    function readLang() {
+        if (!win.origin) return;
+        var x = new XMLHttpRequest();
+        x.onreadystatechange = function () {
+            if (x.readyState !== XMLHttpRequest.DONE || x.status !== 200) return;
+            try {
+                var r = JSON.parse(x.responseText);
+                if (r && typeof r.lang === "string") win.lang = r.lang;
+            } catch (e) { }
+        };
+        x.open("GET", win.origin + "/api/home/look");
+        x.send();
     }
 
     function readPhotos() {
@@ -180,6 +198,7 @@ WebOSWindow {
 
     Component.onCompleted: {
         refresh();
+        readLang();
         readPhotos();
         wander();
     }
