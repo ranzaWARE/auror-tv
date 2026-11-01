@@ -510,7 +510,6 @@
  "home.layoutDesc": {"text": "التطبيقات والمداخل تأتي من التلفاز: أخفِ ما لا تريده منها. أما القنوات فتظهر فقط القنوات التي تضيفها هنا. الضغط المطول على OK داخل واجهة Glasshouse يتيح لك ترتيب نفس التخطيط من التلفاز مباشرة.", "from": "Apps and inputs come from the TV: hide the ones not wanted. Channels are only the ones added here. Holding OK on Glasshouse Home arranges the same layout on the TV."},
  "home.leftOut": {"text": "مستبعد", "from": "Left out"},
  "home.lgHome": {"text": "شاشة LG الرئيسية", "from": "LG Home"},
- "home.now.app": {"text": "تطبيق على هذا التلفاز", "from": "App on this TV"},
  "home.now.channel": {"text": "قناة {number}", "from": "Channel {number}"},
  "home.now.lastOpened": {"text": "آخر ما فُتح", "from": "Last opened"},
  "home.openFailed": {"text": "تعذر فتح ذلك", "from": "That did not open"},

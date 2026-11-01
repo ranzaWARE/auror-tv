@@ -335,10 +335,6 @@
     "text": "LG Home",
     "from": "LG Home"
   },
-  "home.now.app": {
-    "text": "App auf diesem TV",
-    "from": "App on this TV"
-  },
   "home.now.channel": {
     "text": "Sender {number}",
     "from": "Channel {number}"
