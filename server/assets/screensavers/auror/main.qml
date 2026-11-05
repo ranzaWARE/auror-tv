@@ -1,6 +1,8 @@
 /*
  * AUROR screen saver: black for the OLED panel, Mimus asleep in the middle
- * and the time beneath him, dimmed. The pair drifts a little round the middle
+ * and the time beneath him, dimmed. While music plays in Spotify or another
+ * music app, Mimus plays along instead, in one of eleven scenes at random,
+ * another every few minutes (scripts/auror-mimus-music.py draws them). The pair drifts a little round the middle
  * without stopping, so no pixel stays lit in one place. With the mascots
  * switched off in Home's settings, which this reads from the server, the time
  * is left alone.
@@ -40,6 +42,16 @@ WebOSWindow {
     property bool mascots: true
     // The language Home was last shown in, from the server: the saver has none of its own.
     property string lang: ""
+    // Music playing in front (the server says), and the scene Mimus plays it in.
+    property bool music: false
+    property var scenes: ["headphones", "dj", "speakers", "sax", "guitar", "drums", "microphone", "discoball", "keyboard", "boombox", "conductor"]
+    property int scene: -1
+    // Any scene to start with; after that, any but the one showing.
+    function newScene() {
+        if (scene < 0) { scene = Math.floor(Math.random() * scenes.length); return; }
+        var next = Math.floor(Math.random() * (scenes.length - 1));
+        scene = next >= scene ? next + 1 : next;
+    }
 
     function two(n) { return n < 10 ? "0" + n : "" + n }
 
@@ -57,10 +69,10 @@ WebOSWindow {
         AnimatedImage {
             id: mimus
             x: (pair.width - width) / 2
-            width: 384
-            height: 294
+            width: sourceSize.width * 3
+            height: sourceSize.height * 3
             smooth: false
-            source: "mimus-sleep-dark.gif"
+            source: win.music && win.scene >= 0 ? "mimus-" + win.scenes[win.scene] + "-dark.gif" : "mimus-sleep-dark.gif"
             visible: win.mascots
             playing: visible
             opacity: win.level > 0 ? 0.85 : 0.5
@@ -114,6 +126,10 @@ WebOSWindow {
                 var r = JSON.parse(x.responseText);
                 if (r && r.look && typeof r.look.mascots === "boolean") win.mascots = r.look.mascots;
                 if (r && typeof r.lang === "string" && r.lang !== win.lang) { win.lang = r.lang; win.refresh(); }
+                if (r && typeof r.music === "boolean" && r.music !== win.music) {
+                    if (r.music) win.newScene();
+                    win.music = r.music;
+                }
             } catch (e) { }
         };
         x.open("GET", win.origin + "/api/home/look");
@@ -128,7 +144,9 @@ WebOSWindow {
     }
 
     Timer { interval: 1000; running: true; repeat: true; onTriggered: win.refresh() }
-    Timer { interval: 600000; running: true; repeat: true; onTriggered: win.readLook() }
+    // Often enough to hear when the music starts or stops.
+    Timer { interval: 5000; running: true; repeat: true; onTriggered: win.readLook() }
+    Timer { interval: 180000; running: win.music; repeat: true; onTriggered: win.newScene() }
 
     Component.onCompleted: {
         refresh();

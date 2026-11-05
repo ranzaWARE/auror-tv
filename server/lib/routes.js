@@ -1167,7 +1167,15 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
     if (pathname === '/api/home/now') return homeModule.now(reply);
-    if (pathname === '/api/home/look') return reply({ ok: true, look: homeModule.layout().look, lang: homeModule.viewLang() });
+    if (pathname === '/api/home/look') {
+      var look = { ok: true, look: homeModule.layout().look, lang: homeModule.viewLang(), music: false };
+      if (!homeModule.musicApp() || !telemetryModule) return reply(look);
+      // Music, unless the player says it is paused: Spotify may report nothing at all while it plays.
+      return telemetryModule.readMediaState(function (media) {
+        look.music = !(media && /^(paused|stopped)$/i.test(media.state));
+        reply(look);
+      });
+    }
     if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
     if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());
     if (pathname === '/api/home/search/status') return reply(homeModule.search.status());

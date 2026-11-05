@@ -2026,6 +2026,17 @@ function noteViewLang(lang) { if (typeof lang === 'string' && /^[a-z]{2}$/.test(
 function viewLang() { return lastViewLang; }
 
 /*
+ * The music app in front, for the AUROR screen saver, whose Mimus then plays
+ * along; null for any other. The saver is a power state, not an app, so the
+ * app stays in front under it; the last one opened stands in while sam names none.
+ */
+var MUSIC_APP = /spotify|music|deezer|tidal|soundcloud/i;
+function musicApp() {
+  var id = foreground || (lastSource && lastSource.appId) || '';
+  return MUSIC_APP.test(id) ? id : null;
+}
+
+/*
  * The app whose window is in front where the view's is not, or null. A C1
  * (webOS 6.4.0) brought an app back from Recent apps without sam naming it in
  * front, so the hidden view, beating no more, looked hung.
@@ -2630,6 +2641,7 @@ function stop() {
 module.exports = {
   noteViewLang: noteViewLang,
   viewLang: viewLang,
+  musicApp: musicApp,
   LG_HOME: LG_HOME,
   init: init,
   start: start,

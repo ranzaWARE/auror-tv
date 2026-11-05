@@ -902,6 +902,17 @@ step('with Quick Start+ on, LG\'s Home auto launch is left as the owner had it, 
   });
 });
 
+step('a music app in front is named for the screen saver, any other app is not', function (done) {
+  start(null);
+  home.enable(function () {
+    foreground('spotify-beehive');
+    assert.strictEqual(home.musicApp(), 'spotify-beehive');
+    foreground('netflix');
+    assert.strictEqual(home.musicApp(), null);
+    home.disable(function () { done(); });
+  });
+});
+
 step('the language the view was shown in is kept for the screen savers', function (done) {
   start(null);
   home.noteViewLang('it');
