@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Mimus with music, for the AUROR screen saver while music plays: eleven
+Mimus with music, for the AUROR screen saver while music plays: twelve
 pixel-art scenes in the cells of his sleeping and running sprites (5 px), his
 white and AUROR's amber for what he plays, each four frames at 120 BPM.
 
@@ -405,9 +405,113 @@ def conductor():
         out.append(f)
     return out
 
+# ---------------------------------------------------------------- 12 orchestra
+# A small Mimus, ten cells by ten, facing left toward the conductor.
+MINI = [row[::-1] for row in [
+    "......##..",
+    ".....#####",
+    ".....#.#..",
+    "......#...",
+    ".....#....",
+    "#..####...",
+    ".######...",
+    "..####....",
+    "..#..#....",
+    "..#..#....",
+]]
+
+
+def mini(f, ox, oy, bob=0):
+    for y, row in enumerate(MINI):
+        for x, ch in enumerate(row):
+            if ch == '#':
+                f.px(ox + x, oy + y + (bob if y < 8 else 0), INK)
+
+
+# Instruments in front of a small Mimus at (ox, oy), in frame i, bobbing by b.
+def violin(f, ox, oy, i, b):
+    f.art(["oo..", ".ooo", "..oo"], ox - 1, oy + 3 + b)
+    d = (i % 2) * 2  # the bow, across the strings and back
+    for k in range(5):
+        f.px(ox - 2 + k + d, oy + 7 + b - k, INK)
+
+
+def cello(f, ox, oy, i, b):
+    f.art([".o", ".o", "ooo", "ooo", "ooo", ".o."], ox - 2, oy + 3)
+    f.art(["#####"], ox - 4, oy + 6 + i % 2)
+
+
+def flute(f, ox, oy, i, b):
+    f.art(["oooooo"], ox - 5, oy + 2 + b)
+
+
+def clarinet(f, ox, oy, i, b):
+    for k in range(5):
+        f.px(ox + 1 - k // 2, oy + 2 + b + k, AMB)
+    f.art(["ooo"], ox - 2, oy + 7 + b)
+
+
+def trumpet(f, ox, oy, i, b):
+    up = i % 2
+    f.art(["oooo"], ox - 3, oy + 1 + b - up)
+    f.art(["o", "o", "o"], ox - 4, oy + b - up)
+
+
+def trombone(f, ox, oy, i, b):
+    out = 3 * (i % 2)  # the slide, in and out on the beat
+    f.art(["ooooo"], ox - 4 - out, oy + 1 + b)
+    f.art(["ooooo"], ox - 4 - out, oy + 3 + b)
+    f.art(["o", "o", "o"], ox - 5 - out, oy + 1 + b)
+    f.art(["o", "o", "o"], ox - 6, oy + b)
+
+
+def timpani(f, ox, oy, i, b):
+    f.art(["ooooo", "ooooo", ".ooo.", "..o..", ".o.o."], ox - 4, oy + 5)
+    f.art(["#..", ".#."] if i % 2 else ["..#", ".#."], ox - 3 - (i + 1) % 2, oy + 3)
+
+
+def horn(f, ox, oy, i, b):
+    f.art([".ooo.", "o...o", "o.o.o", "o...o", ".ooo."], ox - 4, oy + 3 + b)
+
+
+def harp(f, ox, oy, i, b):
+    f.art(["ooooo", "o.#.o", "o.#.o", "o#.#o", "o#.#o", "o#.#o", "oooo."], ox - 6, oy + 2)
+
+
+def orchestra():
+    """Mimus on a podium, conducting fifteen small ones on three tiers."""
+    out = []
+    tips = [(25, 27), (22, 21), (31, 22), (27, 14)]
+    rows = [  # back to front: top, first x, instruments
+        (6, 40, [harp, trumpet, trombone, trumpet, timpani]),
+        (17, 37, [horn, clarinet, flute, flute, cello]),
+        (28, 34, [violin, violin, violin, violin, cello]),
+    ]
+    for i in range(4):
+        f = Frame(100, 39)
+        mimus(f, 2, 18, legs='stand', head=1 if i in (0, 3) else 0, wing=False)
+        f.rect(4, 34, 22, 38, AMB)
+        hx, hy = 19, 25
+        f.art(["##"], hx - 1, hy + 1)
+        tx, ty = tips[i]
+        steps = max(abs(tx - hx), abs(ty - hy))
+        for s in range(steps + 1):
+            f.px(hx + round((tx - hx) * s / steps), hy + round((ty - hy) * s / steps), INK if s < steps - 1 else AMB)
+        for oy, x0, kinds in rows:
+            f.rect(x0 - 6, oy + 10, f.w - 1, oy + 10, AMB, fill=True)
+            for k, play in enumerate(kinds):
+                ox, b = x0 + k * 12, (i + k) % 2
+                play(f, ox, oy, i, b)
+                mini(f, ox, oy, bob=b)
+        f.note(46 + (i * 7) % 20, i % 2, i == 2)
+        f.note(80 - (i * 5) % 15, 1 - i % 2, i == 0)
+        out.append(f)
+    return out
+
+
 VARIANTS = [('headphones', headphones), ('dj', dj), ('speakers', speakers), ('sax', sax), ('guitar', guitar),
             ('drums', drums), ('microphone', microphone), ('discoball', discoball), ('keyboard', keyboard),
-            ('boombox', boombox), ('conductor', conductor)]
+            ('boombox', boombox), ('conductor', conductor), ('orchestra', orchestra)]
 
 
 def main():
