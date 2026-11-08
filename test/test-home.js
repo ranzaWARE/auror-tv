@@ -902,11 +902,13 @@ step('with Quick Start+ on, LG\'s Home auto launch is left as the owner had it, 
   });
 });
 
-step('a music app in front is named for the screen saver, any other app is not', function (done) {
+step('a music app in front, or behind LG\'s screen saver, is named for it; any other app is not', function (done) {
   start(null);
   home.enable(function () {
     foreground('spotify-beehive');
     assert.strictEqual(home.musicApp(), 'spotify-beehive');
+    foreground('com.webos.app.screensaver');
+    assert.strictEqual(home.musicApp(), 'spotify-beehive', 'the screen saver in front of it');
     foreground('netflix');
     assert.strictEqual(home.musicApp(), null);
     home.disable(function () { done(); });

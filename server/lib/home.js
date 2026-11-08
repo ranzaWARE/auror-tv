@@ -49,6 +49,7 @@ var recommended = require('./home-recommended');
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
 var LG_HOME = takeover.LG_HOME;
+var LG_SAVER = 'com.webos.app.screensaver';
 var LIVE_TV = 'com.webos.app.livetv';
 // What a CX (webOS 5.6.2) has as defaultApps.home, so the Home key opens it.
 var LG_FULLHOME = 'com.webos.app.fullhome';
@@ -2032,7 +2033,9 @@ function viewLang() { return lastViewLang; }
  */
 var MUSIC_APP = /spotify|music|deezer|tidal|soundcloud/i;
 function musicApp() {
-  var id = foreground || (lastSource && lastSource.appId) || '';
+  // LG's screen saver comes to the front over the app it covers, and the
+  // music goes on behind it: the app before it is the one that plays.
+  var id = (foreground !== LG_SAVER && foreground) || (lastSource && lastSource.appId) || '';
   return MUSIC_APP.test(id) ? id : null;
 }
 
@@ -2085,7 +2088,7 @@ function foregroundChanged(id) {
     else if (wakeRequest.input !== id) cancelWake();
   }
   if (legacyAppPending) tryRemoveLegacyApp();
-  if (id !== HOME_APP && id !== LG_HOME && id) lastSource = { appId: id, at: nowMs() };
+  if (id !== HOME_APP && id !== LG_HOME && id !== LG_SAVER && id) lastSource = { appId: id, at: nowMs() };
   if (!readConfig().enabled) return;
   noteForeground(was, id);
   if (id === homeId) {
