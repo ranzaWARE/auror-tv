@@ -1,7 +1,7 @@
 /*
  * AUROR screen saver: black for the OLED panel, Mimus asleep in the middle
  * and the time beneath him, dimmed. While music plays in Spotify or another
- * music app, Mimus plays along instead, in one of eleven scenes at random,
+ * music app, Mimus plays along instead, in one of twelve scenes at random,
  * another every few minutes (scripts/auror-mimus-music.py draws them). The pair drifts a little round the middle
  * without stopping, so no pixel stays lit in one place. With the mascots
  * switched off in Home's settings, which this reads from the server, the time
@@ -44,7 +44,7 @@ WebOSWindow {
     property string lang: ""
     // Music playing in front (the server says), and the scene Mimus plays it in.
     property bool music: false
-    property var scenes: ["headphones", "dj", "speakers", "sax", "guitar", "drums", "microphone", "discoball", "keyboard", "boombox", "conductor"]
+    property var scenes: ["headphones", "dj", "speakers", "sax", "guitar", "drums", "microphone", "discoball", "keyboard", "boombox", "conductor", "orchestra"]
     property int scene: -1
     // Any scene to start with; after that, any but the one showing.
     function newScene() {
