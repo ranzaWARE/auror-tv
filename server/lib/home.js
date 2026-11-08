@@ -49,6 +49,7 @@ var recommended = require('./home-recommended');
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
 var LG_HOME = takeover.LG_HOME;
+var LG_SAVER = 'com.webos.app.screensaver';
 var LIVE_TV = 'com.webos.app.livetv';
 // What a CX (webOS 5.6.2) has as defaultApps.home, so the Home key opens it.
 var LG_FULLHOME = 'com.webos.app.fullhome';
@@ -2026,6 +2027,19 @@ function noteViewLang(lang) { if (typeof lang === 'string' && /^[a-z]{2}$/.test(
 function viewLang() { return lastViewLang; }
 
 /*
+ * The music app in front, for the AUROR screen saver, whose Mimus then plays
+ * along; null for any other. The saver is a power state, not an app, so the
+ * app stays in front under it; the last one opened stands in while sam names none.
+ */
+var MUSIC_APP = /spotify|music|deezer|tidal|soundcloud/i;
+function musicApp() {
+  // LG's screen saver comes to the front over the app it covers, and the
+  // music goes on behind it: the app before it is the one that plays.
+  var id = (foreground !== LG_SAVER && foreground) || (lastSource && lastSource.appId) || '';
+  return MUSIC_APP.test(id) ? id : null;
+}
+
+/*
  * The app whose window is in front where the view's is not, or null. A C1
  * (webOS 6.4.0) brought an app back from Recent apps without sam naming it in
  * front, so the hidden view, beating no more, looked hung.
@@ -2074,7 +2088,7 @@ function foregroundChanged(id) {
     else if (wakeRequest.input !== id) cancelWake();
   }
   if (legacyAppPending) tryRemoveLegacyApp();
-  if (id !== HOME_APP && id !== LG_HOME && id) lastSource = { appId: id, at: nowMs() };
+  if (id !== HOME_APP && id !== LG_HOME && id !== LG_SAVER && id) lastSource = { appId: id, at: nowMs() };
   if (!readConfig().enabled) return;
   noteForeground(was, id);
   if (id === homeId) {
@@ -2630,6 +2644,7 @@ function stop() {
 module.exports = {
   noteViewLang: noteViewLang,
   viewLang: viewLang,
+  musicApp: musicApp,
   LG_HOME: LG_HOME,
   init: init,
   start: start,
