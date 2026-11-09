@@ -362,11 +362,14 @@ step('the heartbeat says when the view is covered: by the screen saver, or on we
   start(null, { webosVersion: '4.4.3' });
   foreground(OLD_APP);
   assert.strictEqual(home.beat().covered, false, 'in front');
+  assert.strictEqual(home.screenSaverSince(), 0);
   powerState('Screen Saver');
   var b = home.beat();
   assert.strictEqual(b.covered, true, 'under the screen saver');
   assert.strictEqual(b.saver, true);
+  assert.ok(home.screenSaverSince() > 0, 'when it came on, for switching off after it');
   powerState('Active');
+  assert.strictEqual(home.screenSaverSince(), 0);
   foreground('com.webos.app.hdmi2');
   b = home.beat();
   assert.strictEqual(b.covered, true, 'behind an input');
@@ -563,10 +566,10 @@ step('apps in More apps are saved, kept by a layout that does not name them, and
 
 step('the view\'s look is kept apart from the layout, and survives a layout save', function (done) {
   start(null);
-  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } });
-  home.setLook({ theme: 'dark', mascots: false, shelf: { hdmi: false, bogus: true }, saverBright: 'yes' }, function (r) {
+  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } });
+  home.setLook({ theme: 'dark', mascots: false, shelf: { hdmi: false, bogus: true }, saverBright: 'yes', saverOff: 45 }, function (r) {
     assert.ok(r.ok, r.error);
-    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: false, immich: true, ha: true } });
+    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: false, immich: true, ha: true } });
     home.setLayout({ hidden: { dev: [] } }, function (r2) {
       assert.strictEqual(r2.layout.look.theme, 'dark');
       home.setLook({ theme: 'sepia' }, function (r3) {
@@ -576,7 +579,11 @@ step('the view\'s look is kept apart from the layout, and survives a layout save
           assert.strictEqual(r4.layout.look.name, 'Marco bRossi/b di Verona e din');
           home.setLook({ name: ' ' }, function (r5) {
             assert.ok(!('name' in r5.layout.look));
-            done();
+            // AUROR: switching off after the screen saver, one of its steps or never.
+            home.setLook({ saverOff: 0 }, function (r6) {
+              assert.strictEqual(r6.layout.look.saverOff, 0);
+              done();
+            });
           });
         });
       });
@@ -911,7 +918,10 @@ step('a music app in front, or behind LG\'s screen saver, is named for it; any o
     assert.strictEqual(home.musicApp(), 'spotify-beehive', 'the screen saver in front of it');
     foreground('netflix');
     assert.strictEqual(home.musicApp(), null);
-    home.disable(function () { done(); });
+    home.musicPlaying(function (playing) {
+      assert.strictEqual(playing, false, 'no music app, no music');
+      home.disable(function () { done(); });
+    });
   });
 });
 
