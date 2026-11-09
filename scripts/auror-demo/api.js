@@ -42,7 +42,7 @@
     hidden: { app: ['netflix', 'amazon', 'com.disney.disneyplus-prod', 'dazn', 'it.sky.now', 'com.webos.app.lgchannels', 'com.tvweb.dashboard'], dev: [], ch: [] },
     order: { app: [], dev: [], ch: [] }, folder: [], channels: [], hintSeen: true, searchHintSeen: true, search: true,
     hideUnused: true, picture: false, colours: null,
-    look: { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } }
+    look: { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } }
   };
   var saver = { mode: 'auror', level: 'dim', available: true };
   var update = { auto: true, installed: '0.122.101', latest: '0.122.101', available: false };
