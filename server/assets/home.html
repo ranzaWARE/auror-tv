@@ -602,7 +602,7 @@ html.faded #stage{opacity:0}
    * one taken from its name, so the row stays colourful.
    */
   // Apps standing in for a brand's own, named as it is on their tiles and the Top Shelf.
-  var BRAND_NAMES = [[/^youtube ?ad ?free\b/i, 'YouTube'], [/^ihs ?play$/i, 'Steam Link']];
+  var BRAND_NAMES = [[/^youtube ?ad ?free\b/i, 'YouTube'], [/^moonlight( tv)?$/i, 'Steam Link']];
   function brandNames(apps) {
     (apps || []).forEach(function (a) {
       for (var i = 0; i < BRAND_NAMES.length; i++) if (BRAND_NAMES[i][0].test(a.title || '')) { a.title = BRAND_NAMES[i][1]; return; }
@@ -612,7 +612,7 @@ html.faded #stage{opacity:0}
     [/youtube ?music/i, 'youtube-music'], [/youtube/i, 'youtube'], [/jellyfin/i, 'jellyfin'], [/spotify/i, 'spotify'],
     [/netflix/i, 'netflix'], [/plex/i, 'plex'], [/kodi/i, 'kodi'], [/twitch/i, 'twitch'], [/apple ?tv/i, 'apple-tv'],
     [/crunchyroll/i, 'crunchyroll'], [/emby/i, 'emby'], [/tidal/i, 'tidal'], [/deezer/i, 'deezer'],
-    [/apple ?music/i, 'apple-music'], [/steam/i, 'steam'], [/^ihs ?play$/i, 'steam'], [/playstation/i, 'playstation'], [/dazn/i, 'dazn'],
+    [/apple ?music/i, 'apple-music'], [/steam/i, 'steam'], [/^moonlight( tv)?$/i, 'steam'], [/playstation/i, 'playstation'], [/dazn/i, 'dazn'],
     [/paramount/i, 'paramount-plus'], [/vimeo/i, 'vimeo'], [/soundcloud/i, 'soundcloud'], [/rakuten/i, 'rakuten-tv'],
     [/^sky\b/i, 'sky'], [/^now( tv)?$/i, 'now'], [/prime ?video|amazon/i, 'prime-video'], [/disney/i, 'disney-plus'], [/^lg ?channels/i, 'lg-channels'], [/^com\.tvweb\.dashboard$/, 'glasshouse'], [/^lg-home$/, 'lg-home'], [/^com\.webos\.app\.browser$/, 'browser'], [/^immich$/i, 'immich'], [/^home ?assistant$/i, 'home-assistant']
   ];
