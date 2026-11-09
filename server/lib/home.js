@@ -98,6 +98,8 @@ var LG_SIDEBAR_APPS = [
 var MAX_CHANNELS = 40;
 // The view's theme: by the time of day, or one kept.
 var THEMES = ['auto', 'light', 'dark'];
+// AUROR: the minutes of screen saver Home's settings go through before switching the TV off.
+var SAVER_OFF_STEPS = [15, 30, 60, 120, 0];
 /*
  * The power-on reasons bootd opens Home for while auto launch is on: LG's
  * com.webos.service.tvpower.fullHomeBootingPowerOnReasons on a G5 (webOS
@@ -211,6 +213,7 @@ var lgHomeHeld = false;
 var installFn = null;
 var injectKeyFn = null;
 var hdmiInputsFn = null;
+var readMediaStateFn = null;
 var procDir = '/proc';
 var execFn = execFile;
 var systemctlPath = '';
@@ -273,6 +276,8 @@ var powerActive = true;
 var sleeps = 0;
 // tvpower's raw state, null until the first reading.
 var powerState = null;
+// When the screen saver came on, for switching off after it (lib/auror-tv); 0 while it is not on.
+var saverSince = 0;
 var wakeTimer = null;
 var wakeRequest = null;
 // Home opened over the input after a wake, until the input has had its chance to take it back.
@@ -396,11 +401,13 @@ function defaults() {
 function sidebarIds() { return LG_SIDEBAR_APPS.map(function (a) { return a.id; }); }
 
 function normaliseLook(raw) {
-  var d = { theme: 'auto', mascots: true, saverBright: false, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } };
+  var d = { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } };
   if (!raw || typeof raw !== 'object') return d;
   if (THEMES.indexOf(raw.theme) !== -1) d.theme = raw.theme;
   if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;
   if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
+  // AUROR: minutes of screen saver before the TV is switched off, 0 for never.
+  if (SAVER_OFF_STEPS.indexOf(raw.saverOff) !== -1) d.saverOff = raw.saverOff;
   // AUROR: the owner's name for the greeting on the Top Shelf.
   if (typeof raw.name === 'string') {
     var name = raw.name.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30);
@@ -652,12 +659,12 @@ function layoutOf(c) {
     searchBlocked: search.blocked() };
 }
 
-// From the view's settings: any of theme, mascots, saverBright, name and shelf, the rest kept.
+// From the view's settings: any of theme, mascots, saverBright, saverOff, name and shelf, the rest kept.
 function setLook(body, cb) {
   var c = readConfig();
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
   var merged = JSON.parse(JSON.stringify(c.look));
-  ['theme', 'mascots', 'saverBright', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  ['theme', 'mascots', 'saverBright', 'saverOff', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
   if (body.shelf && typeof body.shelf === 'object') {
     for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
   }
@@ -2039,6 +2046,20 @@ function musicApp() {
   return MUSIC_APP.test(id) ? id : null;
 }
 
+// When the screen saver came on, or 0 while it is not on.
+function screenSaverSince() { return saverSince; }
+
+/*
+ * Whether music plays, for Mimus dancing in the screen saver and the TV
+ * kept on under it: a music app, unless its player says it is paused.
+ * Spotify may report nothing at all while it plays.
+ */
+function musicPlaying(cb) {
+  if (!musicApp()) return cb(false);
+  if (!readMediaStateFn) return cb(true);
+  readMediaStateFn(function (media) { cb(!(media && /^(paused|stopped)$/i.test(media.state))); });
+}
+
 /*
  * The app whose window is in front where the view's is not, or null. A C1
  * (webOS 6.4.0) brought an app back from Recent apps without sam naming it in
@@ -2302,6 +2323,7 @@ function powerStateChanged(raw) {
   var was = powerState;
   powerState = String(raw || '');
   if (was === powerState) return;
+  saverSince = powerState === 'Screen Saver' ? nowMs() : 0;
   cancelWake();
   if (was === null || names.powerState(was).systemOn || !names.powerState(powerState).systemOn) return;
   if (!readConfig().enabled) return;
@@ -2467,6 +2489,7 @@ function init(opts) {
   installFn = opts.installApp || null;
   if (opts.injectKey) injectKeyFn = opts.injectKey;
   hdmiInputsFn = opts.hdmiInputs || null;
+  readMediaStateFn = opts.readMediaState || null;
   procDir = opts.procDir || '/proc';
   slowOpenMs = typeof opts.slowOpenMs === 'number' ? opts.slowOpenMs : FIRST_BEAT_GRACE_MS;
   bootOpenedFile = opts.bootOpenedFile || BOOT_OPENED_FILE;
@@ -2493,6 +2516,7 @@ function init(opts) {
   lastSource = null;
   powerActive = true;
   powerState = null;
+  saverSince = 0;
   lastBeatAt = 0;
   wakeReopen = null;
   beats = 0;
@@ -2645,6 +2669,8 @@ module.exports = {
   noteViewLang: noteViewLang,
   viewLang: viewLang,
   musicApp: musicApp,
+  screenSaverSince: screenSaverSince,
+  musicPlaying: musicPlaying,
   LG_HOME: LG_HOME,
   init: init,
   start: start,

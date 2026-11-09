@@ -101,6 +101,34 @@ advance(50 * 60000);
 assert.deepEqual(controls.map(function (c) { return c[0]; }), ['toast', 'powerOff']);
 assert.ok(!fs.existsSync(path.join(keptDir, 'auror-sleep.json')), 'and is forgotten once it has run');
 console.log('  ✓ the timer is kept across a restart of the server');
+
+// ---- switching off after the screen saver
+var saver = { since: 0, minutes: 30, music: false };
+controls = [];
+tv.init({
+  luna: function () {}, control: function (kind, value, cb) { controls.push([kind, value]); cb({ ok: true }); },
+  now: function () { return now; }, saverState: function (cb) { cb(saver); }
+});
+tv.checkSaver();
+assert.deepEqual(controls, [], 'no screen saver, nothing');
+saver.since = now;
+now += 29 * 60000;
+tv.checkSaver();
+assert.deepEqual(controls, []);
+now += 2 * 60000;
+saver.music = true;
+tv.checkSaver();
+assert.deepEqual(controls, [], 'music behind it keeps the TV on');
+saver.music = false;
+tv.checkSaver();
+assert.deepEqual(controls, [['powerOff', null]], 'past 30 minutes of screen saver, switched off');
+tv.checkSaver();
+assert.strictEqual(controls.length, 1, 'once for one screen saver');
+saver = { since: now, minutes: 0, music: false };
+now += 300 * 60000;
+tv.checkSaver();
+assert.strictEqual(controls.length, 1, 'never, when set so');
+console.log('  ✓ after the screen saver\'s minutes the TV is switched off, unless music plays or it is set to never');
 tv.init({
   luna: function () {}, control: function () {}, now: function () { return now; },
   procDir: proc, sshFlag: flag, dropbear: dropbear, sshStateDir: path.join(dir, 'sshd'),

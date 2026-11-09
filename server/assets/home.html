@@ -1480,7 +1480,7 @@ html.faded #stage{opacity:0}
   var shelfData = { jellyfin: null, jellyfinAt: 0, stats: null, statsAt: 0, immich: null, immichAt: 0, ha: null, haAt: 0 };
   var IMMICH_TTL_MS = 10 * 60000;
 
-  function look() { return (layout && layout.look) || { theme: 'auto', mascots: true, saverBright: false, shelf: {} }; }
+  function look() { return (layout && layout.look) || { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: {} }; }
   function shelfOn(part) { return look().shelf[part] !== false; }
   // The view's own date, so the TV's time zone decides what this day is.
   function todayText() {
@@ -2014,6 +2014,14 @@ html.faded #stage{opacity:0}
         kind: 'cycle', label: t('home.set.saverLevel', 'Screen saver brightness'),
         value: lk.saverBright ? t('home.set.bright', 'Full') : t('home.set.dim', 'Dimmed'),
         act: function () { setLook({ saverBright: !lk.saverBright }, function () { if (saverOn) setSaver(true, !lk.saverBright, photosOn); }); }
+      });
+      // The TV switched off after that long on the screen saver, unless music plays behind it (lib/auror-tv).
+      var offSteps = [15, 30, 60, 120, 0], offNow = typeof lk.saverOff === 'number' ? lk.saverOff : 30;
+      rows.push({
+        kind: 'cycle', label: t('home.set.saverOff', 'Switch the TV off after'),
+        help: t('home.set.saverOffHelp', 'Of screen saver. Not while music plays, as on Spotify'),
+        value: offNow ? t('home.set.minutes', '{n} min', { n: offNow }) : t('home.set.never', 'Never'),
+        act: function () { setLook({ saverOff: offSteps[(offSteps.indexOf(offNow) + 1) % offSteps.length] }); }
       });
       rows.push({
         kind: 'switch', on: lk.mascots, label: t('home.set.mascots', 'Mimus and Quetza'),

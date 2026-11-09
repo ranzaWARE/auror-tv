@@ -1169,10 +1169,8 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/now') return homeModule.now(reply);
     if (pathname === '/api/home/look') {
       var look = { ok: true, look: homeModule.layout().look, lang: homeModule.viewLang(), music: false };
-      if (!homeModule.musicApp() || !telemetryModule) return reply(look);
-      // Music, unless the player says it is paused: Spotify may report nothing at all while it plays.
-      return telemetryModule.readMediaState(function (media) {
-        look.music = !(media && /^(paused|stopped)$/i.test(media.state));
+      return homeModule.musicPlaying(function (music) {
+        look.music = music;
         reply(look);
       });
     }
