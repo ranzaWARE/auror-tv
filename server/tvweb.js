@@ -1105,6 +1105,13 @@ function mqttStatus(state, detail) {
 
 var forgetHomeAssistant = function (cb) { cb(); };
 
+// AUROR: for switching off after the screen saver (lib/auror-tv), from Home's settings and what plays.
+function aurorSaverState(cb) {
+  var since = glasshouseHome.screenSaverSince(), minutes = glasshouseHome.layout().look.saverOff;
+  if (!since || !minutes) return cb({ since: since, minutes: minutes, music: false });
+  glasshouseHome.musicPlaying(function (music) { cb({ since: since, minutes: minutes, music: music }); });
+}
+
 function setupHomeAssistant() {
   if (!CONFIG.mqtt || !CONFIG.mqtt.enabled || !CONFIG.mqtt.host) {
     console.log('mqtt: disabled (no host configured)');
@@ -1866,6 +1873,8 @@ function startGlasshouseHome() {
     injectKey: controls.injectKey,
     // Which ports have something plugged in, where eim does not say (webOS 4).
     hdmiInputs: telemetry.hdmiInputs,
+    // Whether a music app's player is paused, for the AUROR screen saver.
+    readMediaState: telemetry.readMediaState,
     // The standalone app on webOS 4, and removing the one earlier builds installed elsewhere.
     installApp: function (action, cb) { tvApp(action, cb, 'home-app'); },
     setHomeKey: remoteKeys.setHome,
@@ -1987,8 +1996,10 @@ if (!CLI_MODE) {
   // Not at startup: a reboot brings the whole house back at once, and nothing
   // about this is urgent.
   updater.scheduleUpdateChecks(120000);
-  // AUROR: the Wi-Fi state, sleep timer, switching off and SSH on its Home (lib/auror-tv).
-  aurorTv.init({ luna: luna, control: doControl, sshkeys: sshKeys, stateDir: __dirname });
+  // AUROR: the Wi-Fi state, sleep timer, switching off and SSH on its Home (lib/auror-tv),
+  // and switching off after the screen saver.
+  aurorTv.init({ luna: luna, control: doControl, sshkeys: sshKeys, stateDir: __dirname,
+    saverState: glasshouseHome ? aurorSaverState : null });
   aurorHa.init({ stateDir: __dirname, control: doControl });
   // AUROR: its own releases, installed with the TV off or at night (lib/auror-autoupdate).
   require('./lib/auror-autoupdate').start({

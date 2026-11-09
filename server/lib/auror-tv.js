@@ -10,6 +10,10 @@
  * kept in auror-sleep.json, so a restart of the server (an update installed
  * at night) does not lose it.
  *
+ * After the minutes set in Home's settings (30 unless changed) of screen
+ * saver, the TV is switched off as by the sleep timer, unless music plays
+ * behind the screen saver: with Mimus dancing to it the TV stays on.
+ *
  * SSH is the Homebrew Channel's: its switch is a flag file its startup
  * script reads at boot, and dropbear, which it then starts. Here the flag
  * is set or cleared and dropbear started or stopped at once as well.
@@ -26,6 +30,7 @@ var util = require('./util');
 var SLEEP_STEPS = [30, 60, 90, 120];
 var WARN_MS = 60000;
 var NETWORK_TTL_MS = 15000;
+var SAVER_CHECK_MS = 60000;
 var SSH_FLAG = '/var/luna/preferences/webosbrew_sshd_enabled';
 var SSH_STATE_DIR = '/var/lib/webosbrew/sshd';
 var DROPBEAR = '/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/bin/dropbear';
@@ -44,6 +49,10 @@ var sshStateDir = SSH_STATE_DIR;
 var killFn = function (pid, signal) { process.kill(pid, signal); };
 var sleep = { at: 0, warn: null, off: null };
 var network = { at: 0, value: null, waiting: null };
+var saverState = null;
+var saverCheck = null;
+// The screen saver's start the TV was last switched off for, so it is not switched off twice for one.
+var saverActedOn = 0;
 
 /**
  * @param {Object} opts
@@ -51,6 +60,9 @@ var network = { at: 0, value: null, waiting: null };
  * @param {function(string, any, function(Object): void): void} opts.control doControl: 'toast' and 'powerOff'
  * @param {Object} [opts.sshkeys] lib/sshkeys, for whether dropbear runs and what lets in
  * @param {string} [opts.stateDir] where the sleep timer's end is kept
+ * @param {function(function({since: number, minutes: number, music: boolean}): void): void} [opts.saverState]
+ *   when the screen saver came on (0 while it is not), the minutes set before
+ *   switching off (0 for never), and whether music plays behind it
  * @param {function(): number} [opts.now] for tests
  * @param {string} [opts.procDir] for tests
  * @param {string} [opts.sshFlag] for tests
@@ -71,6 +83,10 @@ function init(opts) {
   sshStateDir = opts.sshStateDir || SSH_STATE_DIR;
   if (opts.kill) killFn = opts.kill;
   network = { at: 0, value: null, waiting: null };
+  saverState = opts.saverState || null;
+  saverActedOn = 0;
+  clearInterval(saverCheck);
+  saverCheck = saverState ? setInterval(checkSaver, SAVER_CHECK_MS) : null;
   clearTimeout(sleep.warn);
   clearTimeout(sleep.off);
   sleep = { at: 0, warn: null, off: null };
@@ -181,6 +197,21 @@ function powerOff(cb) {
   control('powerOff', null, function (r) { cb(r && r.ok ? { ok: true } : { ok: false, error: (r && r.error) || 'no answer' }); });
 }
 
+// ------------------------------------------------------------- screen saver
+
+function checkSaver() {
+  if (!saverState || !control) return;
+  saverState(function (s) {
+    if (!s || !s.since || !s.minutes || s.music || s.since === saverActedOn) return;
+    if (nowMs() - s.since < s.minutes * 60000) return;
+    saverActedOn = s.since;
+    console.log('auror: ' + s.minutes + ' min of screen saver, switching the TV off');
+    powerOff(function (r) {
+      if (!r.ok) console.error('auror: could not switch off after the screen saver: ' + r.error);
+    });
+  });
+}
+
 // ------------------------------------------------------------- SSH
 
 function dropbearPids() {
@@ -242,6 +273,7 @@ module.exports = {
   nextSleep: nextSleep,
   powerChanged: powerChanged,
   powerOff: powerOff,
+  checkSaver: checkSaver,
   sshStatus: sshStatus,
   setSsh: setSsh
 };
