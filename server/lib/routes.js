@@ -23,6 +23,7 @@ var devtools = require('./devtools');
 var names = require('./names');
 var aurorUpdate = require('./auror-autoupdate');
 var aurorTv = require('./auror-tv');
+var aurorBeat = require('./auror-beat');
 var aurorHa = require('./auror-ha');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
@@ -1168,9 +1169,12 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
     if (pathname === '/api/home/now') return homeModule.now(reply);
     if (pathname === '/api/home/look') {
-      var look = { ok: true, look: homeModule.layout().look, lang: homeModule.viewLang(), music: false };
+      var look = { ok: true, look: homeModule.layout().look, lang: homeModule.viewLang(), music: false, beat: null };
       return homeModule.musicPlaying(function (music) {
         look.music = music;
+        // The AUROR screen saver asks every 5 s: the beat's capture runs only while it does (lib/auror-beat).
+        aurorBeat.polled(music);
+        if (music && look.look.mascots && look.look.followBeat !== false) look.beat = aurorBeat.beat();
         reply(look);
       });
     }

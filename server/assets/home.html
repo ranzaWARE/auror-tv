@@ -1480,7 +1480,7 @@ html.faded #stage{opacity:0}
   var shelfData = { jellyfin: null, jellyfinAt: 0, stats: null, statsAt: 0, immich: null, immichAt: 0, ha: null, haAt: 0 };
   var IMMICH_TTL_MS = 10 * 60000;
 
-  function look() { return (layout && layout.look) || { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: {} }; }
+  function look() { return (layout && layout.look) || { theme: 'auto', mascots: true, followBeat: true, saverBright: false, saverOff: 30, shelf: {} }; }
   function shelfOn(part) { return look().shelf[part] !== false; }
   // The view's own date, so the TV's time zone decides what this day is.
   function todayText() {
@@ -2028,6 +2028,12 @@ html.faded #stage{opacity:0}
         help: t('home.set.mascotsHelp', 'Now and then they cross Home and the screen saver'),
         // Two of them: Italian and others make the word plural.
         value: lk.mascots ? t('home.set.onBoth', 'On') : t('home.set.offBoth', 'Off'), act: function () { setLook({ mascots: !lk.mascots }); }
+      });
+      // Only where the server can hear the song (lib/auror-beat); elsewhere Mimus keeps his own 120 BPM.
+      rows.push({
+        kind: 'switch', on: lk.followBeat !== false, label: t('home.set.followBeat', 'Mimus on the beat'),
+        help: t('home.set.followBeatHelp', 'In the screen saver, in time with the song, on TVs that allow it'),
+        value: onText(lk.followBeat !== false), act: function () { setLook({ followBeat: lk.followBeat === false }); }
       });
       return rows;
     }

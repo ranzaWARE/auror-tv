@@ -401,10 +401,12 @@ function defaults() {
 function sidebarIds() { return LG_SIDEBAR_APPS.map(function (a) { return a.id; }); }
 
 function normaliseLook(raw) {
-  var d = { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } };
+  var d = { theme: 'auto', mascots: true, followBeat: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } };
   if (!raw || typeof raw !== 'object') return d;
   if (THEMES.indexOf(raw.theme) !== -1) d.theme = raw.theme;
   if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;
+  // AUROR: Mimus in the screen saver following the song's beat (lib/auror-beat).
+  if (typeof raw.followBeat === 'boolean') d.followBeat = raw.followBeat;
   if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
   // AUROR: minutes of screen saver before the TV is switched off, 0 for never.
   if (SAVER_OFF_STEPS.indexOf(raw.saverOff) !== -1) d.saverOff = raw.saverOff;
@@ -659,12 +661,12 @@ function layoutOf(c) {
     searchBlocked: search.blocked() };
 }
 
-// From the view's settings: any of theme, mascots, saverBright, saverOff, name and shelf, the rest kept.
+// From the view's settings: any of theme, mascots, followBeat, saverBright, saverOff, name and shelf, the rest kept.
 function setLook(body, cb) {
   var c = readConfig();
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
   var merged = JSON.parse(JSON.stringify(c.look));
-  ['theme', 'mascots', 'saverBright', 'saverOff', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  ['theme', 'mascots', 'followBeat', 'saverBright', 'saverOff', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
   if (body.shelf && typeof body.shelf === 'object') {
     for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
   }

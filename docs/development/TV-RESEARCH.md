@@ -2468,3 +2468,59 @@ start-up reads, and the route also waited on two uncached calls from
 
 Loading every module in `server/lib` takes 0.9 s on the B8 (node 0.12.2),
 and node itself 0.4 s; neither is worth shortening.
+
+## Reading the audio output (C1, webOS 6.5.3)
+
+OLED48C15LA, firmware 03.53.45, read on 14 November 2026 with Spotify
+(`spotify-beehive`) playing through the TV's speakers. Only reads were made:
+the process list, `/proc/asound`, `/dev/snd`, PulseAudio's modules and
+`/var/lib/tvweb` were the same before and after.
+
+PulseAudio runs, with `pcm_output` (`hw:0,6`) as the one real sink and null
+sinks for LG's roles. Spotify's sound does not go through it: WebAppMgr holds
+a stream on `pcm_output`, but `pcm_output.monitor` read as digital silence
+while the song played. The song plays through LG's media pipeline instead,
+and `com.webos.service.mediacontroller` does not exist on this TV, so
+neither the title nor the artist can be read from it.
+
+No process held a capture device open; the only open sound device was
+`pcmC0D6p`, PulseAudio's sink. Of the ALSA capture devices, all 48 kHz:
+
+| Device | Name in `/proc/asound/pcm` | What it gave |
+| :--- | :--- | :--- |
+| `hw:0,12` | Capture for dsnoop | The mix as heard, S16_LE stereo |
+| `hw:1,2` | MixerCapture | Noise at -9 dBFS, S32_LE 8 channels or S16_LE 2 |
+| `hw:1,3` | SoundEngineCapture | -80 dBFS |
+| `hw:1,1` | SpeakerFeedback | S32_LE 8 channels only, not read |
+
+`hw:0,12` follows the music: -9 to -25 dBFS while songs played, with left
+and right correlated at 0.6 to 0.95, and all zeros while Spotify was paused.
+`arecord -D hw:0,12 -c 2 -f S16_LE -r 48000` took 0.6% of a core and 1 MB.
+
+Tempo from 20 s of `hw:0,12` (onset envelope on a 128-sample hop at
+11025 Hz, autocorrelation over 80 to 160 BPM, folded into that range; the
+code uses 12 kHz):
+
+| Track | Published BPM | Found | Spread over 8 s windows |
+| :--- | :--- | :--- | :--- |
+| Michael Jackson, Billie Jean | 117 | 117.2 | 0.2% |
+| The White Stripes, Seven Nation Army | 124 | 125.0 | 1.7% |
+| The Weeknd, Blinding Lights | 171 | 85.5 (half) | 0.3% |
+| Adele, Hello (chorus) | 79 | 158.1 (double) | 2.2% |
+| Adele, Hello (verse) | 79 | - | 62.8% |
+| Debussy, Clair de Lune | none steady | - | 22.0% |
+
+The height of the autocorrelation peak did not tell a steady beat from none:
+Clair de Lune's was as high as Blinding Lights'. The spread of the tempo
+found over six 8 s windows did, at under 2.5% for every steady track and
+over 20% for the two without one.
+
+`lib/auror-beat-audio.js` reads `hw:0,12` this way, found by its name in
+`/proc/asound/pcm`, raw at 48 kHz and averaged down to 12 kHz mono in the
+server, as resampling in `plughw` took 3 to 6% of a core. It publishes a
+tempo only once six windows agree within 2.5%, compared within one octave.
+`lib/auror-beat.js` runs it on webOS 6 only, the one version tried. Until
+the output latency of the TV's speakers is measured (`OUTPUT_LATENCY_MS`,
+null), the tempo is published without the beat's position (`phase: false`).
+Not yet tested: whether reading it is heard in playback, the output latency,
+and whether locking to the beat looks better than the tempo alone.

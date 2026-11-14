@@ -15,6 +15,12 @@ it before exposing it more widely.
   if asked, the kernel's - to whoever can reach the dashboard, as `/api/logs`.
   They name the apps in use, the network and the broker the TV talks to. A
   token gates them with the rest of the API.
+- **The AUROR screen saver listens to the music** on webOS 6, while it shows
+  Mimus to a song, to find its tempo. The sound is read from the TV's audio
+  output and analysed in memory on the TV a few seconds at a time; it is never
+  written to disk, logged or sent anywhere. Only the tempo and the beat's
+  timing leave that code, on `/api/home/look`. **Mimus on the beat** in Glasshouse
+  Home's settings switches it off.
 - **Syslog forwarding is off by default.** With `syslog.server` set in
   `config.json` the same logs go to that server as plain UDP: unencrypted,
   unauthenticated, and readable by anything on the path. Addresses,

@@ -566,10 +566,10 @@ step('apps in More apps are saved, kept by a layout that does not name them, and
 
 step('the view\'s look is kept apart from the layout, and survives a layout save', function (done) {
   start(null);
-  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } });
-  home.setLook({ theme: 'dark', mascots: false, shelf: { hdmi: false, bogus: true }, saverBright: 'yes', saverOff: 45 }, function (r) {
+  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, followBeat: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } });
+  home.setLook({ theme: 'dark', mascots: false, followBeat: 'no', shelf: { hdmi: false, bogus: true }, saverBright: 'yes', saverOff: 45 }, function (r) {
     assert.ok(r.ok, r.error);
-    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: false, immich: true, ha: true } });
+    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, followBeat: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: false, immich: true, ha: true } });
     home.setLayout({ hidden: { dev: [] } }, function (r2) {
       assert.strictEqual(r2.layout.look.theme, 'dark');
       home.setLook({ theme: 'sepia' }, function (r3) {
@@ -582,7 +582,11 @@ step('the view\'s look is kept apart from the layout, and survives a layout save
             // AUROR: switching off after the screen saver, one of its steps or never.
             home.setLook({ saverOff: 0 }, function (r6) {
               assert.strictEqual(r6.layout.look.saverOff, 0);
-              done();
+              // AUROR: Mimus following the song's beat in the screen saver.
+              home.setLook({ followBeat: false }, function (r7) {
+                assert.strictEqual(r7.layout.look.followBeat, false);
+                done();
+              });
             });
           });
         });

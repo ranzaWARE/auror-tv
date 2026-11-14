@@ -99,6 +99,7 @@ var history = require('./lib/history');
 var sshKeys = require('./lib/sshkeys');
 var aurorTv = require('./lib/auror-tv');
 var aurorHa = require('./lib/auror-ha');
+var aurorBeat = require('./lib/auror-beat');
 var screentime = require('./lib/screentime');
 var saverPowerOff = require('./lib/saverpoweroff');
 var remoteBattery = require('./lib/remotebattery');
@@ -2001,6 +2002,8 @@ if (!CLI_MODE) {
   aurorTv.init({ luna: luna, control: doControl, sshkeys: sshKeys, stateDir: __dirname,
     saverState: glasshouseHome ? aurorSaverState : null });
   aurorHa.init({ stateDir: __dirname, control: doControl });
+  // AUROR: the song's beat for Mimus in its screen saver, heard from the audio output (lib/auror-beat).
+  if (glasshouseHome) aurorBeat.init({ home: glasshouseHome, screensavers: screensavers, webosVersion: telemetry.detectWebosVersion() });
   // AUROR: its own releases, installed with the TV off or at night (lib/auror-autoupdate).
   require('./lib/auror-autoupdate').start({
     updater: updater, config: CONFIG, control: doControl, writeSettings: routes.writeSettings,
