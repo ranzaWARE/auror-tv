@@ -12,8 +12,9 @@ console.log('Running test-screensaver-trigger.js ...');
 
 /*
  * A TV whose tvpower answers each turnOnScreenSaver from `answers` in turn:
- * 'start' (the screen saver comes up), 'refuse' (back to Active), or
- * 'invalid' (Invalid State change Request).
+ * 'start' (the screen saver comes up), 'refuse' (back to Active),
+ * 'invalid' (Invalid State change Request), or 'off' (LG's Screen Saver
+ * setting off).
  */
 function tv(answers) {
   var state = { answers: answers.slice(), requests: 0, launched: 0, power: 'Active', calls: [] };
@@ -27,12 +28,14 @@ function tv(answers) {
       var answer = state.answers.shift();
       if (state.onRequest) state.onRequest(answer);
       if (answer === 'invalid') return cb({ returnValue: false, errorText: 'Invalid State change Request' });
+      if (answer === 'off') return cb({ returnValue: false, errorText: 'screenSaverEnabled value is off' });
       if (answer === 'start') state.power = 'Screen Saver';
       return cb({ returnValue: true });
     }
     if (/\/launch$/.test(uri)) { state.launched++; return cb({ returnValue: true }); }
     if (/\/running$/.test(uri)) return cb({ returnValue: true, running: [] });
     if (/setEplAppInfo$/.test(uri)) return cb({ returnValue: true });
+    if (/videooutput\/getStatus$/.test(uri)) return cb({ returnValue: true, video: [] });
     throw new Error('Unexpected luna call: ' + uri);
   };
   return state;
@@ -123,6 +126,18 @@ test('Invalid State both ways: the hold is put back and the app launched', funct
   screensavers.trigger(function (r) {
     assert.strictEqual(r.ok, true, r.error);
     assert.deepEqual(saver.log, ['own', 'lift', 'restore']);
+    assert.strictEqual(state.launched, 1);
+    done();
+  });
+});
+
+test('the screen saver off in LG\'s settings: launched at once, no hand-over', function (done) {
+  var state = tv(['off']), saver = fakeIdlesaver(true);
+  setUp(state, saver);
+  screensavers.trigger(function (r) {
+    assert.strictEqual(r.ok, true, r.error);
+    assert.deepEqual(saver.log, ['own']);
+    assert.strictEqual(state.requests, 1);
     assert.strictEqual(state.launched, 1);
     done();
   });

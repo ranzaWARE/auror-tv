@@ -10,6 +10,9 @@ const TABS = {
   metrics:     'tab-metrics',
   apps:        'appspane',
   home:        'homepane',
+  inputs:      'inputspane',
+  remote:      'remotepane',
+  ambient:     'ambientpane',
   oledcare:    'oledpane',
   game:        'gamepane',
   picture:     'picpane',
@@ -26,6 +29,8 @@ const TABS = {
 const DOCS = 'https://rorygallagher2024.github.io/glasshouse/';
 const TAB_DOCS = {
   control: 'dashboard/control/', metrics: 'dashboard/metrics/', apps: 'dashboard/apps/', home: 'dashboard/home/',
+  inputs: 'dashboard/inputs/', remote: 'dashboard/remote/',
+  ambient: 'dashboard/ambient-light/',
   oledcare: 'dashboard/oled-care/', game: 'dashboard/game/', picture: 'dashboard/picture/', audio: 'dashboard/audio/', servicemenu: 'dashboard/service-menu/',
   screensaver: 'dashboard/screen-savers/', privacy: 'dashboard/privacy/', advanced: 'dashboard/advanced/',
   mqtt: 'HOME-ASSISTANT/', server: 'dashboard/server/', tools: 'dashboard/tools/'
@@ -51,6 +56,7 @@ function reportNav() {
 }
 // null until the first telemetry says either way.
 let isOledSet = null;
+let ambientAvailable = null;
 
 function showTab(name) {
   clearErr();
@@ -68,6 +74,7 @@ function showTab(name) {
    */
   if (name === 'oledcare' && isOledSet === false) name = 'control';
   if (name === 'home' && homeAvailable === false) name = 'control';
+  if (name === 'ambient' && ambientAvailable === false) name = 'control';
   activeTab = name;
   for (const [key, id] of Object.entries(TABS)) {
     const el = q(id);
@@ -88,11 +95,14 @@ function showTab(name) {
   if (name === 'metrics') loadHdmiOnce();
   watchPolling(name === 'metrics');
   if (name === 'apps') { loadApps(); loadCatalog(false); pollInstall(); loadRestoredApps(); }
+  if (name === 'remote') loadApps();
+  if (name === 'inputs') loadInputs();
   if (name === 'server') checkOnOpen();
   if (name === 'server') loadTvApp();
   if (name === 'server') loadSsh();
   if (name === 'oledcare') loadOledCare();
   if (name === 'home') loadHome();
+  if (name === 'control') loadControlBluetooth();
   if (name === 'audio') loadAudio();
   audioPolling(name === 'audio');
   if (name === 'picture') loadPicture();
@@ -132,6 +142,7 @@ if (tabsNav) {
 loadGame();
 checkPictureTab();
 loadHomeAvailable();
+loadRemoteAvailable();
 
 // The menu bar names the tab on show, in the page's language: the strings are
 // put in at DOMContentLoaded, after the first showTab.

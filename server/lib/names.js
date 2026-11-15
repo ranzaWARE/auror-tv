@@ -242,6 +242,13 @@ function shortAppId(appId, aliases) {
   return aliases && aliases.hasOwnProperty(id) ? aliases[id] : id;
 }
 
+// Whether an app id is one of the TV's inputs rather than an app.
+// webOS 4.5 opens AV and Component as com.webos.app.externalinput.av1 and
+// .component (a 32LM637B, #1468).
+function isInputAppId(id) {
+  return /^com\.webos\.app\.(hdmi\d|livetv|av\d|comp\d|externalinput\.)/.test(String(id || ''));
+}
+
 // The app id LG launches an input under, as the input command does.
 function inputAppId(key) {
   return APP_PREFIX + key;
@@ -487,6 +494,7 @@ module.exports = {
   isHdmiKey: isHdmiKey,
   shortAppId: shortAppId,
   inputAppId: inputAppId,
+  isInputAppId: isInputAppId,
   input: input,
   inputTitle: inputTitle,
   POWER_STATES: POWER_STATES,
