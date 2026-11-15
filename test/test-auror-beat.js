@@ -312,7 +312,7 @@ function fakeChild() {
   return c;
 }
 function setup(over) {
-  env = { since: now, mode: 'auror', app: 'spotify-beehive', playing: true, look: { mascots: true, followBeat: true }, webos: '6.5.3', pcm: PCM };
+  env = { since: now, mode: 'auror', app: 'spotify-beehive', playing: true, look: { mascots: true, followBeat: true }, webos: '6.5.3', pcm: PCM, latency: null };
   for (var k in over || {}) env[k] = over[k];
   queued = [];
   spawned = [];
@@ -335,7 +335,7 @@ function setup(over) {
       musicApp: function () { return env.app; },
       musicPlaying: function (cb) { musicReads++; cb(env.playing); }
     }),
-    screensavers: /** @type {any} */ ({ screensaverMode: function () { return env.mode; } }),
+    screensavers: /** @type {any} */ ({ screensaverMode: function () { return env.mode; }, launchedShowing: function () { return !!env.launched; } }),
     webosVersion: env.webos,
     launch: function (fn) { queued.push(fn); },
     spawn: function (file, args, o) {
@@ -420,12 +420,17 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
     [{ pcm: null }, 'no /proc/asound/pcm'],
     [{ app: null }, 'no music app'],
     [{ playing: false }, 'paused'],
-    [{ since: 0 }, 'no screen saver']
+    [{ since: 0 }, 'no screen saver'],
+    [{ since: 0, launched: true, mode: 'auror-immich' }, 'a launched AUROR · Immich saver']
   ].forEach(function (c) {
     setup(c[0]);
     pollAndTick();
     assert.strictEqual(spawned.length, 0, c[1] + ': no capture');
   });
+  setup({ since: 0, launched: true });
+  pollAndTick();
+  assert.strictEqual(spawned.length, 1, 'a saver launched as an app, tvpower still Active: captured');
+  beatModule.stop();
   setup();
   beatModule.tick();
   runQueued();
@@ -672,7 +677,8 @@ function rawClicks(bpm, seconds) {
 
 (function () {
   var raw = rawClicks(120, 80), second = 48000 * 4;
-  [undefined, 25].forEach(function (latency) {
+  // null: uncalibrated; undefined: the module's own OUTPUT_LATENCY_MS, 150.
+  [null, undefined, 25].forEach(function (latency) {
     setup({ latency: latency });
     pollAndTick();
     assert.strictEqual(beatModule.beat(), null, 'nothing heard yet');
@@ -680,10 +686,10 @@ function rawClicks(bpm, seconds) {
     var b = beatModule.beat();
     assert.ok(b, 'a beat after 20 s of clicks');
     assert.strictEqual(b.source, 'audio');
-    assert.strictEqual(b.phase, latency !== undefined, latency === undefined ? 'uncalibrated: tempo only' : 'calibrated: on the beat');
+    assert.strictEqual(b.phase, latency !== null, latency === null ? 'uncalibrated: tempo only' : 'calibrated: on the beat');
     near(b.bpm, 120, 1.2, 'bpm');
     assert.ok(b.confidence >= 0.5);
-    var period = 60000 / b.bpm, offset = latency || 0;
+    var period = 60000 / b.bpm, offset = latency === undefined ? 150 : latency || 0;
     // The capture goes on arriving in 0.7 s chunks.
     for (var at = 20 * second; at + 0.7 * second <= raw.length; at += 0.7 * second) {
       advance(700);
@@ -695,6 +701,28 @@ function rawClicks(bpm, seconds) {
     assert.strictEqual(beatModule.beat(), null, 'nothing new for a second: no beat');
   });
   console.log('  ✓ the beat: tempo only until the latency is calibrated, epoch the latest beat, null once the sound stops');
+})();
+
+(function () {
+  var raw = rawClicks(120, 30), second = 48000 * 4;
+  setup({ latency: undefined });
+  pollAndTick();
+  feed(raw.slice(0, 20 * second));
+  var calibrated = beatModule.beat();
+  assert.strictEqual(calibrated.phase, true, 'the default latency puts the beat in phase');
+  env.look.beatOffsetMs = 200;
+  assert.strictEqual(beatModule.beat().epoch, calibrated.epoch + 200, "the look's offset moves the epoch by exactly that, from the next beat() on");
+  env.look.beatOffsetMs = -100;
+  assert.strictEqual(beatModule.beat().epoch, calibrated.epoch - 100, 'a negative offset moves it earlier');
+  delete env.look.beatOffsetMs;
+  assert.strictEqual(beatModule.beat().epoch, calibrated.epoch, 'without one, the default alone');
+  beatModule.stop();
+  setup({ latency: null, look: { mascots: true, followBeat: true, beatOffsetMs: 200 } });
+  pollAndTick();
+  feed(raw.slice(0, 20 * second));
+  assert.strictEqual(beatModule.beat().phase, false, 'uncalibrated, an offset gives no phase: tempo only');
+  beatModule.stop();
+  console.log("  ✓ the look's beatOffsetMs is added to the default at each beat, without a restart");
 })();
 
 // ---- the FIFO
@@ -824,10 +852,10 @@ function rawClicks(bpm, seconds) {
     var f = Beat.frameAt(st, t, n);
     assert.ok(f >= 0 && f < n && f === Math.floor(f), 'a future epoch still gives a frame 0..3');
   }
-  assert.strictEqual(Beat.frameAt(st, 10000, n), 0, 'frame 0 on the beat');
-  assert.strictEqual(Beat.frameAt(st, 10250, n), 1);
-  assert.strictEqual(Beat.frameAt(st, 10500, n), 2, 'frame 2 on the next beat');
-  assert.strictEqual(Beat.frameAt(st, 9750, n), 3, 'and 3 just before an anchor ahead of now');
+  assert.strictEqual(Beat.frameAt(st, 10000, n), 1, 'frame 1 on the beat');
+  assert.strictEqual(Beat.frameAt(st, 10250, n), 2);
+  assert.strictEqual(Beat.frameAt(st, 10500, n), 3, 'frame 3 on the next beat');
+  assert.strictEqual(Beat.frameAt(st, 9750, n), 0, 'and 0 just before an anchor ahead of now');
   assert.strictEqual(Beat.untilNext(st, 10100), 150);
 
   var same = Beat.follow(st, { bpm: 120, epoch: 20020, phase: true, confidence: 1 }, 20000);

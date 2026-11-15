@@ -3,8 +3,8 @@
  * hears (lib/auror-beat). Imported by main.qml beside it and required by
  * test/test-auror-beat.js, so plain ES5 with no QML in it.
  *
- * Each GIF is four frames, two to a beat, drawn at 120 BPM; frames 0 and 2
- * fall on the beat. The saver keeps its own anchor, a time a beat fell on,
+ * Each GIF is four frames, two to a beat, drawn at 120 BPM; frames 1 and 3
+ * fall on the beat, where Mimus is down (scripts/auror-mimus-music.py). The saver keeps its own anchor, a time a beat fell on,
  * and moves it toward the server's only by easing, so Mimus never jumps.
  *
  * A state is { bpm, anchor, from, shift, easeStart, easeMs }: while easing,
@@ -35,12 +35,13 @@ function anchorAt(state, now) {
 }
 
 /*
- * The frame at now: k half-beats since the anchor. An anchor after now (the
+ * The frame at now: k half-beats since the anchor, plus one, so the anchor's
+ * beat shows frame 1. An anchor after now (the
  * server adds the output's latency to the beat it heard) gives a negative k,
  * hence the double modulo.
  */
 function frameAt(state, now, frames) {
-    var k = Math.floor((now - anchorAt(state, now)) / halfBeatMs(state.bpm));
+    var k = Math.floor((now - anchorAt(state, now)) / halfBeatMs(state.bpm)) + 1;
     return ((k % frames) + frames) % frames;
 }
 

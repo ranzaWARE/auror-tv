@@ -21,7 +21,10 @@ it before exposing it more widely.
   written to disk, logged or sent anywhere. Only the tempo and the beat's
   timing leave that code, on `/api/home/look` and, each second while the saver
   shows Mimus, `/api/home/look/beat`. **Mimus on the beat** in Glasshouse
-  Home's settings switches it off.
+  Home's settings switches it off. Its **Test** button posts
+  `/api/home/saver/test`, which starts the screen saver as the dashboard's
+  screen saver control does: like Home's other settings, it needs
+  `allowControl` or a request from the TV, and the token where one is set.
 - **Syslog forwarding is off by default.** With `syslog.server` set in
   `config.json` the same logs go to that server as plain UDP: unencrypted,
   unauthenticated, and readable by anything on the path. Addresses,

@@ -1,6 +1,7 @@
 /* The AUROR saver's beat each second, /api/home/look/beat, through the real
  * HTTP routes: the beat while Mimus follows it, null otherwise, and never a
- * read of the media state or a poll that would start the capture.
+ * read of the media state or a poll that would start the capture. And
+ * Settings' Test under it, /api/home/saver/test, which starts the saver.
  * Strict ES5: also runs on node 0.10. */
 var assert = require('assert');
 var fs = require('fs');
@@ -22,6 +23,11 @@ var mediaReads = 0, polls = 0;
 home.musicPlaying = function (cb) { mediaReads++; cb(true); };
 aurorBeat.polled = function () { polls++; };
 aurorBeat.beat = function () { return heard; };
+var controlCalls = [], controlResult = { ok: true };
+routes.init({ controls: /** @type {any} */ ({ doControl: function (action, value, cb) {
+  controlCalls.push(action);
+  cb(controlResult);
+} }) });
 var server = http.createServer(routes.handleRequest), port;
 
 function get(url, cb) {
@@ -30,6 +36,16 @@ function get(url, cb) {
     res.on('data', function (d) { chunks.push(d); });
     res.on('end', function () { cb(res.statusCode, JSON.parse(Buffer.concat(chunks).toString())); });
   }).on('error', function (e) { throw e; });
+}
+function post(url, cb) {
+  var req = http.request({ hostname: '127.0.0.1', port: port, path: url, method: 'POST',
+    headers: { 'Content-Type': 'application/json' } }, function (res) {
+    var chunks = [];
+    res.on('data', function (d) { chunks.push(d); });
+    res.on('end', function () { cb(res.statusCode, JSON.parse(Buffer.concat(chunks).toString())); });
+  });
+  req.on('error', function (e) { throw e; });
+  req.end('{}');
 }
 function setLook(look, next) {
   home.setLook(look, function (r) {
@@ -79,14 +95,28 @@ var steps = [
         next();
       });
     });
+  },
+  function (next) {
+    post('/api/home/saver/test', function (status, r) {
+      assert.strictEqual(status, 200);
+      assert.deepEqual(r, { ok: true });
+      assert.deepEqual(controlCalls, ['screensaver'], 'Test starts the screen saver, once');
+      controlResult = { ok: false, error: 'luna bus not available' };
+      post('/api/home/saver/test', function (status2, r2) {
+        assert.deepEqual(r2, controlResult, "the saver's refusal, for Home's toast");
+        assert.strictEqual(controlCalls.length, 2);
+        console.log('  ✓ Test starts the screen saver and answers with its result');
+        next();
+      });
+    });
   }
 ];
 
 // From the network with a token set, the beat route answers as the look does.
-function lanStatus(url, token) {
+function lanStatus(url, token, method) {
   var req = new (require('events').EventEmitter)(), status = null;
   req.url = url + (token ? '?k=' + token : '');
-  req.method = 'GET';
+  req.method = method || 'GET';
   req.headers = { host: '192.168.1.131:8080' };
   req.connection = { remoteAddress: '192.168.1.50' };
   req.destroy = function () {};
@@ -101,6 +131,13 @@ function lanAuth() {
   assert.strictEqual(beat, look, 'and the beat refused the same way');
   assert.strictEqual(lanStatus('/api/home/look/beat', 'secret'), 200, 'with it, answered');
   console.log('  ✓ from the network, the beat route asks for the token as the look does');
+  var calls = controlCalls.length, test = lanStatus('/api/home/saver/test', null, 'POST');
+  assert.strictEqual(test, 401, 'Test refused from the network without the token');
+  routes.init({ config: { allowControl: false, token: 'secret' } });
+  assert.strictEqual(lanStatus('/api/home/saver/test', 'secret', 'POST'), 403, 'and with it, while controls are off');
+  // A refused request never reaches the body read, so this holds either way; the statuses above carry the check.
+  assert.strictEqual(controlCalls.length, calls, 'the saver not started');
+  console.log('  ✓ from the network, Test needs the token and controls on');
 }
 
 server.listen(0, '127.0.0.1', function () {

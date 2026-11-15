@@ -101,6 +101,12 @@ var THEMES = ['auto', 'light', 'dark'];
 // AUROR: the minutes of screen saver Home's settings go through before switching the TV off.
 var SAVER_OFF_STEPS = [15, 30, 60, 120, 0];
 /*
+ * AUROR: the ms Home's settings offer to move Mimus from the calibrated beat,
+ * in the order its row steps through them. Output latency only adds, so most
+ * are late: +400 makes 550 ms, which covers Bluetooth audio and a soundbar.
+ */
+var BEAT_OFFSET_STEPS = [0, 50, 100, 150, 200, 250, 300, 350, 400, -100, -50];
+/*
  * The power-on reasons bootd opens Home for while auto launch is on: LG's
  * com.webos.service.tvpower.fullHomeBootingPowerOnReasons on a G5 (webOS
  * 10.3.1). webOS 9 has no such value (a G3), and opened Home on remoteKey.
@@ -407,6 +413,8 @@ function normaliseLook(raw) {
   if (typeof raw.mascots === 'boolean') d.mascots = raw.mascots;
   // AUROR: Mimus in the screen saver following the song's beat (lib/auror-beat).
   if (typeof raw.followBeat === 'boolean') d.followBeat = raw.followBeat;
+  // AUROR: ms added to the calibrated delay from the captured beat to Mimus, for speakers that add their own (lib/auror-beat).
+  if (BEAT_OFFSET_STEPS.indexOf(raw.beatOffsetMs) !== -1) d.beatOffsetMs = raw.beatOffsetMs;
   if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
   // AUROR: minutes of screen saver before the TV is switched off, 0 for never.
   if (SAVER_OFF_STEPS.indexOf(raw.saverOff) !== -1) d.saverOff = raw.saverOff;
@@ -661,12 +669,12 @@ function layoutOf(c) {
     searchBlocked: search.blocked() };
 }
 
-// From the view's settings: any of theme, mascots, followBeat, saverBright, saverOff, name and shelf, the rest kept.
+// From the view's settings: any of theme, mascots, followBeat, beatOffsetMs, saverBright, saverOff, name and shelf, the rest kept.
 function setLook(body, cb) {
   var c = readConfig();
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
   var merged = JSON.parse(JSON.stringify(c.look));
-  ['theme', 'mascots', 'followBeat', 'saverBright', 'saverOff', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  ['theme', 'mascots', 'followBeat', 'beatOffsetMs', 'saverBright', 'saverOff', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
   if (body.shelf && typeof body.shelf === 'object') {
     for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
   }

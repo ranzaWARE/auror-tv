@@ -1265,6 +1265,8 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/look') return homeModule.setLook(body, reply);
       // AUROR's 24-hour clock switch: the TV's own setting (lib/clock), as the Advanced tab's.
       if (pathname === '/api/home/clock') return doControl('clockHour12', !!(body && body.hour12 === true), reply);
+      // Settings' Test under Mimus on the beat. trigger() is a toggle, but no saver is up while Home is.
+      if (pathname === '/api/home/saver/test') return doControl('screensaver', null, reply);
       if (pathname === '/api/home/jellyfin/pair') return reply(homeModule.jellyfin.pair(lanOrigin()));
       if (pathname === '/api/home/jellyfin/forget') return homeModule.jellyfin.forget(reply);
       // The view's AUROR screen saver switch, with its brightness and, as an option, Immich's photos.

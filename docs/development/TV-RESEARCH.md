@@ -2519,11 +2519,30 @@ over 20% for the two without one.
 `/proc/asound/pcm`, raw at 48 kHz and averaged down to 12 kHz mono in the
 server, as resampling in `plughw` took 3 to 6% of a core. It publishes a
 tempo only once six windows agree within 2.5%, compared within one octave.
-`lib/auror-beat.js` runs it on webOS 6 only, the one version tried. Until
-the output latency of the TV's speakers is measured (`OUTPUT_LATENCY_MS`,
-null), the tempo is published without the beat's position (`phase: false`).
-Not yet tested: whether reading it is heard in playback, the output latency,
-and whether locking to the beat looks better than the tempo alone.
+`lib/auror-beat.js` runs it on webOS 6 only, the one version tried.
+
+### Mimus on the beat: the latency, tuned by eye (C1, 15 November 2026)
+
+The beat's position in the capture is put on screen `OUTPUT_LATENCY_MS`
+later: from the beat in the samples to Mimus looking on it, so it covers
+the speakers' delay and the picture's together. Tuned by eye on a C1
+(webOS 6.5.3, the TV's speakers, Billie Jean at 117 BPM) through an absolute
+latency in the look, read at each beat request: -100 and -50 ms
+looked off the beat, 0 and 180 on it, 100 on it and on a second look a little
+early, 150 on it, and 256 (half a beat) off. The default is 150. Not measured: Bluetooth,
+eARC or a soundbar, whose delay differs, and other models.
+
+The look's `beatOffsetMs` (Home's **Beat offset**, -100 to +400 ms in 50 ms
+steps) is added to that default rather than replacing it, so retuning the
+default moves every owner's total with it. Output delay only adds: +400 makes
+550 ms, room for Bluetooth audio and a soundbar's processing, neither measured
+here. Which outputs `hw:0,12` carries is untested, so there is one offset
+rather than one per output.
+
+Home's **Test** asks for the screen saver as the dashboard does. From
+Glasshouse Home the C1 refused `turnOnScreenSaver` and the saver was launched
+as an app, with tvpower still Active, so the capture also starts while a
+launched AUROR saver shows.
 
 ### What the capture costs, and the period `hw:0,12` grants (C1, 14 November 2026)
 

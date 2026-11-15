@@ -62,11 +62,13 @@ var STALE_MS = 1000;
 // The saver asks every 5 s with the music's state already read.
 var MUSIC_FRESH_MS = 5000;
 /*
- * From the beat in the samples to the beat heard, in ms, calibrated in the
- * field on the TV's speakers. While it is null the beat's position is not
- * trusted: the tempo is published with phase false.
+ * From the beat in the samples to Mimus looking on it, in ms, tuned by eye on
+ * a C1's speakers (webOS 6.5.3, Billie Jean at 117 BPM): -50 and 256 looked
+ * off the beat, 0 to 180 on it, 150 best. The look's beatOffsetMs is added
+ * to it, for speakers or headphones that add their own delay; null would
+ * publish the tempo only (phase false).
  */
-var OUTPUT_LATENCY_MS = null;
+var OUTPUT_LATENCY_MS = 150;
 
 /** @type {typeof import('./home')} */
 var home = null;
@@ -197,7 +199,10 @@ function followed(look) {
 // Whether the capture should run now, all but the music asked synchronously.
 function wanted(cb) {
   if (!home || !screensavers || gaveUp) return cb(false);
-  if (!home.screenSaverSince() || screensavers.screensaverMode() !== 'auror') return cb(false);
+  // From Glasshouse Home a C1 (webOS 6.5.3) refused turnOnScreenSaver, and the saver
+  // came up as an app with tvpower still Active (lib/screensavers trigger, Home's Test).
+  var saverUp = home.screenSaverSince() || screensavers.launchedShowing();
+  if (!saverUp || screensavers.screensaverMode() !== 'auror') return cb(false);
   if (nowMs() - lastPollAt > POLL_MS) return cb(false);
   if (!followed(home.layout().look)) return cb(false);
   if (!webosAllowed() || !captureDevice()) return cb(false);
@@ -447,6 +452,13 @@ function polled(music) {
   if (kickOnPoll && !capture && !respawnTimer) tick();
 }
 
+// The TV's default plus the look's beatOffsetMs, read at each beat so a new offset counts without a restart.
+function latencyMs() {
+  if (typeof outputLatencyMs !== 'number') return null;
+  var look = home && home.layout().look;
+  return outputLatencyMs + (look && typeof look.beatOffsetMs === 'number' ? look.beatOffsetMs : 0);
+}
+
 /**
  * The beat for /api/home/look, or null.
  * @returns {{bpm: number, epoch: number, phase: boolean, confidence: number, source: string}|null}
@@ -457,11 +469,12 @@ function beat() {
   var e = fresh ? capture.tracker.estimate() : null;
   var out = null;
   if (e) {
-    var period = 60000 / e.bpm, phase = typeof outputLatencyMs === 'number';
+    var latency = latencyMs();
+    var period = 60000 / e.bpm, phase = typeof latency === 'number';
     var heardAt = minOffset(capture, now) + e.beatSample * 1000 / audio.RATE;
     // Rolled forward to the latest beat, so a live one is never more than a period old.
     var rolled = heardAt + Math.floor((now - heardAt) / period) * period;
-    out = { bpm: Math.round(e.bpm * 10) / 10, epoch: Math.round(rolled + (phase ? outputLatencyMs : 0)), phase: phase,
+    out = { bpm: Math.round(e.bpm * 10) / 10, epoch: Math.round(rolled + (phase ? latency : 0)), phase: phase,
       confidence: Math.round(e.confidence * 100) / 100, source: 'audio' };
   }
   var said = out ? out.bpm + ' BPM (' + out.source + (out.phase ? ', on the beat' : ', tempo only') + ')' : 'none';

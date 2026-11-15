@@ -2035,6 +2035,22 @@ html.faded #stage{opacity:0}
         help: t('home.set.followBeatHelp', 'In the screen saver, in time with the song, on TVs that allow it'),
         value: onText(lk.followBeat !== false), act: function () { setLook({ followBeat: lk.followBeat === false }); }
       });
+      // Matters only where Mimus follows the beat: the AUROR saver without Immich's photos (lib/auror-beat
+      // captures only in mode 'auror'). Locked rows have no act.
+      var beatLocked = !(saverOn && !photosOn && lk.mascots && lk.followBeat !== false);
+      var offsetSteps = [0, 50, 100, 150, 200, 250, 300, 350, 400, -100, -50];
+      var offsetNow = typeof lk.beatOffsetMs === 'number' ? lk.beatOffsetMs : 0;
+      rows.push({
+        kind: 'cycle', locked: beatLocked, label: t('home.set.beatOffset', 'Beat offset'),
+        help: t('home.set.beatOffsetHelp', 'Moves Mimus from the calibrated timing, for speakers or headphones that add delay'),
+        value: t('home.set.beatOffsetMs', '{ms} ms', { ms: offsetNow > 0 ? '+' + offsetNow : offsetNow }),
+        act: beatLocked ? null : function () { setLook({ beatOffsetMs: offsetSteps[(offsetSteps.indexOf(offsetNow) + 1) % offsetSteps.length] }); }
+      });
+      rows.push({
+        kind: 'action', locked: beatLocked, label: t('home.set.beatTest', 'Test'),
+        help: t('home.set.beatTestHelp', 'Starts the screen saver with music playing, to see Mimus on the beat'),
+        value: '', act: beatLocked ? null : testSaver
+      });
       return rows;
     }
     if (id === 'shelf') {
@@ -2288,6 +2304,13 @@ html.faded #stage{opacity:0}
         requestTmdbPair();
       }
       renderSettings();
+    });
+  }
+
+  // Settings close when Home comes back from the saver, which is fine for a one-off check.
+  function testSaver() {
+    postJson('/api/home/saver/test', {}, function (r) {
+      if (!r || !r.ok) toast(t('home.set.beatTestFailed', 'The screen saver could not start'), r && r.error);
     });
   }
 
