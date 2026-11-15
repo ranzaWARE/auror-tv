@@ -7,6 +7,18 @@ var path = require('path');
 var mockEnv = require('./mocks/mock-env').createMockEnv();
 mockEnv.install();
 
+// apps.js, samrescan.js and screensavers.js take execFile at require time.
+// Unstubbed, restartSam runs the TV's systemctl commands on the host, which asks
+// for a password. Any other command fails the test rather than reach the host.
+var childProcess = require('child_process');
+childProcess.execFile = function (file, args, opts, cb) {
+  if (typeof opts === 'function') cb = opts;
+  if (file === '/bin/sh' || file === '/bin/mount' || file === '/bin/umount') {
+    return process.nextTick(function () { if (cb) cb(null, '', ''); });
+  }
+  throw new Error('test-apps: unexpected execFile ' + file);
+};
+
 var apps = require('../server/lib/apps');
 
 var tests = [];
