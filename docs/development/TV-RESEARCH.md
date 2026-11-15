@@ -2602,3 +2602,27 @@ holding a confirmed tempo through brief disagreement kept the Gymnopédie's
 150 and 100). The server and the screen saver are faster to show a tempo
 (the capture starts at the screen saver's first look, the beat is read
 each second), and the detector keeps its six-window rule.
+
+### The Gymnopédie's 158 BPM: kept (15 November 2026)
+
+The six windows that publish 158.2 BPM on Satie's Gymnopédie No. 1 (22 to
+28 s into the recording, and 157.8 for 8 s on the C1 itself) are among the
+steadiest in the corpus: their tempos agree within 0.6 to 0.8%, closer than
+HUMBLE., Fly Me to the Moon or Seven Nation Army. The left hand's ostinato
+is near 79 BPM, so 158 is its double, as HELLO's chorus is published at 157.8.
+
+Two rules were tested against thresholds taken only from the steady songs,
+replaying the detector's own windows and decisions (no difference from the
+shipped detector over 12 files):
+
+- The beats' place on one grid, from a period fitted to the six beats rather
+  than the autocorrelation period, whose 2.5% spread drifts by up to 0.9 of a
+  beat over 18 s. The Gymnopédie's residual (0.45 to 0.47 of a beat) sits
+  inside the steady songs' range: syncopated songs reach 0.59 (HUMBLE.), as
+  the beat found swaps halves.
+- A tighter spread, 2.25%, for a first tempo. It leaves the Gymnopédie
+  through and costs steady songs: HUMBLE. first at 34 s instead of 30, Seven
+  Nation Army's 20 s recording never.
+
+Neither separates it, so the detector is unchanged and Mimus keeps time with
+the ostinato for those seconds.
