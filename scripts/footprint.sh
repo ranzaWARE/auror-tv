@@ -91,8 +91,7 @@ obs_log=/tmp/footprint-obs.$$
 : > "$obs_log"
 trap 'rm -f "$obs_log"' EXIT
 trap 'exit 130' INT TERM HUP
-extras=""
-for f in $PIDFILES; do extras="$extras $f"; done
+extras=$PIDFILES
 
 # Sets $reading to the extras' RSS in kB for the line --rss-every prints.
 sample_extras() {

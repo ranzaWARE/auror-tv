@@ -110,6 +110,7 @@ var coolUntil = 0;
 var silenceStops = 0;
 var logged = '';
 var exitHooked = false;
+var kickOnPoll = true;
 
 /**
  * @param {Object} opts
@@ -129,6 +130,7 @@ var exitHooked = false;
  * @param {number|null} [opts.outputLatencyMs] for tests, in place of OUTPUT_LATENCY_MS
  * @param {function(function(): void): void} [opts.onExit] for tests, in place of process.on('exit')
  * @param {boolean} [opts.noTick] for tests, which call tick() themselves
+ * @param {boolean} [opts.noKick] for tests: a poll does not tick
  */
 function init(opts) {
   stop();
@@ -155,6 +157,7 @@ function init(opts) {
   coolUntil = 0;
   silenceStops = 0;
   logged = '';
+  kickOnPoll = !opts.noKick;
   clearInterval(tickTimer);
   tickTimer = opts.noTick ? null : setInterval(tick, TICK_MS);
   if (tickTimer && tickTimer.unref) tickTimer.unref();
@@ -183,13 +186,20 @@ function captureDevice() {
   return device;
 }
 
+/**
+ * Whether Home's settings have Mimus follow the beat.
+ * @param {{mascots?: boolean, followBeat?: boolean}|null} look
+ */
+function followed(look) {
+  return !!(look && look.mascots && look.followBeat !== false);
+}
+
 // Whether the capture should run now, all but the music asked synchronously.
 function wanted(cb) {
   if (!home || !screensavers || gaveUp) return cb(false);
   if (!home.screenSaverSince() || screensavers.screensaverMode() !== 'auror') return cb(false);
   if (nowMs() - lastPollAt > POLL_MS) return cb(false);
-  var look = home.layout().look;
-  if (!look || !look.mascots || look.followBeat === false) return cb(false);
+  if (!followed(home.layout().look)) return cb(false);
   if (!webosAllowed() || !captureDevice()) return cb(false);
   if (!home.musicApp()) return cb(false);
   if (lastMusic !== null && nowMs() - lastMusicAt < MUSIC_FRESH_MS) return cb(lastMusic);
@@ -433,6 +443,8 @@ function polled(music) {
     lastMusic = music;
     lastMusicAt = lastPollAt;
   }
+  // The capture starts on the poll rather than up to 5 s later on the timer.
+  if (kickOnPoll && !capture && !respawnTimer) tick();
 }
 
 /**
@@ -462,6 +474,7 @@ function beat() {
 
 module.exports = {
   init: init,
+  followed: followed,
   tick: tick,
   polled: polled,
   beat: beat,

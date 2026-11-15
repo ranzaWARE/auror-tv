@@ -1174,9 +1174,17 @@ function handleHomeRoute(req, res, u, pathname) {
         look.music = music;
         // The AUROR screen saver asks every 5 s: the beat's capture runs only while it does (lib/auror-beat).
         aurorBeat.polled(music);
-        if (music && look.look.mascots && look.look.followBeat !== false) look.beat = aurorBeat.beat();
+        if (music && aurorBeat.followed(look.look)) look.beat = aurorBeat.beat();
         reply(look);
       });
+    }
+    /*
+     * The saver's beat each second. No media read: that look's 4 s cache does
+     * not merge reads in flight, so at 1 s it could start duplicate luna-send
+     * children. Nor a poll: /api/home/look every 5 s starts and stops the capture.
+     */
+    if (pathname === '/api/home/look/beat') {
+      return reply({ ok: true, beat: aurorBeat.followed(homeModule.layout().look) ? aurorBeat.beat() : null });
     }
     if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
     if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());

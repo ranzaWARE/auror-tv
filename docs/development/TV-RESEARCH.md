@@ -2559,3 +2559,27 @@ the FIFO, places the beat from the least delayed read of the last 2 s. It
 reads every 50 ms: the 64 kB pipe holds 341 ms of the capture, and a stall
 longer than that blocks `arecord` and drops sound at the device, so the
 shorter interval keeps most of the margin a stream had.
+
+### A faster, provisional tempo: tried and not taken (14 November 2026)
+
+Recorded on the C1 for this: 60 s each of six steady songs (HUMBLE. 150,
+Fly Me to the Moon 118, Levels 126, When the Levee Breaks 141, We Will Rock
+You 81, Gas Gas Gas 154) and five pieces with no steady beat (Chopin's
+Nocturne Op. 9 No. 2, Satie's Gymnopédie No. 1, Barber's Adagio for Strings,
+Eno's An Ending (Ascent), a documentary's narration), beside the earlier 20 s
+recordings. The detector as shipped takes 18 to 30 s to a tempo on the
+steady songs, and held 158 BPM for 6 s on the Gymnopédie.
+
+A second tempo from 3 s windows analysed each second, shown until the six
+8 s windows agree, was fitted file by file with each file held out. No
+measure of how clear a 3 s window's beat is told the two kinds of music
+apart: the best, the autocorrelation peak against lag 0, kept 60% of the
+steady songs' windows while passing 19% of the others', as 3 s of the
+Gymnopédie or the narration repeats more evenly than 3 s of HUMBLE.
+Without that measure, four agreeing windows gave a first tempo in 6 to 10 s
+on most steady songs, but also 5 s of a wrong one on the narration, and
+holding a confirmed tempo through brief disagreement kept the Gymnopédie's
+158 for 38 s. Short windows also swing between tempos 3:2 apart (HUMBLE.
+150 and 100). The server and the screen saver are faster to show a tempo
+(the capture starts at the screen saver's first look, the beat is read
+each second), and the detector keeps its six-window rule.

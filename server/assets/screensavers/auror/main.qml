@@ -9,7 +9,8 @@
  *
  * Where the server hears the song (lib/auror-beat), Mimus keeps to its tempo
  * instead of his GIF's own 120 BPM, and to its beat once the server's output
- * latency is calibrated (until then it sends phase false): the GIF is paused and its frame
+ * latency is calibrated (until then it sends phase false), asking for the beat
+ * each second while music plays: the GIF is paused and its frame
  * set on each half-beat, beat.js working out which, as AnimatedImage's
  * speed needs QtQuick 2.11 and webOS 4 and 5 have 2.6 and 2.9.
  *
@@ -47,6 +48,8 @@ WebOSWindow {
     property color ink:   level > 0 ? "#e0e4ea" : "#7d8592"
     property color muted: level > 0 ? "#99a2af" : "#5d6472"
     property bool mascots: true
+    // Following the beat, from Home's settings.
+    property bool followBeat: true
     // The language Home was last shown in, from the server: the saver has none of its own.
     property string lang: ""
     // Music playing in front (the server says), and the scene Mimus plays it in.
@@ -56,8 +59,12 @@ WebOSWindow {
     // The server's beat while Mimus follows it, else null; his anchor and tempo (beat.js).
     property var beat: null
     property var beatState: null
-    // When the server last answered: a beat older than 15 s is let go.
+    // When the server last answered the look and the beat: a beat older than 15 s is let go.
     property real lookAt: 0
+    property real beatAt: 0
+    // The server has no beat route (an older one, or the demo): the look alone carries the beat.
+    property bool noBeatRoute: false
+    property bool beatBusy: false
     // Steps tried while the GIF had no frames yet.
     property int noFrames: 0
     property bool following: beat !== null && mascots && music && scene >= 0
@@ -135,7 +142,7 @@ WebOSWindow {
 
     function readLook() {
         // The server away: the GIF goes back to its own 120 BPM.
-        if (win.beat !== null && Date.now() - win.lookAt > 15000) win.takeBeat(null);
+        if (win.beat !== null && Date.now() - Math.max(win.lookAt, win.beatAt) > 15000) win.takeBeat(null);
         if (!win.origin) return;
         var x = new XMLHttpRequest();
         x.onreadystatechange = function () {
@@ -144,15 +151,42 @@ WebOSWindow {
                 var r = JSON.parse(x.responseText);
                 win.lookAt = Date.now();
                 if (r && r.look && typeof r.look.mascots === "boolean") win.mascots = r.look.mascots;
+                if (r && r.look) win.followBeat = r.look.followBeat !== false;
                 if (r && typeof r.lang === "string" && r.lang !== win.lang) { win.lang = r.lang; win.refresh(); }
                 if (r && typeof r.music === "boolean" && r.music !== win.music) {
                     if (r.music) win.newScene();
                     win.music = r.music;
                 }
-                win.takeBeat(r ? Beat.usable(r.beat, Date.now()) : null);
+                // Following switched off, or the music gone: let the beat go at once.
+                if (!win.followBeat || !win.music) win.takeBeat(null);
+                // One source at a time: while the beat poll answers, the beat is its.
+                else if (Date.now() - win.beatAt > 3000) win.takeBeat(r ? Beat.usable(r.beat, Date.now()) : null);
             } catch (e) { }
         };
         x.open("GET", win.origin + "/api/home/look");
+        x.send();
+    }
+
+    // The beat each second while Mimus may follow it, so a new tempo shows within a second.
+    function readBeat() {
+        // One request at a time: answers queued behind a stalled server could
+        // arrive out of order and put an older beat over a newer one.
+        if (!win.origin || win.beatBusy) return;
+        win.beatBusy = true;
+        var x = new XMLHttpRequest();
+        x.onreadystatechange = function () {
+            if (x.readyState !== XMLHttpRequest.DONE) return;
+            win.beatBusy = false;
+            // Only a 404 stops it: a server not answering (0) or failing (5xx) is asked again.
+            if (x.status === 404) { win.noBeatRoute = true; return; }
+            if (x.status !== 200) return;
+            win.beatAt = Date.now();
+            try {
+                var r = JSON.parse(x.responseText);
+                win.takeBeat(r ? Beat.usable(r.beat, Date.now()) : null);
+            } catch (e) { }
+        };
+        x.open("GET", win.origin + "/api/home/look/beat");
         x.send();
     }
 
@@ -191,6 +225,7 @@ WebOSWindow {
     Timer { interval: 1000; running: true; repeat: true; onTriggered: win.refresh() }
     // Often enough to hear when the music starts or stops.
     Timer { interval: 5000; running: true; repeat: true; onTriggered: win.readLook() }
+    Timer { interval: 1000; running: win.music && win.mascots && win.followBeat && !win.noBeatRoute; repeat: true; onTriggered: win.readBeat() }
     Timer { interval: 180000; running: win.music; repeat: true; onTriggered: win.newScene() }
     Timer { id: stepper; repeat: false; onTriggered: win.step() }
     onFollowingChanged: if (following) step(); else stepper.stop()

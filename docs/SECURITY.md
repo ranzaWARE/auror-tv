@@ -19,7 +19,8 @@ it before exposing it more widely.
   Mimus to a song, to find its tempo. The sound is read from the TV's audio
   output and analysed in memory on the TV a few seconds at a time; it is never
   written to disk, logged or sent anywhere. Only the tempo and the beat's
-  timing leave that code, on `/api/home/look`. **Mimus on the beat** in Glasshouse
+  timing leave that code, on `/api/home/look` and, each second while the saver
+  shows Mimus, `/api/home/look/beat`. **Mimus on the beat** in Glasshouse
   Home's settings switches it off.
 - **Syslog forwarding is off by default.** With `syslog.server` set in
   `config.json` the same logs go to that server as plain UDP: unencrypted,

@@ -364,7 +364,8 @@ function setup(over) {
     procDir: '/fakeproc',
     outputLatencyMs: env.latency,
     onExit: function (fn) { exitHook = fn; },
-    noTick: true
+    noTick: true,
+    noKick: !env.kick
   });
 }
 // Runs the starts waiting their turn, and the mkfifo they start, until none is left.
@@ -610,7 +611,55 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
   console.log('  ✓ a leftover capture is killed only when its command line matches exactly');
 })();
 
+(function () {
+  setup({ kick: true });
+  beatModule.polled();
+  runQueued();
+  assert.strictEqual(spawned.length, 1, 'a poll starts the capture without waiting for the tick');
+  var reads0 = musicReads;
+  beatModule.polled();
+  runQueued();
+  assert.strictEqual(musicReads, reads0, 'a capture running: a poll asks nothing more');
+  assert.strictEqual(spawned.length, 1);
+  exit(spawned[0]);
+  beatModule.polled();
+  runQueued();
+  assert.strictEqual(spawned.length, 1, 'a respawn pending: a poll leaves it to its timer');
+
+  setup();
+  beatModule.polled();
+  runQueued();
+  assert.strictEqual(spawned.length, 0, 'with noKick, only tick() starts it');
+  console.log('  ✓ a poll starts the capture at once when none is running or waiting, unless noKick');
+})();
+
 // ---- the published beat
+(function () {
+  var realTracker = audio.createTracker, est = null, logs = [], realLog = console.log;
+  audio.createTracker = function () {
+    var t = realTracker();
+    t.estimate = function () { return est; };
+    return t;
+  };
+  setup();
+  pollAndTick();
+  feed(allocBuffer(4000));
+  est = { bpm: 120, beatSample: 0, confidence: 0.7 };
+  console.log = function (line) { logs.push(line); };
+  var b1 = beatModule.beat();
+  est = { bpm: 120, beatSample: 0, confidence: 0.9 };
+  beatModule.beat();
+  est = { bpm: 126, beatSample: 0, confidence: 0.9 };
+  beatModule.beat();
+  console.log = realLog;
+  audio.createTracker = realTracker;
+  beatModule.stop();
+  assert.deepEqual(Object.keys(b1).sort(), ['bpm', 'confidence', 'epoch', 'phase', 'source']);
+  assert.deepEqual(logs, ['auror-beat: beat 120 BPM (audio, tempo only)',
+    'auror-beat: beat 126 BPM (audio, tempo only)'], 'logged once per tempo');
+  console.log('  ✓ the beat as published, logged once per tempo');
+})();
+
 function rawClicks(bpm, seconds) {
   var track = clicks(bpm, seconds, 0.1, 0.05).samples;
   var raw = allocBuffer(track.length * 16);
@@ -626,7 +675,6 @@ function rawClicks(bpm, seconds) {
   [undefined, 25].forEach(function (latency) {
     setup({ latency: latency });
     pollAndTick();
-    var c = spawned[0];
     assert.strictEqual(beatModule.beat(), null, 'nothing heard yet');
     feed(raw.slice(0, 20 * second));
     var b = beatModule.beat();
@@ -810,6 +858,26 @@ function rawClicks(bpm, seconds) {
   assert.strictEqual(Beat.usable({ bpm: 220, epoch: 1000, confidence: 1 }, 5000), null, 'out of range');
   assert.strictEqual(Beat.usable({ bpm: 120, epoch: 1000, confidence: 1 }, 12000), null, 'more than 10 s old');
   console.log('  ✓ the saver: frames for a future epoch, 40 ms let be, 4-beat easing, tempo only keeps the anchor');
+})();
+
+// The saver asks for the beat every second: the same beat again changes nothing.
+(function () {
+  var n = 4, t0 = 50000;
+  [true, false].forEach(function (phase) {
+    var beatAt = function (at) {
+      // As the server sends it: the epoch rolled forward to the latest beat.
+      return Beat.usable({ bpm: 128, epoch: t0 - 100 + Math.floor((at - t0 + 100) / (60000 / 128)) * (60000 / 128),
+        phase: phase, confidence: 0.7, source: 'audio' }, at);
+    };
+    var first = beatAt(t0);
+    assert.ok(first, 'the beat is taken');
+    var once = Beat.follow(null, first, t0), polled = once;
+    for (var t = t0; t < t0 + 10000; t += 10) {
+      if ((t - t0) % 1000 === 0 && t > t0) polled = Beat.follow(polled, beatAt(t), t);
+      assert.strictEqual(Beat.frameAt(polled, t, n), Beat.frameAt(once, t, n), 'the same frame at ' + (t - t0) + ' ms');
+    }
+  });
+  console.log('  ✓ the same beat each second leaves the saver\'s frames as they were');
 })();
 
 try { fs.unlinkSync(pidFile); } catch (e) {}
