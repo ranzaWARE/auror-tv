@@ -766,10 +766,10 @@ step('apps in More apps are saved, kept by a layout that does not name them, and
 
 step('the view\'s look is kept apart from the layout, and survives a layout save', function (done) {
   start(null);
-  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } });
-  home.setLook({ theme: 'dark', mascots: false, shelf: { hdmi: false, bogus: true }, saverBright: 'yes', saverOff: 45 }, function (r) {
+  assert.deepEqual(home.layout().look, { theme: 'auto', mascots: true, followBeat: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: true, immich: true, ha: true } });
+  home.setLook({ theme: 'dark', mascots: false, followBeat: 'no', shelf: { hdmi: false, bogus: true }, saverBright: 'yes', saverOff: 45 }, function (r) {
     assert.ok(r.ok, r.error);
-    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: false, immich: true, ha: true } });
+    assert.deepEqual(r.layout.look, { theme: 'dark', mascots: false, followBeat: true, saverBright: false, saverOff: 30, shelf: { jellyfin: true, glasshouse: true, hdmi: false, immich: true, ha: true } });
     home.setLayout({ hidden: { dev: [] } }, function (r2) {
       assert.strictEqual(r2.layout.look.theme, 'dark');
       home.setLook({ theme: 'sepia' }, function (r3) {
@@ -782,7 +782,33 @@ step('the view\'s look is kept apart from the layout, and survives a layout save
             // AUROR: switching off after the screen saver, one of its steps or never.
             home.setLook({ saverOff: 0 }, function (r6) {
               assert.strictEqual(r6.layout.look.saverOff, 0);
-              done();
+              // AUROR: Mimus following the song's beat in the screen saver.
+              home.setLook({ followBeat: false }, function (r7) {
+                assert.strictEqual(r7.layout.look.followBeat, false);
+                // AUROR: the beat offset, one of its 50 ms steps from -100 to +400.
+                home.setLook({ beatOffsetMs: 50 }, function (r8) {
+                  assert.strictEqual(r8.layout.look.beatOffsetMs, 50);
+                  home.setLook({ beatOffsetMs: -100 }, function (r9) {
+                    assert.strictEqual(r9.layout.look.beatOffsetMs, -100);
+                    home.setLook({ beatOffsetMs: 75 }, function (r10) {
+                      assert.strictEqual(r10.layout.look.beatOffsetMs, undefined, 'between steps: dropped');
+                      home.setLook({ beatOffsetMs: 450 }, function (r11) {
+                        assert.strictEqual(r11.layout.look.beatOffsetMs, undefined, 'out of range: dropped');
+                        home.setLook({ beatOffsetMs: 200 }, function () {
+                          home.setLook({ beatOffsetMs: null }, function (r12) {
+                            assert.strictEqual(r12.layout.look.beatOffsetMs, undefined, 'null clears it');
+                            // The absolute latency it replaced, stored by an earlier build, is dropped.
+                            start({ look: { beatLatencyMs: 60, beatOffsetMs: 100 } });
+                            assert.ok(!('beatLatencyMs' in home.layout().look), 'a stored beatLatencyMs dropped');
+                            assert.strictEqual(home.layout().look.beatOffsetMs, 100);
+                            done();
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
             });
           });
         });

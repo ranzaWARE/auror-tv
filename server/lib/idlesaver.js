@@ -6,6 +6,9 @@
  * An app handed over with supportScreenSaverPolicy true and a delay of
  * 1 to 3 minutes has no hold. Restore screenmanager's setting after the
  * screen saver closes or fails, so the dimming continues during viewing.
+ * A C1 (webOS 6.5.3) is the other way round: a plain request started the
+ * screen saver, and the same request straight after the hand-over was
+ * refused, as the 1-minute delay there is a hold of its own (accepted 75 s on).
  *
  * Strict ES5 for Node 0.12.2 on webOS 4.
  */
@@ -18,10 +21,13 @@ var SET_APP_INFO = 'com.webos.service.oledepl/setEplAppInfo';
 var POWER = 'com.webos.service.tvpower/power/';
 // Survives a server crash, but not a TV reboot, which resets LG's policy.
 var LIFTED_MARKER = '/var/run/tvweb-idlesaver';
-// eplmanager starts no hold for 3 minutes or less, and reads 0 as not set.
+// eplmanager starts no hold for 3 minutes or less, and reads 0 as not set
+// (G3, webOS 9.2.2). On a C1 (webOS 6.5.3) 1 is a 1-minute hold.
 var NO_HOLD_DELAY = 1;
 // A refusing service answers "Screen On" within 10 to 30 ms (G3).
 var REFUSAL_MS = 2000;
+// A refusal this soon after Glasshouse's own request, plain or lifted, is that
+// request's, not LG's idle one, and is not asked again.
 var OWN_REQUEST_MS = 5000;
 
 var lunaFn = null;
@@ -125,9 +131,14 @@ function checkRequest(generation, idle) {
   });
 }
 
+// Called just before Glasshouse asks tvpower for a screen saver itself.
+function ownRequest() {
+  ownRequestAt = Date.now();
+}
+
 // Journal before changing LG's policy: even a lost reply can mean it changed.
 function lift(cb) {
-  ownRequestAt = Date.now();
+  ownRequest();
   if (!lunaFn || unsupported || liftedApp || lifting || restoring) return cb(false);
   var powerAtStart = powerGeneration;
   lifting = true;
@@ -245,6 +256,7 @@ function powerReply(response) {
 
 module.exports = {
   init: init,
+  ownRequest: ownRequest,
   lift: lift,
   restore: restore,
   powerReply: powerReply

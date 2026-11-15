@@ -19,7 +19,7 @@ var writeJsonAtomic = require('./util').writeJsonAtomic;
 var path = require('path');
 var execFile = require('child_process').execFile;
 var power = require('./power');
-var idlesaver = require('./idlesaver');
+var idlesaverModule = require('./idlesaver');
 var names = require('./names');
 var saverPowerOff = require('./saverpoweroff');
 var qmlcheck = require('./qmlcheck');
@@ -706,6 +706,8 @@ var switchingSince = 0;
 var launchedDirectly = false;
 var launchGeneration = 0;
 var closeCallbacks = [];
+/** @type {typeof import('./idlesaver')} */
+var idlesaver = idlesaverModule;
 /** @type {function(boolean): void} */
 var watchKeysFn = function () {};
 /** @type {function(function(?{state: string, fullScreen: boolean}): void, boolean=): void} */
@@ -781,6 +783,7 @@ function init(opts) {
   watchPointerFn = opts.watchPointer || function () {};
   lastPointerEnd = 0;
   mediaStateFn = opts.mediaState || function (cb) { cb(null); };
+  idlesaver = opts.idlesaver || idlesaverModule;
   launchedDirectly = false;
   launchGeneration++;
   closeCallbacks = [];
@@ -1880,46 +1883,58 @@ function trigger(cb) {
       }
       ensureScreensaverKnown(function (known) {
         if (!known) return cb({ ok: false, error: LOST_ERROR });
-        // Where panel care holds the screen saver back, the app in front is
-        // handed to it without the hold first (lib/idlesaver.js).
-        idlesaver.lift(function () {
-          lunaFn('com.webos.service.tvpower/power/turnOnScreenSaver', {}, function (r) {
-            if (r && r.returnValue) {
-              return refusedAfterRequest(function (refused) {
-                if (!refused) return cb({ ok: true });
-                idlesaver.restore();
-                launchScreensaverApp(function (ok, error) {
-                  cb(ok ? { ok: true } : {
-                    ok: false,
-                    error: error || (fgId ? msg('srv.saver.refusedFrom', 'the TV would not start a screen saver from {source}', { source: fgId })
-                      : msg('srv.saver.refusedHere', 'the TV would not start a screen saver from this source'))
-                  });
-                });
-              });
-            }
-            idlesaver.restore();
-            if (r && (r.errorText === 'Invalid State change Request' ||
-                      (r.errorText && r.errorText.indexOf('screenSaverEnabled') !== -1))) {
-              return launchScreensaverApp(function (launched, error) {
-                if (launched) return cb({ ok: true });
-                cb({
-                  ok: false,
-                  error: error || msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
-                });
-              });
-            }
-            cb({
-              ok: false,
-              error: (r && r.errorText)
-                ? msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
-                : fgId ? msg('srv.saver.refusedFrom', 'the TV would not start a screen saver from {source}', { source: fgId })
-                : msg('srv.saver.refusedHere', 'the TV would not start a screen saver from this source')
-            });
-          });
-        });
+        askTvpower(fgId, cb);
       });
     });
   }
+}
+
+function refusedError(fgId, errorText) {
+  if (errorText) return msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: errorText });
+  return fgId ? msg('srv.saver.refusedFrom', 'the TV would not start a screen saver from {source}', { source: fgId })
+    : msg('srv.saver.refusedHere', 'the TV would not start a screen saver from this source');
+}
+
+/*
+ * Asks tvpower plainly first, and only on a refusal hands the app in front to
+ * panel care without its hold (lib/idlesaver.js) and asks again. A G3 (webOS
+ * 9.2.2) refuses the plain request for 30 minutes after a key; a C1 (webOS
+ * 6.5.3) accepts it and refuses the one after the hand-over. Where both are
+ * refused, the screen saver app is launched itself.
+ */
+function askTvpower(fgId, cb) {
+  function launchInstead(errorText) {
+    launchScreensaverApp(function (ok, error) {
+      cb(ok ? { ok: true } : { ok: false, error: error || refusedError(fgId, errorText) });
+    });
+  }
+  function request(cb2) {
+    lunaFn('com.webos.service.tvpower/power/turnOnScreenSaver', {}, function (r) {
+      if (r && r.returnValue) return refusedAfterRequest(function (refused) { cb2(refused, null); });
+      var errorText = (r && r.errorText) || null;
+      // Invalid State is a refusal the app can still be launched over; any other error is not.
+      if (errorText === 'Invalid State change Request') return cb2(true, errorText);
+      // The screen saver switched off in LG's settings: no hand-over changes that.
+      if (errorText && errorText.indexOf('screenSaverEnabled') !== -1) return cb2('off', errorText);
+      cb2(null, errorText);
+    });
+  }
+  idlesaver.ownRequest();
+  request(function (refused, errorText) {
+    if (refused === false) return cb({ ok: true });
+    if (refused === null) return cb({ ok: false, error: refusedError(fgId, errorText) });
+    if (refused === 'off') return launchInstead(errorText);
+    idlesaver.lift(function (lifted) {
+      // Without a hand-over a second request would be the same one.
+      if (!lifted) return launchInstead(errorText);
+      request(function (stillRefused, liftedError) {
+        if (stillRefused === false) return cb({ ok: true });
+        idlesaver.restore();
+        if (stillRefused === null) return cb({ ok: false, error: refusedError(fgId, liftedError) });
+        launchInstead(liftedError);
+      });
+    });
+  });
 }
 
 // The staged screen saver's declared entities: what /api/entity may serve.

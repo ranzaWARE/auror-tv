@@ -179,7 +179,7 @@ def speakers():
     for i, (legs, dy, head, wing) in enumerate(steps):
         f = Frame(46, 24)
         mimus(f, 11, 6, legs=legs, dy=dy, head=head, wingdy=wing)
-        loud = i % 2 == 0
+        loud = i % 2 == 1  # with his squat, on the beat
         for sx in (1, 37):
             f.rect(sx, 7, sx + 7, 23, INK)
             f.art([".oo.", "o..o", ".oo."], sx + 2, 9)                 # tweeter
@@ -300,7 +300,7 @@ def microphone():
     out = []
     for i in range(4):
         f = Frame(34, 28)
-        sing = i % 2 == 0
+        sing = i % 2 == 1  # a foot down, on the beat
         mimus(f, 2, 10, legs='liftL' if i == 0 else 'liftR' if i == 2 else 'stand', dy=0, head=0, beak='open' if sing else 'shut', wing=False)
         # A mic on a stand in front of his beak; his wing on the stand.
         f.art(["ooo", "ooo"], 24, 10)
@@ -308,7 +308,7 @@ def microphone():
         f.art(["#####"], 23, 27)
         f.art(["####"], 21, 16)
         if sing:
-            f.note(28, 4 - (i // 2) * 2, 1 if i == 0 else 0)
+            f.note(28, 4 - (i // 2) * 2, 1 if i == 1 else 0)
         else:
             f.note(29, 2 - (i // 2) * 2)
         out.append(f)
@@ -509,9 +509,17 @@ def orchestra():
     return out
 
 
+def on_odd(scene):
+    """The scene a frame later: what it drew on frame 0 falls on frame 1."""
+    return lambda: (lambda frames: frames[-1:] + frames[:-1])(scene())
+
+
+# Frames 1 and 3 fall on the beat (the saver's beat.js): Mimus's squat, the
+# snare, the baton's downbeat. Drums, conductor and orchestra draw theirs on
+# frame 0, so they are shifted a frame.
 VARIANTS = [('headphones', headphones), ('dj', dj), ('speakers', speakers), ('sax', sax), ('guitar', guitar),
-            ('drums', drums), ('microphone', microphone), ('discoball', discoball), ('keyboard', keyboard),
-            ('boombox', boombox), ('conductor', conductor), ('orchestra', orchestra)]
+            ('drums', on_odd(drums)), ('microphone', microphone), ('discoball', discoball), ('keyboard', keyboard),
+            ('boombox', boombox), ('conductor', on_odd(conductor)), ('orchestra', on_odd(orchestra))]
 
 
 def main():

@@ -62,6 +62,7 @@ hours.
 | :--- | :--- | :--- |
 | B8 | 4.4.3 | 5.6 |
 | CX | 5.6.2 | 5.9.6 |
+| C1 | 6.5.3 | 5.12.3 |
 | C2 | 9.2 | 5.12 |
 | C5 | 10.3.1 | 5.12 |
 
@@ -69,6 +70,10 @@ hours.
   has, and uses nothing newer than the import:
   `scripts/check-screensavers.py` checks this. A file that fails to load shows
   black, with nothing logged.
+* A GIF is retimed by pausing it and stepping `currentFrame` from a `Timer`:
+  `AnimatedImage`'s `speed` needs QtQuick 2.11, which webOS 4 (2.6) and
+  webOS 5 (2.9) do not have. The AUROR saver steps Mimus this way, with the
+  frame maths in `beat.js` beside it.
 * webOS 4 (Qt 5.6) is the oldest version custom screen savers are known to run
   on. webOS 2 and 3 are untried: `QtQuick 2.4` needs Qt 5.4 or later, and
   their Qt version has not been read.

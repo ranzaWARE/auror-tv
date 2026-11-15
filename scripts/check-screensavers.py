@@ -37,6 +37,8 @@ SINCE = {
     'leftPadding': (2, 6), 'rightPadding': (2, 6), 'padding': (2, 6),
     'advance': (2, 10), 'renderTypeQuality': (2, 15),
     'palette': (2, 13), 'containmentMask': (2, 11),
+    # AnimatedImage's; a saver retimes a GIF by stepping currentFrame instead.
+    'speed': (2, 11),
 }
 # anchors a Row or Column will not honour on its own children
 BANNED = {
@@ -76,6 +78,9 @@ def check(path):
         code = re.sub(r'//.*$', '', line)
 
         for prop, since in SINCE.items():
+            # A property the saver declares itself, as `property real speed: 1`, is its own.
+            if re.search(r'\bproperty\s+\S+\s+' + prop + r'\s*:', code):
+                continue
             if re.search(r'(^|[\s{;])' + prop + r'\s*:', code) and ver < since:
                 bad.append((n, '%s needs QtQuick %d.%d, file imports %d.%d'
                             % (prop, since[0], since[1], ver[0], ver[1])))

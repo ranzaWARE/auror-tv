@@ -62,6 +62,17 @@ var onHomeKeyFn = null;
 var onAnyKeyFn = null;
 // The Magic Remote's pointer moving, at most once a second (the Python worker only).
 var onPointerFn = null;
+// Key events that are not a key press. KEY_LGE_CURSOR_HIDE (1207 in
+// /usr/share/X11/xkb/keycodes/lg, less 8) comes from the Magic Remote's
+// device when its pointer hides by itself, about 2 minutes after it last
+// moved (C1, webOS 6.5.3). CURSOR_SHOW (1198) follows real movement, so it
+// still counts.
+var NOT_A_KEY_PRESS = { 1199: true };
+
+function reportAnyKey(code) {
+  if (onAnyKeyFn && !NOT_A_KEY_PRESS[code]) onAnyKeyFn(code);
+}
+
 // Who wants the worker running: MQTT for the coloured buttons, Glasshouse Home
 // for the Home button, the screen saver while one it launched shows. It runs
 // while any do.
@@ -104,8 +115,8 @@ function findRcuDevices() {
 }
 
 function handleParsedEvent(type, code, val) {
-  if (type === EV_KEY && val === KEY_PRESS && process.argv.indexOf('--worker') === -1 && onAnyKeyFn) {
-    onAnyKeyFn(code);
+  if (type === EV_KEY && val === KEY_PRESS && process.argv.indexOf('--worker') === -1) {
+    reportAnyKey(code);
   }
   if (type === EV_KEY && code === HOME_CODE && (val === 0 || val === 1)) {
     if (process.argv.indexOf('--worker') !== -1) {
@@ -286,7 +297,7 @@ function start() {
           continue;
         }
         if (parts[0] === 'key') {
-          if (onAnyKeyFn) onAnyKeyFn(parseInt(parts[1], 10));
+          reportAnyKey(parseInt(parts[1], 10));
           continue;
         }
         if (parts[0] === 'pointer') {

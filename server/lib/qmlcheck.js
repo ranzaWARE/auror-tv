@@ -17,11 +17,18 @@ var msg = require('./say').msg;
 // property -> QtQuick version that introduced it
 var SINCE = {
   topPadding: [2, 6], bottomPadding: [2, 6], leftPadding: [2, 6], rightPadding: [2, 6], padding: [2, 6],
-  advance: [2, 10], renderTypeQuality: [2, 15], palette: [2, 13], containmentMask: [2, 11]
+  advance: [2, 10], renderTypeQuality: [2, 15], palette: [2, 13], containmentMask: [2, 11],
+  // AnimatedImage's; a saver retimes a GIF by stepping currentFrame instead.
+  speed: [2, 11]
 };
 // Each property as it is set, made once: the list is read often.
 var SINCE_RE = {};
-for (var p in SINCE) SINCE_RE[p] = new RegExp('(^|[\\s{;])' + p + '\\s*:');
+// A property the saver declares itself, as `property real speed: 1`, is its own.
+var OWN_RE = {};
+for (var p in SINCE) {
+  SINCE_RE[p] = new RegExp('(^|[\\s{;])' + p + '\\s*:');
+  OWN_RE[p] = new RegExp('\\bproperty\\s+\\S+\\s+' + p + '\\s*:');
+}
 // One line naming any of them, so most lines are passed over with one test.
 var ANY_SINCE = new RegExp('(' + Object.keys(SINCE).join('|') + ')\\s*:');
 // anchors a Row or Column will not honour on its own children
@@ -30,8 +37,8 @@ var BANNED = {
   Row: ['top', 'bottom', 'verticalCenter', 'fill', 'centerIn']
 };
 // The newest QtQuick each webOS version has, where it is known: Qt 5.6 on a
-// B8, 5.9 on a CX, 5.12 on a C2 and a C5.
-var QTQUICK_BY_WEBOS = { 4: 6, 5: 9, 9: 12, 10: 12 };
+// B8, 5.9 on a CX, 5.12 on a C1, a C2 and a C5.
+var QTQUICK_BY_WEBOS = { 4: 6, 5: 9, 6: 12, 9: 12, 10: 12 };
 
 function before(a, b) { return a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]); }
 
@@ -69,7 +76,7 @@ function problem(src, name, webos) {
     var code = lines[n].replace(/\/\/.*$/, '');
     if (ANY_SINCE.test(code)) {
       for (var prop in SINCE) {
-        if (SINCE_RE[prop].test(code) && before(ver, SINCE[prop])) {
+        if (SINCE_RE[prop].test(code) && !OWN_RE[prop].test(code) && before(ver, SINCE[prop])) {
           return msg('srv.saver.qmlSince', '{file} line {line}: {prop} needs QtQuick {need}, and it imports {have}.',
                      { file: name, line: String(n + 1), prop: prop, need: SINCE[prop].join('.'), have: ver.join('.') });
         }

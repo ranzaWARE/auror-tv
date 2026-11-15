@@ -145,10 +145,14 @@ it draws, then put them back one at a time.
 | :--- | :--- | :--- |
 | 4 (B8) | 5.6 | 2.6 |
 | 5 (CX) | 5.9 | 2.9 |
+| 6 (C1) | 5.12 | 2.12 |
 | 9 (C2) | 5.12 | 2.12 |
 | 10 (C5) | 5.12 | 2.12 |
 
-`import QtQuick 2.4` and `import Eos.Window 0.1` run on all of them. Shaders
+`import QtQuick 2.4` and `import Eos.Window 0.1` run on all of them.
+`AnimatedImage`'s `speed` needs QtQuick 2.11: under 2.4, a GIF is retimed by
+setting `paused` and stepping `currentFrame` from a `Timer`, as the AUROR
+screen saver does to keep Mimus on the song's beat. Shaders
 are OpenGL ES 2 GLSL: `texture2D`, `gl_FragColor`, no `#version` line.
 [Light on the hardware](SCREENSAVER-DESIGN.md#light-on-the-hardware) has the
 detail.

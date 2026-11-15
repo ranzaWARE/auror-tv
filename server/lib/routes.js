@@ -24,6 +24,7 @@ var devtools = require('./devtools');
 var names = require('./names');
 var aurorUpdate = require('./auror-autoupdate');
 var aurorTv = require('./auror-tv');
+var aurorBeat = require('./auror-beat');
 var aurorHa = require('./auror-ha');
 var nosignal = require('./nosignal');
 
@@ -1274,11 +1275,22 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
     if (pathname === '/api/home/now') return homeModule.now(reply);
     if (pathname === '/api/home/look') {
-      var look = { ok: true, look: homeModule.layout().look, lang: homeModule.viewLang(), music: false };
+      var look = { ok: true, look: homeModule.layout().look, lang: homeModule.viewLang(), music: false, beat: null };
       return homeModule.musicPlaying(function (music) {
         look.music = music;
+        // The AUROR screen saver asks every 5 s: the beat's capture runs only while it does (lib/auror-beat).
+        aurorBeat.polled(music);
+        if (music && aurorBeat.followed(look.look)) look.beat = aurorBeat.beat();
         reply(look);
       });
+    }
+    /*
+     * The saver's beat each second. No media read: that look's 4 s cache does
+     * not merge reads in flight, so at 1 s it could start duplicate luna-send
+     * children. Nor a poll: /api/home/look every 5 s starts and stops the capture.
+     */
+    if (pathname === '/api/home/look/beat') {
+      return reply({ ok: true, beat: aurorBeat.followed(homeModule.layout().look) ? aurorBeat.beat() : null });
     }
     if (pathname === '/api/home/jellyfin') return homeModule.jellyfin.shelf(reply);
     if (pathname === '/api/home/jellyfin/status') return reply(homeModule.jellyfin.status());
@@ -1378,6 +1390,8 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/look') return homeModule.setLook(body, reply);
       // AUROR's 24-hour clock switch: the TV's own setting (lib/clock), as the Advanced tab's.
       if (pathname === '/api/home/clock') return doControl('clockHour12', !!(body && body.hour12 === true), reply);
+      // Settings' Test under Mimus on the beat. trigger() is a toggle, but no saver is up while Home is.
+      if (pathname === '/api/home/saver/test') return doControl('screensaver', null, reply);
       if (pathname === '/api/home/jellyfin/pair') return reply(homeModule.jellyfin.pair(lanOrigin()));
       if (pathname === '/api/home/jellyfin/forget') return homeModule.jellyfin.forget(reply);
       // The view's AUROR screen saver switch, with its brightness and, as an option, Immich's photos.

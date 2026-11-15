@@ -2334,6 +2334,61 @@ app. eplmanager has no getter for the app info it holds. The C2 on the same
 webOS starts its screen saver; whether it reports no OSD capture support was
 not checked.
 
+A C1 (webOS 6.5.3) is the other way round. With Home in front 10 s after a
+key, a plain `turnOnScreenSaver` started the screen saver. Handing Home over
+first (`supportScreenSaverPolicy: true`, `screenSaverDelay: 1`) made the same
+request refused: `Request Screen Saver`, then `Screen On`, back to Active.
+Glasshouse's own retry the same way was refused too, and so was its Test
+before it, which then launched the app itself. Handed over the same way and
+asked 75 s later, with no key between, the request started the screen saver:
+on webOS 6.5.3 a `screenSaverDelay` of 1 is a hold of its own, 1 minute long,
+where the G3's eplmanager starts none at 3 or less.
+
+## LG Channels' video screen saver (C1, webOS 6.5.3)
+
+OLED48C15LA, firmware 03.53.45, 15 November 2026, with Glasshouse Home in
+LG's Home's place and a replacement screen saver mounted over
+`com.webos.app.screensaver`.
+
+- **A second screen saver app.** From Home, tvpower's idle screen saver came
+  up as `com.webos.app.videoads` ("Container App for video ads App", a web
+  app with `defaultWindowType: screenSaver`), so the replacement did not
+  show. Its video takes the sound: Spotify, playing behind it, stopped and
+  its Connect session dropped. Both `screenmanager` and `tvpowerd` name the
+  app.
+- **Its settings** are in the `lgchannels` category:
+  `isVideoScreenSaverEnabled` (`true`, `volatile` in its description),
+  `videoScreenSaverAppList` (`com.webos.app.home`, `seniorhome`,
+  `tnativehome`, `homeqml`, `fullhome`), `videoScreenSaverDisabledByError`,
+  `gdprConsent` and `consentExpireDate`. tvpowerd subscribes to
+  `isVideoScreenSaverEnabled`. screenmanager's `AServiceScreenSaver` also
+  fetches a "server option" through `com.webos.service.sdx` and decrypts it
+  into `/mnt/lg/cmn_data/screenamanger/` (LG's spelling); that folder did not
+  exist on this TV.
+- **An empty `videoScreenSaverAppList`**, with the setting left on, did not
+  stop it: after a power cycle, `videoads` came up from Home again.
+- **Switched off while the TV runs**, it parks tvpower: the next idle
+  request stopped at state `Active`, `processing: "Screen Saver Ready"`, with
+  no screen saver at all, until a power cycle (over an hour the first time).
+  Writing it back on did not release it. Seen twice: once after the setting
+  was written over luna, once after the owner switched it off in an option.
+- **Off from boot**, it works: from Home, tvpower's idle request at 2 minutes
+  started `com.webos.app.screensaver`, and the screen saver held for over 7
+  minutes. A value written on before a power cycle read off after it, with an
+  option the owner had set; which option writes it was not identified.
+
+## The cursor hiding as a key (C1, webOS 6.5.3)
+
+When the Magic Remote's pointer times out, `LGE M-RCU - Builtin [0]` sends
+EV_KEY 1199, down and up at once: `KEY_LGE_CURSOR_HIDE`, 1207 in
+`/usr/share/X11/xkb/keycodes/lg` less 8 (`KEY_LGE_CURSOR_SHOW` is 1198). It
+came 2 to 3 minutes after Glasshouse launched the screen saver itself, with
+tvpower still `Active`, and about 10 s before tvpower's own idle request.
+Glasshouse's watcher for that case closes the screen saver on any key down,
+so it closed it each time. With the video screen saver off from boot,
+tvpower's own request 3 s later started `com.webos.app.screensaver` again.
+configd's `screenSaverTimeout` reads 130 here, as on the CX.
+
 ## Home's snapshot (webOS 5.6.2, CX)
 
 The webOS 9 entries above describe the home app's CRIU checkpoint. On a CX:
@@ -3263,6 +3318,227 @@ start-up reads, and the route also waited on two uncached calls from
 
 Loading every module in `server/lib` takes 0.9 s on the B8 (node 0.12.2),
 and node itself 0.4 s; neither is worth shortening.
+
+## Reading the audio output (C1, webOS 6.5.3)
+
+OLED48C15LA, firmware 03.53.45, read on 14 November 2026 with Spotify
+(`spotify-beehive`) playing through the TV's speakers. Only reads were made:
+the process list, `/proc/asound`, `/dev/snd`, PulseAudio's modules and
+`/var/lib/tvweb` were the same before and after.
+
+PulseAudio runs, with `pcm_output` (`hw:0,6`) as the one real sink and null
+sinks for LG's roles. Spotify's sound does not go through it: WebAppMgr holds
+a stream on `pcm_output`, but `pcm_output.monitor` read as digital silence
+while the song played. The song plays through LG's media pipeline instead,
+and `com.webos.service.mediacontroller` does not exist on this TV, so
+neither the title nor the artist can be read from it.
+
+No process held a capture device open; the only open sound device was
+`pcmC0D6p`, PulseAudio's sink. Of the ALSA capture devices, all 48 kHz:
+
+| Device | Name in `/proc/asound/pcm` | What it gave |
+| :--- | :--- | :--- |
+| `hw:0,12` | Capture for dsnoop | The mix as heard, S16_LE stereo |
+| `hw:1,2` | MixerCapture | Noise at -9 dBFS, S32_LE 8 channels or S16_LE 2 |
+| `hw:1,3` | SoundEngineCapture | -80 dBFS |
+| `hw:1,1` | SpeakerFeedback | S32_LE 8 channels only, not read |
+
+`hw:0,12` follows the music: -9 to -25 dBFS while songs played, with left
+and right correlated at 0.6 to 0.95, and all zeros while Spotify was paused.
+`arecord -D hw:0,12 -c 2 -f S16_LE -r 48000` took 0.6% of a core and 1 MB.
+
+Tempo from 20 s of `hw:0,12` (onset envelope on a 128-sample hop at
+11025 Hz, autocorrelation over 80 to 160 BPM, folded into that range; the
+code uses 12 kHz):
+
+| Track | Published BPM | Found | Spread over 8 s windows |
+| :--- | :--- | :--- | :--- |
+| Michael Jackson, Billie Jean | 117 | 117.2 | 0.2% |
+| The White Stripes, Seven Nation Army | 124 | 125.0 | 1.7% |
+| The Weeknd, Blinding Lights | 171 | 85.5 (half) | 0.3% |
+| Adele, Hello (chorus) | 79 | 158.1 (double) | 2.2% |
+| Adele, Hello (verse) | 79 | - | 62.8% |
+| Debussy, Clair de Lune | none steady | - | 22.0% |
+
+The height of the autocorrelation peak did not tell a steady beat from none:
+Clair de Lune's was as high as Blinding Lights'. The spread of the tempo
+found over six 8 s windows did, at under 2.5% for every steady track and
+over 20% for the two without one.
+
+`lib/auror-beat-audio.js` reads `hw:0,12` this way, found by its name in
+`/proc/asound/pcm`, raw at 48 kHz and averaged down to 12 kHz mono in the
+server, as resampling in `plughw` took 3 to 6% of a core. It publishes a
+tempo only once six windows agree within 2.5%, compared within one octave.
+`lib/auror-beat.js` runs it on webOS 6 only, the one version tried.
+
+### Mimus on the beat: the latency, tuned by eye (C1, 15 November 2026)
+
+The beat's position in the capture is put on screen `OUTPUT_LATENCY_MS`
+later: from the beat in the samples to Mimus looking on it, so it covers
+the speakers' delay and the picture's together. Tuned by eye on a C1
+(webOS 6.5.3, the TV's speakers, Billie Jean at 117 BPM) through an absolute
+latency in the look, read at each beat request: -100 and -50 ms
+looked off the beat, 0 and 180 on it, 100 on it and on a second look a little
+early, 150 on it, and 256 (half a beat) off. The default is 150. Not measured: Bluetooth,
+eARC or a soundbar, whose delay differs, and other models.
+
+The look's `beatOffsetMs` (Home's **Beat offset**, -100 to +400 ms in 50 ms
+steps) is added to that default rather than replacing it, so retuning the
+default moves every owner's total with it. Output delay only adds: +400 makes
+550 ms, room for Bluetooth audio and a soundbar's processing, neither measured
+here. Which outputs `hw:0,12` carries is untested, so there is one offset
+rather than one per output.
+
+Home's **Test** asks for the screen saver as the dashboard does. From
+Glasshouse Home the C1 refused `turnOnScreenSaver` and the saver was launched
+as an app, with tvpower still Active, so the capture also starts while a
+launched AUROR saver shows.
+
+### What the capture costs, and the period `hw:0,12` grants (C1, 14 November 2026)
+
+With the AUROR screen saver up and a song playing, `scripts/footprint.sh`
+gave node 0.3% of a core with **Mimus on the beat** off and 4.2% with it on,
+and `arecord` 0.8%, as in the first field test. Node's resident memory went
+from 26.5 to 42.4 MB over the first 90 s of capture.
+
+`hw:0,12` always grants a period of 512 frames (10.7 ms), so `arecord` wakes
+94 times a second. Asking for `--period-time` of 50 or 100 ms, or
+`--period-size` of 1024 to 4800 frames, changed only the buffer size it
+grants (4096 to 24000 frames); the period stayed 512. `-c 1` is refused.
+The rate at which the TV hands over its sound cannot be lowered at the
+device, only by reading the pipe less often.
+
+On the C1's node 8.12, decoding and averaging the capture down to 12 kHz
+took 8 to 10 ms per second of audio in the first version and 2.1 to 2.3 ms
+after it was rewritten as one loop per chunk, about 1 point of the 3.9 that
+the capture adds to node.
+
+Most of the rest is node being woken for every period. With `arecord`
+writing to a pipe node reads as a stream, node took 4.1 to 4.3% of a core
+doing nothing with the data (94 wakes a second) and 4.8 to 4.9% running the
+detector on it. With `arecord` writing to a FIFO that node opens
+non-blocking and reads every 100 ms, up to 64 kB at a time, node took 0.47%
+with the detector (10 wakes a second). Two rounds of 15 s each, node 8.12,
+nothing playing.
+
+Read every 100 ms, a sample reached node 0 to 11 ms after `arecord` had it
+(median 5.3 ms), against 0 to 1 ms as a stream: at most one period. The delay
+is never negative, so `lib/auror-beat.js`, which reads the capture through
+the FIFO, places the beat from the least delayed read of the last 2 s. It
+reads every 50 ms: the 64 kB pipe holds 341 ms of the capture, and a stall
+longer than that blocks `arecord` and drops sound at the device, so the
+shorter interval keeps most of the margin a stream had.
+
+### A faster, provisional tempo: tried and not taken (14 November 2026)
+
+Recorded on the C1 for this: 60 s each of six steady songs (HUMBLE. 150,
+Fly Me to the Moon 118, Levels 126, When the Levee Breaks 141, We Will Rock
+You 81, Gas Gas Gas 154) and five pieces with no steady beat (Chopin's
+Nocturne Op. 9 No. 2, Satie's Gymnopédie No. 1, Barber's Adagio for Strings,
+Eno's An Ending (Ascent), a documentary's narration), beside the earlier 20 s
+recordings. The detector as shipped takes 18 to 30 s to a tempo on the
+steady songs, and held 158 BPM for 6 s on the Gymnopédie.
+
+A second tempo from 3 s windows analysed each second, shown until the six
+8 s windows agree, was fitted file by file with each file held out. No
+measure of how clear a 3 s window's beat is told the two kinds of music
+apart: the best, the autocorrelation peak against lag 0, kept 60% of the
+steady songs' windows while passing 19% of the others', as 3 s of the
+Gymnopédie or the narration repeats more evenly than 3 s of HUMBLE.
+Without that measure, four agreeing windows gave a first tempo in 6 to 10 s
+on most steady songs, but also 5 s of a wrong one on the narration, and
+holding a confirmed tempo through brief disagreement kept the Gymnopédie's
+158 for 38 s. Short windows also swing between tempos 3:2 apart (HUMBLE.
+150 and 100). The server and the screen saver are faster to show a tempo
+(the capture starts at the screen saver's first look, the beat is read
+each second), and the detector keeps its six-window rule.
+
+That was later reversed, on the argument that until a tempo is found Mimus
+plays at 120 BPM, which is as wrong for any song not at 120: see "A
+provisional tempo, taken".
+
+### A provisional tempo, taken (15 November 2026)
+
+Replayed on the same 19 recordings (`scripts/beat-replay.js`, on the corpus
+above). The six-window tempo stays as it was, and a provisional one stands in
+front of it: from 3 s of the onset envelope, analysed each second, published
+when three analyses agree within 2.5%, marked `provisional`, and given up for
+good when the six windows show a spread past 15% (or, once a settled tempo
+has been published, not used at all).
+
+| | Shipped | With a provisional tempo |
+| :--- | :--- | :--- |
+| First tempo within 5%, steady songs with a tempo (10) | median 18.0 s, p90 28.1 s | median 5.0 s, p90 5.0 s |
+| First tempo within 2% | median 18.0 s, p90 30.1 s | median 5.0 s, p90 20.1 s |
+| Seconds published on the five pieces and narrations with no steady beat | 6.0 | 73.1 to 91.1, depending on three or four agreeing windows |
+
+The first guess is off by up to 3% at 5 s on most songs and is refined by each
+analysis as the envelope grows (Seven Nation Army: 120.2 BPM at 5 s, 124.6 at
+18 s, 124 true). Two songs are worse: We Will Rock You (81) is taken at 145,
+twice 72.5, until about 20 s, and When the Levee Breaks (141) at 145, 2.9% off,
+until the six windows settle at 28 s. The saver puts Mimus back on the beat
+each second, so a tempo a few percent off keeps its phase.
+
+What the earlier trial found still holds: no measure of a short window tells
+a steady beat from none (the autocorrelation peak against lag 0 was tried
+again: We Will Rock You's median, 0.10, is below the Nocturne's, 0.18). What
+changes is only what a wrong tempo costs. These were measured:
+
+- Three agreeing windows are weak evidence, as consecutive windows share most
+  of their samples: white noise gets a provisional tempo for 13 s, a tempo
+  wandering by 10% for 13 s, one by 6% at 0.1 Hz for 35 s, and the
+  Nocturne, the Adagio, the narration and Clair de Lune for 8 to 20 s each.
+  It ends at 18 s, when the six windows have had their say, for all but the
+  slowest wander.
+- Keeping a provisional tempo through a window that disagrees keeps humble
+  (150) right from 5 s to 18 s where letting it go dropped it for 14 s, and
+  keeps a wrong one as long; a different tempo replaces it only when six
+  analyses agree, which stopped the Levee's 4:3 reading (185 BPM for 3 s).
+- Giving the provisional tempo up whenever the six windows disagree lost it
+  on humble, Fly Me to the Moon and We Will Rock You for the 6 to 12 s the
+  settled one took; only a spread past 15% gives it up now. It does not
+  separate the Nocturne (11% at 18 s) from We Will Rock You (12%), so the
+  Nocturne's 104 BPM lasts to 26 s.
+
+The Gymnopédie's 158 BPM is now provisional from 13 s, nine seconds before
+it was settled.
+
+The extra analyses cost nothing measurable: HUMBLE.'s 60 s through `push` and
+the analyses took 197 µs per second of audio, against 201 as shipped (on a
+desktop).
+
+On the C1 (webOS 6.5.3), Billie Jean (117) from its first second with the
+saver up: the first tempo, 116.9 provisional, came 8.9 s after the capture
+started, and the settled 116.5 at 22 s. A second song at about 117, joined
+mid-way, had 118 provisional at 5.8 s and 117 settled at 18.9 s. The
+replay's 5 s does not count starting `arecord` and filling its first reads,
+which on the first run added about 4 s. Over 90 s from the capture's
+start, node took 1.5% of a core and `arecord` 0.77%, node's RSS steady at
+34 MB.
+
+### The Gymnopédie's 158 BPM: kept (15 November 2026)
+
+The six windows that publish 158.2 BPM on Satie's Gymnopédie No. 1 (22 to
+28 s into the recording, and 157.8 for 8 s on the C1 itself) are among the
+steadiest in the corpus: their tempos agree within 0.6 to 0.8%, closer than
+HUMBLE., Fly Me to the Moon or Seven Nation Army. The left hand's ostinato
+is near 79 BPM, so 158 is its double, as HELLO's chorus is published at 157.8.
+
+Two rules were tested against thresholds taken only from the steady songs,
+replaying the detector's own windows and decisions (no difference from the
+shipped detector over 12 files):
+
+- The beats' place on one grid, from a period fitted to the six beats rather
+  than the autocorrelation period, whose 2.5% spread drifts by up to 0.9 of a
+  beat over 18 s. The Gymnopédie's residual (0.45 to 0.47 of a beat) sits
+  inside the steady songs' range: syncopated songs reach 0.59 (HUMBLE.), as
+  the beat found swaps halves.
+- A tighter spread, 2.25%, for a first tempo. It leaves the Gymnopédie
+  through and costs steady songs: HUMBLE. first at 34 s instead of 30, Seven
+  Nation Army's 20 s recording never.
+
+Neither separates it, so the detector is unchanged and Mimus keeps time with
+the ostinato for those seconds.
 
 ## Paired Bluetooth audio devices (55UM7290PTD, webOS 4.10.2)
 

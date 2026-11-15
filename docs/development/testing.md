@@ -210,6 +210,9 @@ before its first read.
 
 `test-repo.js` checks declared source URLs from the Homebrew Channel and added catalogs, including missing, malformed and unsafe addresses, GitHub downloads mapped to their repository, and other `.ipk` downloads omitted without changing installation URLs. `test-catalog-ui.js` checks source-link escaping, new-tab attributes, placement beside the primary action using the idle pill style, and availability across app states and disabled controls in both lists, including corrected and omitted download links.
 
+`test-auror-beat.js` finds the tempo and beat in click tracks it makes, at 12 kHz and as the raw 48 kHz capture split at odd bytes, which must give the same envelope as the whole buffer, checks that noise, silence and a wandering tempo settle on nothing, that a provisional tempo is published within 6 s of a click track, kept through windows that disagree, handed to the settled one and not used again after it, and runs the capture's start, stop and restarts on a fake clock, through a fake FIFO: made and removed with the capture, refused when it is not a FIFO, drained every 100 ms, and an epoch from read times that lag by 0 or 10 ms matching the one from reads on time. It checks that 100 ms reads publish what 2048-byte reads do. It requires the AUROR screen saver's `beat.js` for the frame maths, with frame 1 on the beat. It also checks that the screen saver's look poll starts the capture, that the beat is logged once per tempo, that the look's `beatOffsetMs` moves the epoch by exactly that much from the next request on, and gives no phase while the latency is uncalibrated, and that `beat.js` keeps its frames when the same beat comes every second. `test-auror-look-beat.js` asks `/api/home/look/beat` through the real routes: the beat while Mimus follows it, null with Mimus or following the beat off, no read of the media state, and the same token rule as the look from the network. It also posts Home's **Test**, `/api/home/saver/test`: the screen saver control called once and its answer returned, and from the network refused without the token, or with it while controls are off.
+`test-qmlcheck.js` checks the server's own QML check: AnimatedImage's `speed` refused under QtQuick 2.4, a `speed` property the saver declares itself allowed, and QtQuick 2.12 on webOS 6.
+
 `test-saver-manifests.js` reads screen saver folders, checks that brightness keeps the Bright and Dim levels at 100% and 65% with a layer between and below, the order and ids, a folder with something wrong listed with the reason, staging, translated names, and what one added on the TV does past the screen. An installed homebrew app's screen saver is listed from its app, by either file name, with the same checks, an app without one is left out, only its QML is staged, and one whose app has gone counts as LG's.
 
 `test-homeassistant.js` checks `/api/homeassistant`, the one answer a screen saver gets for all the values it declares: that it takes the token every other read takes, that it reads each declared entity once and answers with only those, under the saver's own short names and with no calendar, that the staged QML is handed the single address with the token and no placeholder is left, that a saver which declares nothing is served nothing without asking Home Assistant again, and that an API switched off is reported as unconfigured rather than retried.
@@ -218,7 +221,7 @@ before its first read.
 
 `test-remote-buttons.js` checks the codes of the buttons reported to Home Assistant, that the Python worker that reads the devices has the same codes as `remotebuttons.js`, and that the Remote Button entity declares every reported button as an event type. `test-remotekeys.js` also checks that Power off requests standby once on release, works with the panel blank, and does not switch off after a press that wakes the TV; `test-remotekeys-webos11.js` checks that native filters neither offer nor accept it. `test-remotekeys.js` checks that the Home Assistant choice is offered only with MQTT on and for those buttons, and that the filter keeps a key set to it from the TV. `test-remotekeys-webos11.js` also checks active regional streaming buttons (Ivi, Okko, Kinopoisk and LG Shop), app assignment, disabling and restoring each original entry without changing other buttons.
 
-`test-screensaver-dropped.js` covers a refused request's fallback, remote dismissal and restart recovery, failed closes, delayed replies, and playback or source changes that must prevent a launch, and that the pointer moving or clicking ends a Glasshouse screen saver the TV started, once for a stream of movement, while LG's own is left to end itself. `test-remote-buttons.js` checks that Home, coloured buttons and ordinary keys reach the dismissal handler through both parsed events and the worker stream, including split lines, and that pointer reports reach their handler.
+`test-screensaver-dropped.js` covers a refused request's fallback, remote dismissal and restart recovery, failed closes, delayed replies, and playback or source changes that must prevent a launch, and that the pointer moving or clicking ends a Glasshouse screen saver the TV started, once for a stream of movement, while LG's own is left to end itself. `test-remote-buttons.js` checks that Home, coloured buttons and ordinary keys reach the dismissal handler through both parsed events and the worker stream, including split lines, that pointer reports reach their handler, and that the Magic Remote's pointer hiding (1199) is not a key. `test-screensaver-trigger.js` checks that Start screen saver asks the TV plainly first, then without panel care's hold only where that is possible, then opens the screen saver itself, putting the hold back after a refusal; on a G3-like TV, with the real idlesaver, the button's refused request is not taken for LG's idle one.
 
 `test-services-account.js` checks that LG Account is offered only where webOS 10's service block list is, that switching it off adds it to that list beside LG's own entries and switching it on or uninstalling takes it off, and that it is added again at start if gone.
 
@@ -232,7 +235,7 @@ before its first read.
 
 `test-nosignal.js` checks that the No Signal screen is patched for both plain and disconnected cable icon modes only where the expected QML lines are there exactly once, that switching it on mounts the copy and restarts the input app only once no input is in front or the one in front has nothing coming in, that switching modes while mounted updates `Screensaver.qml` in place from LG's saved copy, that a server start leaves a mounted copy alone, and that switching it off unmounts it.
 
-`test-idlesaver.js` checks that an idle screen saver refused by panel care is asked for again without its hold, and that the hold is put back when it closes or is still refused, but not over an app that has come to the front since. An app that still refuses it is not lifted again until another app is in front or the TV leaves On. Failed restores are retried, a lost policy reply remains tracked, and a server restart recovers an outstanding lift. Delayed idle callbacks respect later power changes, and a dashboard lift expires if no screen saver starts. Its own request's refusal, playback (non-preview app video on the main screen included while the media state reads idle, while Home, broadcast and inset tile previews still lift it) and a TV without `setEplAppInfo` are left alone. The assertions run on Node 0.10 and 0.12 as well as newer versions.
+`test-idlesaver.js` checks that an idle screen saver refused by panel care is asked for again without its hold, and that the hold is put back when it closes or is still refused, but not over an app that has come to the front since. An app that still refuses it is not lifted again until another app is in front or the TV leaves On. Failed restores are retried, a lost policy reply remains tracked, and a server restart recovers an outstanding lift. Delayed idle callbacks respect later power changes, and a dashboard lift expires if no screen saver starts. Its own request's refusal, including Start screen saver's plain one, playback (non-preview app video on the main screen included while the media state reads idle, while Home, broadcast and inset tile previews still lift it) and a TV without `setEplAppInfo` are left alone. The assertions run on Node 0.10 and 0.12 as well as newer versions.
 
 `test-luna-absent.js` checks that a failed call to an LG service missing from the TV's service files makes later calls to it fail at once, for 10 minutes, while listed services and homebrew ones keep being called, and that a renamed service the TV lists only by its legacy name moves to that name after no answer under the newer one, rather than being skipped. `test-luna-missing-method.js` checks that a method the service answers "Unknown method" for is answered with that refusal, without a call, for 10 minutes, each caller getting its own copy, that the service's other methods and other refusals are still asked, and that it is asked again after the 10 minutes.
 
@@ -656,6 +659,46 @@ The sideload route check forces an upload to abort before its file opens,
 then confirms that the eventual descriptor closes and the staging file is
 removed. This catches Node 0.12's destroy-before-open behaviour without
 relying on the filesystem finishing within a fixed delay.
+
+## The screen saver's beat
+
+The beat detector is tuned and checked on recordings of the TV's sound,
+kept outside git because the music is copyrighted. Each recording is 60 s of
+the capture's raw format (48 kHz, stereo, S16_LE). `manifest.tsv` in the
+same folder lists them: name, reference BPM or `unknown`, whether the beat is
+steady, and the second it becomes steady, for a piece that starts without one.
+
+`scripts/beat-record.sh <tv> <name> <bpm|unknown> <y|n> [steadyFrom]`
+records one piece from the TV while it plays, copies it into the folder
+(`$AUROR_BEAT_CORPUS`, by default `~/Progetti/Sviluppo/auror-beat-corpus`),
+deletes it from the TV and adds the manifest row. It refuses while the
+screen saver's own capture runs, as the TV's audio device may take only one
+reader.
+
+`scripts/beat-replay.js` plays recordings through the detector and reports,
+for each, when a tempo was first published (a provisional one counts) and
+confirmed (settled), when it was first within 5% and within 2% of the
+reference and by how much it was off at first, how much of the published time
+was within 2% of it, how long the tempo was provisional, how often it jumped
+an octave or switched between a tempo and none, and what `push` costs per
+second of audio. A last line gives the median and 90th percentile of the
+first time within 5% and within 2%:
+
+```bash
+node scripts/beat-replay.js --manifest ~/Progetti/Sviluppo/auror-beat-corpus/manifest.tsv
+node scripts/beat-replay.js a.raw:117+gap+b.raw:124   # a track change
+node scripts/beat-replay.js --synthetic                 # click tracks, no recordings needed
+```
+
+`--module <path>` replays another version of `auror-beat-audio.js`, such as
+one from `git show`, so two versions can be compared on the same files;
+`--dump-env <out.json>` writes every envelope value and decision for that
+comparison. It runs under node 0.12, so it can be copied to a TV and run with
+the TV's own node.
+
+`scripts/footprint.sh <tv> --pid-file /tmp/auror-beat-capture.pid` adds the
+capture's `arecord` to the server's own CPU and memory figures, and
+`--rss-every 60` prints memory once a minute, to tell growth from a plateau.
 
 The Internet TV regression checks also cover a full 2,000-channel lineup
 through real workers, a bulk add that overlaps channels already carried,

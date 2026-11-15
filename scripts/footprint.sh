@@ -6,6 +6,15 @@
 # put a number on what a viewer adds.
 #
 #   ./scripts/footprint.sh <tv-ip> [--seconds 60] [--telnet]
+#                          [--pid-file <path>]... [--rss-every <s>]
+#
+# --pid-file adds the process a pid file on the TV names, beside node: its CPU
+# share and resident memory. It may be given more than once. The files are
+# read again at every sample, since a process can be restarted during a run
+# (the beat capture is); ticks are summed over each pid seen, from the moment
+# it was first seen, and a process that lives and dies between two samples
+# (every 5 s) is missed. --rss-every prints the resident memory of node and
+# of each extra process at that interval, in seconds.
 #
 # Reaches the TV as deploy.sh does: SSH as root where it is set up, otherwise
 # the Homebrew Channel's root telnet. Reads /proc only; nothing on the TV is
@@ -14,18 +23,24 @@
 
 set -u
 
-TV=""; SECS=60; FORCE_TELNET=""
+TV=""; SECS=60; FORCE_TELNET=""; PIDFILES=""; RSS_EVERY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --seconds) SECS="$2"; shift ;;
     --telnet) FORCE_TELNET=1 ;;
+    --pid-file)
+      [ $# -ge 2 ] || { echo "--pid-file takes a path" >&2; exit 2; }
+      case "$2" in ''|*[[:space:]\'\"\$\`]*) echo "--pid-file takes a path without spaces or quotes" >&2; exit 2 ;; esac
+      PIDFILES="$PIDFILES $2"; shift ;;
+    --rss-every) RSS_EVERY="${2:-}"; shift ;;
     -*) echo "unknown option: $1" >&2; exit 2 ;;
     *) TV="$1" ;;
   esac
   shift
 done
-[ -n "$TV" ] || { echo "usage: $0 <tv-ip> [--seconds 60] [--telnet]" >&2; exit 2; }
+[ -n "$TV" ] || { echo "usage: $0 <tv-ip> [--seconds 60] [--telnet] [--pid-file <path>]... [--rss-every <s>]" >&2; exit 2; }
 case "$SECS" in ''|*[!0-9]*) echo "--seconds takes a whole number" >&2; exit 2 ;; esac
+case "$RSS_EVERY" in ''|*[!0-9]*) echo "--rss-every takes a whole number" >&2; exit 2 ;; esac
 
 SSH_OPTS=(-o ConnectTimeout=6 -o StrictHostKeyChecking=accept-new -o BatchMode=yes)
 
@@ -34,6 +49,8 @@ SSH_OPTS=(-o ConnectTimeout=6 -o StrictHostKeyChecking=accept-new -o BatchMode=y
 tv_script() {
   cat <<EOF
 SECS=$SECS
+PIDFILES='$PIDFILES'
+RSS_EVERY=$RSS_EVERY
 EOF
   cat <<'EOF'
 pid=$(cat /var/run/tvweb.pid 2>/dev/null)
@@ -67,8 +84,55 @@ children() {
   echo "$count $rss"
 }
 
+# Extra processes (--pid-file) and the periodic RSS lines (--rss-every). Each
+# reading of an extra process is a line "<sample number> <pid file> <pid>
+# <ticks> <rss kB>" in $obs_log; the totals are worked out from them at the end.
+obs_log=/tmp/footprint-obs.$$
+: > "$obs_log"
+trap 'rm -f "$obs_log"' EXIT
+trap 'exit 130' INT TERM HUP
+extras=$PIDFILES
+
+# Sets $reading to the extras' RSS in kB for the line --rss-every prints.
+sample_extras() {
+  idx=$1; reading=""
+  for f in $extras; do
+    p=$(cat "$f" 2>/dev/null)
+    if [ -n "$p" ] && [ -d "/proc/$p" ]; then
+      t=$(awk '{print $14+$15}' "/proc/$p/stat" 2>/dev/null)
+      r=$(awk '/^VmRSS/{print $2}' "/proc/$p/status" 2>/dev/null)
+      echo "$idx $f $p ${t:-0} ${r:-0}" >> "$obs_log"
+      reading="$reading ${r:-0}"
+    else
+      reading="$reading -"
+    fi
+  done
+}
+
 a=$(sample)
-sleep "$SECS"
+if [ -z "$extras" ] && [ "$RSS_EVERY" -eq 0 ]; then
+  sleep "$SECS"
+else
+  step=5
+  [ "$RSS_EVERY" -gt 0 ] && [ "$RSS_EVERY" -lt 5 -o $((RSS_EVERY % 5)) -ne 0 ] && step=1
+  el=0; idx=0
+  sample_extras 0
+  while [ "$el" -lt "$SECS" ]; do
+    s=$step; [ $((SECS - el)) -lt "$s" ] && s=$((SECS - el))
+    sleep "$s"
+    el=$((el + s)); idx=$((idx + 1))
+    sample_extras "$idx"
+    if [ "$RSS_EVERY" -gt 0 ] && [ $((el % RSS_EVERY)) -eq 0 ]; then
+      line="FOOTPRINT_RSS elapsed=$el node_kb=$(awk '/^VmRSS/{print $2}' "/proc/$pid/status" 2>/dev/null)"
+      i=0
+      for f in $extras; do
+        i=$((i + 1))
+        line="$line $f=$(echo $reading | awk -v n=$i '{print $n}')"
+      done
+      echo "$line"
+    fi
+  done
+fi
 b=$(sample)
 set -- $a; n0=$1; w0=$2; b0=$3; t0=$4; p0=$5
 set -- $b; n1=$1; w1=$2; b1=$3; t1=$4; p1=$5
@@ -87,6 +151,20 @@ awk -v n0="$n0" -v n1="$n1" -v w0="$w0" -v w1="$w1" -v b0="$b0" -v b1="$b1" -v t
   printf " server_rss_mb=%.1f children=%d children_rss_mb=%.1f tv_mem_mb=%d tv_avail_mb=%d cores=%d\n", \
     rss / 1024, ch, chrss / 1024, m[1] / 1024, m[2] / 1024, ncpu
 }'
+
+# One line per extra process: CPU from the ticks of every pid seen under that
+# file (a pid first seen after the start counts from its own first tick, a pid
+# present at the start from its first reading), memory last and largest.
+[ -z "$extras" ] || awk -v secs="$SECS" -v hz="$hz" '
+  { k = $2 SUBSEP $3
+    if (!(k in first)) { first[k] = ($1 == 0 ? $4 : 0); order[++n] = k; file[k] = $2 }
+    last[k] = $4; rss[$2] = $5; if ($5 > mx[$2]) mx[$2] = $5; seen[$2]++
+    if (!($2 in fl)) { fl[$2] = 1; files[++nf] = $2 } }
+  END { for (i = 1; i <= n; i++) { k = order[i]; ticks[file[k]] += last[k] - first[k]; pids[file[k]]++ }
+    for (i = 1; i <= nf; i++) { f = files[i]
+      printf "FOOTPRINT_EXTRA file=%s cpu_pct=%.2f rss_mb=%.1f rss_max_mb=%.1f pids=%d\n", \
+        f, ticks[f] / hz / secs * 100, rss[f] / 1024, mx[f] / 1024, pids[f] } }' "$obs_log"
+rm -f "$obs_log"
 EOF
 }
 
@@ -150,3 +228,14 @@ printf '%-34s %s\n' "processes started per minute" "${F_forks_per_min}"
 printf '%-34s %s MB\n' "server resident memory" "${F_server_rss_mb}"
 printf '%-34s %s, %s MB\n' "luna-send children open" "${F_children}" "${F_children_rss_mb}"
 printf '%-34s %s of %s MB\n' "TV memory available" "${F_tv_avail_mb}" "${F_tv_mem_mb}"
+
+# --pid-file and --rss-every, when given.
+while read -r _ extra; do
+  [ -n "$extra" ] || continue
+  for kv in $extra; do declare "X_${kv%%=*}=${kv#*=}"; done
+  printf '%-34s %s%%, %s MB (largest %s MB), %s pid(s) seen\n' "${X_file}" "${X_cpu_pct}" "${X_rss_mb}" "${X_rss_max_mb}" "${X_pids}"
+done < <(grep '^FOOTPRINT_EXTRA ' <<<"$out")
+if grep -q '^FOOTPRINT_RSS ' <<<"$out"; then
+  printf '\nresident memory, kB\n'
+  grep '^FOOTPRINT_RSS ' <<<"$out" | sed 's/^FOOTPRINT_RSS //'
+fi
