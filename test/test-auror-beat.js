@@ -176,17 +176,26 @@ console.log('  ✓ jittered click tracks near 80 and 160 BPM still publish');
     sum += l + r;
     if (i % 4 === 3) { want.push(sum / (8 * 32768)); sum = 0; }
   }
-  var whole = [], split = [];
-  audio.createDecimator(function (v) { whole.push(v); })(raw);
-  var feed = audio.createDecimator(function (v) { split.push(v); }), at = 0, sizes = [1, 3, 5, 7, 2, 11, 13];
-  for (var k = 0; at < raw.length; k++) {
-    var n = sizes[k % sizes.length];
-    feed(raw.slice(at, at + n));
-    at += n;
+  // Each hop's onset and window energy, and the samples counted.
+  function hops(feed) {
+    var out = [];
+    var t = audio.createTracker({ hop: function (onset, energy) { out.push(onset, energy); }, analysed: function () {} });
+    feed(t);
+    return { hops: out, samples: t.samples() };
   }
-  assert.strictEqual(whole.length, want.length, '4 frames of 48 kHz stereo make one sample at 12 kHz');
-  for (i = 0; i < want.length; i++) near(whole[i], want[i], 1e-12, 'sample ' + i);
-  assert.deepEqual(split, whole, 'split at odd bytes, the same samples');
+  var fromSamples = hops(function (t) { t.pushSamples(want); });
+  var whole = hops(function (t) { t.push(raw); });
+  var split = hops(function (t) {
+    for (var at = 0, k = 0, sizes = [1, 3, 5, 7, 2, 11, 13]; at < raw.length; k++) {
+      var n = sizes[k % sizes.length];
+      t.push(raw.slice(at, at + n));
+      at += n;
+    }
+  });
+  assert.strictEqual(whole.samples, want.length, '4 frames of 48 kHz stereo make one sample at 12 kHz');
+  assert.ok(fromSamples.hops.length >= 2 * 280, 'every hop seen');
+  assert.deepEqual(whole, fromSamples, 'the raw capture gives the hops its 12 kHz samples give');
+  assert.deepEqual(split, whole, 'split at odd bytes, the same hops');
   console.log('  ✓ 48 kHz stereo is averaged down to 12 kHz mono, whatever bytes the chunks split at');
 })();
 
@@ -219,18 +228,84 @@ var PCM = '00-12: Capture for dsnoop snd-soc-dummy-dai-12 :  : capture 1\n';
 var CMD = 'arecord\u0000-q\u0000-D\u0000hw:0,12\u0000-c\u00002\u0000-f\u0000S16_LE\u0000-r\u000048000\u0000-t\u0000raw\u0000';
 
 var now = 1000000;
-var timers = [];
+var timers = [], intervals = [];
 global.setTimeout = function (fn, ms) { var t = { fn: fn, at: now + ms }; timers.push(t); return t; };
 global.clearTimeout = function (t) { var i = timers.indexOf(t); if (i !== -1) timers.splice(i, 1); };
+// The FIFO's read loop: run by drain(), not by the clock.
+global.setInterval = function (fn, ms) { var t = { fn: fn, ms: ms, unref: function () {} }; intervals.push(t); return t; };
+global.clearInterval = function (t) { var i = intervals.indexOf(t); if (i !== -1) intervals.splice(i, 1); };
 function advance(ms) {
   now += ms;
   timers.filter(function (t) { return t.at <= now; }).forEach(function (t) { global.clearTimeout(t); t.fn(); });
 }
 
 var env, queued, spawned, killed, files, musicReads, exitHook, spawnFails;
+
+/*
+ * The FIFO, faked: made by a fake mkfifo, read from a queue of chunks the
+ * test writes. readSync throws EAGAIN once the queue is empty, and gives 0
+ * once the writer has closed.
+ */
+var fifoPath = path.join(dir, 'capture.fifo');
+var fifo, makers, openFds, nextFd, reads;
+function fsError(code) { var e = new Error(code); /** @type {any} */ (e).code = code; return e; }
+var fakeFs = {
+  openSync: function (p, flags) {
+    // The write end is opened through the read end's fd, which must be open.
+    var viaFd = /\/self\/fd\/(\d+)$/.exec(p);
+    if (viaFd) assert.ok(viaFd[1] in openFds, 'the write end opened through an open read fd');
+    else assert.strictEqual(p, fifoPath);
+    if (!fifo.exists) throw fsError('ENOENT');
+    var fd = nextFd++;
+    openFds[fd] = flags;
+    return fd;
+  },
+  fstatSync: function (fd) {
+    assert.ok(fd in openFds, 'fstat of an open fd');
+    return { isFIFO: function () { return !fifo.notFifo; }, uid: process.getuid(), ino: 77, dev: 3 };
+  },
+  readSync: function (fd, buf, off, len) {
+    assert.ok(fd in openFds, 'read of an open fd');
+    reads++;
+    if (!fifo.chunks.length) {
+      if (fifo.writerClosed) return 0;
+      throw fsError('EAGAIN');
+    }
+    var chunk = fifo.chunks[0], n = Math.min(len, chunk.length);
+    chunk.copy(buf, off, 0, n);
+    if (n === chunk.length) fifo.chunks.shift();
+    else fifo.chunks[0] = chunk.slice(n);
+    return n;
+  },
+  closeSync: function (fd) {
+    assert.ok(fd in openFds, 'close of an open fd');
+    delete openFds[fd];
+  },
+  unlinkSync: function (p) {
+    if (p !== fifoPath) return fs.unlinkSync(p);
+    if (!fifo.exists) throw fsError('ENOENT');
+    fifo.exists = false;
+  },
+  writeFileSync: function (p, data, o) { return fs.writeFileSync(p, data, o); }
+};
+function mkfifoChild() {
+  var c = new EventEmitter();
+  makers.push(c);
+  return c;
+}
+// Writes to the FIFO, then runs its read loop.
+function feed(buf) {
+  fifo.chunks.push(buf);
+  drain();
+}
+function drain() { intervals.slice().forEach(function (t) { assert.strictEqual(t.ms, 50); t.fn(); }); }
+function noLeaks(what) {
+  assert.deepEqual(Object.keys(openFds), [], what + ': no fd left open');
+  assert.strictEqual(intervals.length, 0, what + ': no read loop left');
+  assert.ok(!fifo.exists, what + ': the FIFO removed');
+}
 function fakeChild() {
   var c = new EventEmitter();
-  c.stdout = new EventEmitter();
   c.pid = 4000 + spawned.length;
   c.killedWith = null;
   c.kill = function (sig) { c.killedWith = sig; };
@@ -247,6 +322,12 @@ function setup(over) {
   musicReads = 0;
   exitHook = null;
   spawnFails = null;
+  fifo = { exists: false, notFifo: false, chunks: [], writerClosed: false, mkfifoFails: false };
+  makers = [];
+  openFds = {};
+  nextFd = 20;
+  reads = 0;
+  intervals = [];
   beatModule.init({
     home: /** @type {any} */ ({
       screenSaverSince: function () { return env.since; },
@@ -257,8 +338,14 @@ function setup(over) {
     screensavers: /** @type {any} */ ({ screensaverMode: function () { return env.mode; } }),
     webosVersion: env.webos,
     launch: function (fn) { queued.push(fn); },
-    spawn: function (file, args) {
+    spawn: function (file, args, o) {
       if (spawnFails) throw spawnFails;
+      if (file === 'mkfifo') {
+        assert.deepEqual(args, ['-m', '600', fifoPath]);
+        return mkfifoChild();
+      }
+      assert.ok(o.stdio[1] in openFds && openFds[o.stdio[1]] === require('constants').O_WRONLY | require('constants').O_NOFOLLOW,
+        'arecord writes to the FIFO\'s write end');
       var c = fakeChild();
       c.cmd = [file].concat(args);
       spawned.push(c);
@@ -272,13 +359,29 @@ function setup(over) {
     },
     kill: function (pid, sig) { killed.push([pid, sig]); },
     pidFile: pidFile,
+    fifo: fifoPath,
+    fs: fakeFs,
     procDir: '/fakeproc',
     outputLatencyMs: env.latency,
     onExit: function (fn) { exitHook = fn; },
     noTick: true
   });
 }
-function runQueued() { var q = queued; queued = []; q.forEach(function (fn) { fn(); }); }
+// Runs the starts waiting their turn, and the mkfifo they start, until none is left.
+function runQueued() {
+  while (queued.length || makers.length) {
+    var q = queued;
+    queued = [];
+    q.forEach(function (fn) { fn(); });
+    var m = makers;
+    makers = [];
+    m.forEach(function (c) {
+      if (fifo.mkfifoFails || fifo.exists) return c.emit('exit', 1, null);
+      fifo.exists = true;
+      c.emit('exit', 0, null);
+    });
+  }
+}
 function exit(c) { c.exited = true; c.emit('exit', 1, null); }
 function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
 
@@ -288,11 +391,15 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
   assert.strictEqual(spawned.length, 1, 'all gates hold: the capture starts');
   assert.deepEqual(spawned[0].cmd, ['arecord', '-q', '-D', 'hw:0,12', '-c', '2', '-f', 'S16_LE', '-r', '48000', '-t', 'raw']);
   assert.strictEqual(fs.readFileSync(pidFile, 'utf8'), String(spawned[0].pid), 'its pid is kept');
+  assert.ok(fifo.exists, 'the FIFO made');
+  assert.strictEqual(Object.keys(openFds).length, 1, 'only the read end stays open in node');
+  assert.strictEqual(intervals.length, 1, 'and read every 50 ms');
   env.since = 0;
   advance(5000);
   beatModule.tick();
   assert.strictEqual(spawned[0].killedWith, 'SIGTERM', 'saver gone: stopped by the next tick');
   assert.ok(!fs.existsSync(pidFile), 'and its pidfile removed');
+  noLeaks('stopped');
 
   setup();
   pollAndTick();
@@ -343,6 +450,7 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
   var waits = [1000, 2000, 4000];
   for (var i = 0; i < 3; i++) {
     exit(spawned[spawned.length - 1]);
+    noLeaks('ended, waiting to start again');
     beatModule.polled();
     advance(waits[i] - 1);
     runQueued();
@@ -350,11 +458,13 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
     advance(1);
     runQueued();
     assert.strictEqual(spawned.length, i + 2, 'again after ' + waits[i] + ' ms');
+    assert.ok(fifo.exists && intervals.length === 1, 'started again through a new FIFO');
   }
   exit(spawned[spawned.length - 1]);
   advance(10000);
   pollAndTick();
   assert.strictEqual(spawned.length, 4, 'the third retry ending as fast: given up');
+  noLeaks('given up');
 
   // Two fast exits, then one after 11 s: the wait is 1 s again, not 4.
   function retryWait() {
@@ -391,6 +501,7 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
   setup();
   pollAndTick();
   beatModule.stop();
+  noLeaks('stopped');
   exit(spawned[0]);
   assert.strictEqual(timers.length, 0, 'no retry after a stop');
   advance(5000);
@@ -416,20 +527,24 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
     home: /** @type {any} */ ({ screenSaverSince: function () { return 1; }, layout: function () { return { look: { mascots: true } }; },
       musicApp: function () { return 'spotify'; }, musicPlaying: function (cb) { cb(true); } }),
     screensavers: /** @type {any} */ ({ screensaverMode: function () { return 'auror'; } }),
-    webosVersion: '6.5.3', launch: function (fn) { queued.push(fn); }, spawn: function () { spawned.push(noPid); return noPid; },
-    now: function () { return now; }, readFile: function () { return PCM; }, pidFile: pidFile, onExit: function () {}, noTick: true
+    webosVersion: '6.5.3', launch: function (fn) { queued.push(fn); },
+    spawn: function (file) { if (file === 'mkfifo') return mkfifoChild(); spawned.push(noPid); return noPid; },
+    now: function () { return now; }, readFile: function () { return PCM; }, pidFile: pidFile, fifo: fifoPath, fs: fakeFs,
+    onExit: function () {}, noTick: true
   });
   pollAndTick();
   assert.ok(!fs.existsSync(pidFile), 'no pid, no pidfile');
   noPid.emit('error', new Error('spawn arecord ENOENT'));
   noPid.emit('exit', -2, null);
   assert.strictEqual(timers.length, 1, 'error then exit: one retry');
+  noLeaks('error then exit');
 
   // The server exiting kills the capture.
   setup();
   pollAndTick();
   exitHook();
   assert.strictEqual(spawned[0].killedWith, 'SIGTERM', 'killed on exit');
+  noLeaks('server exiting');
   console.log('  ✓ a capture that ends starts again after 1, 2 and 4 s, and is given up when the third retry ends as fast');
   console.log('  ✓ a long run resets the count, a stop\'s exit starts nothing, a failed spawn is retried, exit kills it');
 })();
@@ -439,15 +554,16 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
   pollAndTick();
   var c = spawned[0];
   var zeros = allocBuffer(48000 * 4);
-  for (var s = 0; s <= 30; s++) { c.stdout.emit('data', zeros); beatModule.polled(); advance(1000); }
+  for (var s = 0; s <= 30; s++) { feed(zeros); beatModule.polled(); advance(1000); }
   assert.strictEqual(c.killedWith, 'SIGTERM', '30 s of silence: stopped');
+  noLeaks('resting');
   advance(5000);
   pollAndTick();
   assert.strictEqual(spawned.length, 1, 'not again within a minute');
   for (var w = 0; w < 11; w++) { advance(5000); pollAndTick(); }
   assert.strictEqual(spawned.length, 2, 'started again after a minute, music still playing');
   c = spawned[1];
-  for (s = 0; s <= 30; s++) { c.stdout.emit('data', zeros); beatModule.polled(); advance(1000); }
+  for (s = 0; s <= 30; s++) { feed(zeros); beatModule.polled(); advance(1000); }
   assert.strictEqual(c.killedWith, 'SIGTERM', 'silent again: stopped');
   for (w = 0; w < 13; w++) { advance(5000); pollAndTick(); }
   assert.strictEqual(spawned.length, 2, 'the second rest is two minutes');
@@ -512,7 +628,7 @@ function rawClicks(bpm, seconds) {
     pollAndTick();
     var c = spawned[0];
     assert.strictEqual(beatModule.beat(), null, 'nothing heard yet');
-    c.stdout.emit('data', raw.slice(0, 20 * second));
+    feed(raw.slice(0, 20 * second));
     var b = beatModule.beat();
     assert.ok(b, 'a beat after 20 s of clicks');
     assert.strictEqual(b.source, 'audio');
@@ -523,7 +639,7 @@ function rawClicks(bpm, seconds) {
     // The capture goes on arriving in 0.7 s chunks.
     for (var at = 20 * second; at + 0.7 * second <= raw.length; at += 0.7 * second) {
       advance(700);
-      c.stdout.emit('data', raw.slice(at, at + 0.7 * second));
+      feed(raw.slice(at, at + 0.7 * second));
       var now_ = beatModule.beat();
       assert.ok(now_.epoch - offset <= now && now - (now_.epoch - offset) < period + 1, 'epoch is the latest beat, never more than a period old');
     }
@@ -531,6 +647,124 @@ function rawClicks(bpm, seconds) {
     assert.strictEqual(beatModule.beat(), null, 'nothing new for a second: no beat');
   });
   console.log('  ✓ the beat: tempo only until the latency is calibrated, epoch the latest beat, null once the sound stops');
+})();
+
+// ---- the FIFO
+(function () {
+  // A path left from before is removed first: the fake mkfifo fails on an existing one.
+  setup();
+  fifo.exists = true;
+  pollAndTick();
+  assert.strictEqual(spawned.length, 1, 'a leftover at the path is replaced');
+
+  setup();
+  fifo.mkfifoFails = true;
+  pollAndTick();
+  assert.strictEqual(spawned.length, 0, 'mkfifo failing: no arecord');
+  assert.strictEqual(timers.length, 1, 'and retried as a failed start');
+  noLeaks('mkfifo failing');
+
+  setup();
+  fifo.notFifo = true;
+  pollAndTick();
+  assert.strictEqual(spawned.length, 0, 'not a FIFO at the path: refused without spawning');
+  assert.strictEqual(timers.length, 1, 'and retried as a failed start');
+  noLeaks('not a FIFO');
+
+  // Stopped while mkfifo runs: what it made is removed, and nothing is spawned.
+  setup();
+  beatModule.polled();
+  beatModule.tick();
+  var q = queued;
+  queued = [];
+  q.forEach(function (fn) { fn(); });
+  assert.strictEqual(makers.length, 1);
+  beatModule.stop();
+  runQueued();
+  assert.strictEqual(spawned.length, 0, 'stopped while mkfifo ran: nothing spawned');
+  noLeaks('stopped while mkfifo ran');
+  console.log('  ✓ the FIFO is made fresh, refused when it is not one, and removed on stop, respawn and give-up');
+})();
+
+(function () {
+  setup();
+  pollAndTick();
+  var big = allocBuffer(65536 * 3);
+  feed(big);
+  assert.strictEqual(reads, 4, 'three full reads, then EAGAIN ends the loop');
+  drain();
+  assert.strictEqual(reads, 5, 'an empty FIFO: one read');
+  feed(allocBuffer(1000));
+  assert.strictEqual(reads, 6, 'a short read ends the loop without another');
+  fifo.writerClosed = true;
+  drain();
+  assert.strictEqual(reads, 7);
+  assert.deepEqual(Object.keys(openFds), [], 'arecord closed its end: the read end closed');
+  assert.strictEqual(intervals.length, 0, 'and the loop stopped');
+  assert.ok(fifo.exists, 'the FIFO stays until arecord exits');
+  exit(spawned[0]);
+  noLeaks('arecord exited');
+  console.log('  ✓ each 50 ms the FIFO is read until empty or short; a closed writer stops reading');
+})();
+
+(function () {
+  var raw = rawClicks(120, 25), chunk = 19200;
+  // Each 100 ms chunk read at its end plus delayOf(k) ms, and the beat asked for 10 ms after the last.
+  function epochWith(delayOf) {
+    setup();
+    pollAndTick();
+    var start = now, k = 0;
+    for (var at = 0; at + chunk <= raw.length; at += chunk, k++) {
+      now = start + (k + 1) * 100 + delayOf(k);
+      feed(raw.slice(at, at + chunk));
+    }
+    now = start + k * 100 + 10;
+    var b = beatModule.beat();
+    // Each run's clock starts where the last left it.
+    if (b) b.epoch -= start;
+    return b;
+  }
+  var exact = epochWith(function () { return 0; });
+  var mixed = epochWith(function (k) { return k % 2 ? 10 : 0; });
+  var late = epochWith(function () { return 10; });
+  assert.ok(exact && mixed && late, 'a beat');
+  assert.strictEqual(mixed.bpm, exact.bpm);
+  near(mixed.epoch, exact.epoch, 1, 'reads 0 or 10 ms late, the last one late: the epoch of reads on time');
+  near(late.epoch, exact.epoch + 10, 1, 'every read 10 ms late: the epoch is 10 ms late too');
+  console.log('  ✓ the epoch comes from the least delayed read of the last 2 s');
+})();
+
+// The tracker's decisions are the same whether the capture comes 100 ms or 2048 bytes at a time.
+(function () {
+  var mono = clicks(120, 20, 0.1, 0.05).samples.concat(noise(0.5, 0), clicks(128, 20, 0.1, 0.05).samples, noise(10, 0.3));
+  var raw = allocBuffer(mono.length * 16);
+  for (var i = 0; i < mono.length; i++) {
+    var v = Math.max(-32768, Math.min(32767, Math.round(mono[i] * 32767)));
+    for (var j = 0; j < 4; j++) { raw.writeInt16LE(v, (i * 4 + j) * 4); raw.writeInt16LE(v, (i * 4 + j) * 4 + 2); }
+  }
+  // What was published after each 100 ms of capture, and every analysis's decision.
+  function run(size) {
+    var decisions = [], seen = [];
+    var t = audio.createTracker({ hop: function () {}, analysed: function (at, bpm, published) {
+      decisions.push([at, bpm, published && published.bpm, published && published.confidence]);
+    } });
+    for (var at = 0; at < raw.length;) {
+      var boundary = (Math.floor(at / 19200) + 1) * 19200, end = Math.min(at + size, boundary, raw.length);
+      t.push(raw.slice(at, end));
+      at = end;
+      if (at % 19200 === 0) {
+        var e = t.estimate();
+        seen.push(e ? e.bpm + '@' + e.beatSample : null);
+      }
+    }
+    return { decisions: decisions, seen: seen };
+  }
+  var reads = run(19200), stream = run(2048);
+  assert.deepEqual(reads, stream, 'the same decisions and tempo');
+  var tempos = reads.seen.filter(function (x, k) { return x && x !== reads.seen[k - 1]; }).map(function (x) { return Math.round(parseFloat(x)); });
+  assert.ok(tempos.indexOf(120) !== -1 && tempos.indexOf(128) !== -1, '120 then 128 published: ' + tempos);
+  assert.ok(reads.seen.indexOf(null, 210) !== -1, 'and none through the pause');
+  console.log('  ✓ 100 ms reads publish what 2048-byte reads do, at the same samples');
 })();
 
 // ---- the saver's frame maths (beat.js)
@@ -579,5 +813,6 @@ function rawClicks(bpm, seconds) {
 })();
 
 try { fs.unlinkSync(pidFile); } catch (e) {}
+assert.ok(!fs.existsSync(fifoPath), 'no real FIFO made');
 fs.rmdirSync(dir);
 console.log('test-auror-beat.js passed');

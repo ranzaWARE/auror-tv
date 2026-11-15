@@ -92,7 +92,7 @@ The worker itself stays Python 2.7 compatible for the TV.
 
 `test-repo.js` checks declared source URLs from the Homebrew Channel and added catalogs, including missing, malformed and unsafe addresses, GitHub downloads mapped to their repository, and other `.ipk` downloads omitted without changing installation URLs. `test-catalog-ui.js` checks source-link escaping, new-tab attributes, placement beside the primary action using the idle pill style, and availability across app states and disabled controls in both lists, including corrected and omitted download links.
 
-`test-auror-beat.js` finds the tempo and beat in click tracks it makes, at 12 kHz and as the raw 48 kHz capture split at odd bytes, checks that noise, silence and a wandering tempo publish nothing, and runs the capture's start, stop and restarts on a fake clock. It requires the AUROR screen saver's `beat.js` for the frame maths.
+`test-auror-beat.js` finds the tempo and beat in click tracks it makes, at 12 kHz and as the raw 48 kHz capture split at odd bytes, which must give the same envelope as the whole buffer, checks that noise, silence and a wandering tempo publish nothing, and runs the capture's start, stop and restarts on a fake clock, through a fake FIFO: made and removed with the capture, refused when it is not a FIFO, drained every 100 ms, and an epoch from read times that lag by 0 or 10 ms matching the one from reads on time. It checks that 100 ms reads publish what 2048-byte reads do. It requires the AUROR screen saver's `beat.js` for the frame maths.
 `test-qmlcheck.js` checks the server's own QML check: AnimatedImage's `speed` refused under QtQuick 2.4, a `speed` property the saver declares itself allowed, and QtQuick 2.12 on webOS 6.
 
 `test-saver-manifests.js` reads screen saver folders: the order and ids, a folder with something wrong listed with the reason, staging, translated names, and what one added on the TV does past the screen. An installed homebrew app's screen saver is listed from its app, by either file name, with the same checks, an app without one is left out, only its QML is staged, and one whose app has gone counts as LG's.
@@ -322,3 +322,40 @@ The sideload route check forces an upload to abort before its file opens,
 then confirms that the eventual descriptor closes and the staging file is
 removed. This catches Node 0.12's destroy-before-open behaviour without
 relying on the filesystem finishing within a fixed delay.
+
+## The screen saver's beat
+
+The beat detector is tuned and checked on recordings of the TV's sound,
+kept outside git because the music is copyrighted. Each recording is 60 s of
+the capture's raw format (48 kHz, stereo, S16_LE). `manifest.tsv` in the
+same folder lists them: name, reference BPM or `unknown`, whether the beat is
+steady, and the second it becomes steady, for a piece that starts without one.
+
+`scripts/beat-record.sh <tv> <name> <bpm|unknown> <y|n> [steadyFrom]`
+records one piece from the TV while it plays, copies it into the folder
+(`$AUROR_BEAT_CORPUS`, by default `~/Progetti/Sviluppo/auror-beat-corpus`),
+deletes it from the TV and adds the manifest row. It refuses while the
+screen saver's own capture runs, as the TV's audio device may take only one
+reader.
+
+`scripts/beat-replay.js` plays recordings through the detector and reports,
+for each, when a tempo was first published and confirmed, how much of the
+published time was within 2% of the reference, how often it switched between
+a tempo and none, and what `push` costs per second of audio:
+
+```bash
+node scripts/beat-replay.js --manifest ~/Progetti/Sviluppo/auror-beat-corpus/manifest.tsv
+node scripts/beat-replay.js a.raw:117+gap+b.raw:124   # a track change
+node scripts/beat-replay.js --synthetic                 # click tracks, no recordings needed
+```
+
+`--module <path>` replays another version of `auror-beat-audio.js`, such as
+one from `git show`, so two versions can be compared on the same files;
+`--dump-env <out.json>` writes every envelope value and decision for that
+comparison. It runs under node 0.12, so it can be copied to a TV and run with
+the TV's own node.
+
+`scripts/footprint.sh <tv> --pid-file /tmp/auror-beat-capture.pid` adds the
+capture's `arecord` to the server's own CPU and memory figures, and
+`--rss-every 60` prints memory once a minute, to tell growth from a plateau.
+

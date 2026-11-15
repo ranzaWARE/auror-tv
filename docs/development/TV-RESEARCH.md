@@ -2524,3 +2524,38 @@ the output latency of the TV's speakers is measured (`OUTPUT_LATENCY_MS`,
 null), the tempo is published without the beat's position (`phase: false`).
 Not yet tested: whether reading it is heard in playback, the output latency,
 and whether locking to the beat looks better than the tempo alone.
+
+### What the capture costs, and the period `hw:0,12` grants (C1, 14 November 2026)
+
+With the AUROR screen saver up and a song playing, `scripts/footprint.sh`
+gave node 0.3% of a core with **Mimus on the beat** off and 4.2% with it on,
+and `arecord` 0.8%, as in the first field test. Node's resident memory went
+from 26.5 to 42.4 MB over the first 90 s of capture.
+
+`hw:0,12` always grants a period of 512 frames (10.7 ms), so `arecord` wakes
+94 times a second. Asking for `--period-time` of 50 or 100 ms, or
+`--period-size` of 1024 to 4800 frames, changed only the buffer size it
+grants (4096 to 24000 frames); the period stayed 512. `-c 1` is refused.
+The rate at which the TV hands over its sound cannot be lowered at the
+device, only by reading the pipe less often.
+
+On the C1's node 8.12, decoding and averaging the capture down to 12 kHz
+took 8 to 10 ms per second of audio in the first version and 2.1 to 2.3 ms
+after it was rewritten as one loop per chunk, about 1 point of the 3.9 that
+the capture adds to node.
+
+Most of the rest is node being woken for every period. With `arecord`
+writing to a pipe node reads as a stream, node took 4.1 to 4.3% of a core
+doing nothing with the data (94 wakes a second) and 4.8 to 4.9% running the
+detector on it. With `arecord` writing to a FIFO that node opens
+non-blocking and reads every 100 ms, up to 64 kB at a time, node took 0.47%
+with the detector (10 wakes a second). Two rounds of 15 s each, node 8.12,
+nothing playing.
+
+Read every 100 ms, a sample reached node 0 to 11 ms after `arecord` had it
+(median 5.3 ms), against 0 to 1 ms as a stream: at most one period. The delay
+is never negative, so `lib/auror-beat.js`, which reads the capture through
+the FIFO, places the beat from the least delayed read of the last 2 s. It
+reads every 50 ms: the 64 kB pipe holds 341 ms of the capture, and a stall
+longer than that blocks `arecord` and drops sound at the device, so the
+shorter interval keeps most of the margin a stream had.

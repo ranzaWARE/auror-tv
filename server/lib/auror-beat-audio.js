@@ -20,6 +20,7 @@ var RATE = RATE_IN / DECIMATE;
 // Onset envelope: log energy over a 512-sample window, every 128 samples.
 var WINDOW = 512;
 var HOP = 128;
+var HOPS_PER_WINDOW = WINDOW / HOP;
 var FPS = RATE / HOP;
 var ENVELOPE_S = 8;
 var ENVELOPE_FRAMES = Math.round(ENVELOPE_S * FPS);
@@ -42,6 +43,13 @@ var REPUBLISH_CHANGE = 0.02;
 var FOLD_SLACK = 1.25;
 // Paused, the device reads digital zeros; a quarter second of them is silence.
 var SILENT_SAMPLES = RATE / 4;
+// Four stereo frames of 16-bit samples summed make one sample in -1..1.
+var SCALE = 2 * DECIMATE * 32768;
+
+// analyse()'s working space, reused: it runs every 2 s for as long as the capture does.
+var analyseX = new Float64Array(ENVELOPE_FRAMES);
+var analyseR = new Float64Array(MAX_LAG + 2);
+var analyseScore = new Float64Array(MAX_LAG + 2);
 
 /**
  * The capture device as hw:card,device, from /proc/asound/pcm's text, or
@@ -80,7 +88,11 @@ function parabola(a, b, c) {
   return d > 0.5 ? 0.5 : d < -0.5 ? -0.5 : d;
 }
 
-// env at a fractional index, linearly between its neighbours.
+/**
+ * env at a fractional index, linearly between its neighbours.
+ * @param {ArrayLike<number>} env
+ * @param {number} x
+ */
 function at(env, x) {
   var i = Math.floor(x), f = x - i;
   if (i < 0 || i >= env.length) return 0;
@@ -89,7 +101,7 @@ function at(env, x) {
 
 /**
  * The tempo and the latest beat in one window of the onset envelope.
- * @param {number[]} env onset strength per hop, oldest first
+ * @param {ArrayLike<number>} env onset strength per hop, oldest first
  * @returns {{bpm: number, lag: number, beatsAgo: number}|null} lag in hops;
  *   beatsAgo, the hops from the newest frame back to the latest beat
  */
@@ -99,9 +111,9 @@ function analyse(env) {
   var mean = 0, i;
   for (i = 0; i < n; i++) mean += env[i];
   mean /= n;
-  var x = [];
-  for (i = 0; i < n; i++) x.push(env[i] - mean);
-  var r = {};
+  if (analyseX.length < n) analyseX = new Float64Array(n);
+  var x = analyseX, r = analyseR, score = analyseScore;
+  for (i = 0; i < n; i++) x[i] = env[i] - mean;
   for (var lag = MIN_LAG - 1; lag <= MAX_LAG + 1; lag++) {
     var s = 0;
     for (i = 0; i + lag < n; i++) s += x[i] * x[i + lag];
@@ -114,12 +126,12 @@ function analyse(env) {
 
   // The beat: the offset back from the newest frame whose comb of beats a
   // period apart gathers the most onset strength.
-  var steps = Math.ceil(period), score = [];
+  var steps = Math.ceil(period);
   for (var p = 0; p < steps; p++) {
     // Per tooth: the offsets nearer the newest frame fit one more in.
     var sum = 0, teeth = 0;
     for (var t = n - 1 - p; t >= 0; t -= period) { sum += at(env, t); teeth++; }
-    score.push(teeth ? sum / teeth : 0);
+    score[p] = teeth ? sum / teeth : 0;
   }
   var top = 0;
   for (p = 1; p < steps; p++) if (score[p] > score[top]) top = p;
@@ -128,7 +140,10 @@ function analyse(env) {
   return { bpm: fold(60 * FPS / period), lag: period, beatsAgo: ago };
 }
 
-// A tempo's place within its octave, 0..1: 80 and 160 BPM are both 0.
+/**
+ * A tempo's place within its octave, 0..1: 80 and 160 BPM are both 0.
+ * @param {number} bpm
+ */
 function octavePlace(bpm) {
   var x = Math.log(bpm / MIN_BPM) / Math.LN2;
   return x - Math.floor(x);
@@ -164,12 +179,15 @@ function nearestOctave(bpm, before) {
  * The tempo published from the last six windows: only when they agree.
  * They are compared within one octave, so a tempo near 80 or 160 BPM that
  * folds one way in one window and the other in the next still agrees.
- * @param {number[]} history window tempos, oldest first
+ * @param {ArrayLike<number>} history window tempos, oldest first
  * @returns {{bpm: number, spread: number, confidence: number}|null}
  */
 function stability(history) {
-  if (history.length < HISTORY) return null;
-  var places = history.slice(-HISTORY).map(octavePlace).sort(function (a, b) { return a - b; });
+  var n = history.length;
+  if (n < HISTORY) return null;
+  var places = [];
+  for (var k = n - HISTORY; k < n; k++) places.push(octavePlace(history[k]));
+  places.sort(function (a, b) { return a - b; });
   // Cut the circle at its widest gap, and lay the places out from there.
   var cut = 0, gap = places[0] + 1 - places[HISTORY - 1];
   for (var i = 1; i < HISTORY; i++) {
@@ -183,58 +201,36 @@ function stability(history) {
 }
 
 /**
- * Brings the capture's raw 48 kHz stereo S16_LE bytes down to 12 kHz mono
- * samples in -1..1: left and right averaged, then blocks of four. A stereo
- * frame, and a block, may be split across chunks.
- * @param {function(number): void} onSample
- * @returns {function(Buffer): void}
- */
-function createDecimator(onSample) {
-  var carry = [];
-  var blockSum = 0, blockCount = 0;
-
-  function frame(left, right) {
-    blockSum += left + right;
-    if (++blockCount < DECIMATE) return;
-    onSample(blockSum / (2 * DECIMATE * 32768));
-    blockSum = 0;
-    blockCount = 0;
-  }
-
-  function int16(lo, hi) {
-    var v = lo | (hi << 8);
-    return v & 0x8000 ? v - 0x10000 : v;
-  }
-
-  return function (buf) {
-    var off = 0;
-    if (carry.length) {
-      while (carry.length < 4 && off < buf.length) carry.push(buf[off++]);
-      if (carry.length < 4) return;
-      frame(int16(carry[0], carry[1]), int16(carry[2], carry[3]));
-      carry = [];
-    }
-    for (; off + 4 <= buf.length; off += 4) frame(buf.readInt16LE(off), buf.readInt16LE(off + 2));
-    while (off < buf.length) carry.push(buf[off++]);
-  };
-}
-
-/**
  * Takes the capture's samples as they come and keeps the estimate up to
  * date: push() for the raw capture, pushSamples() for 12 kHz mono samples.
+ * observer, for scripts/beat-replay.js and the tests, sees each hop's onset
+ * and window energy and each analysis's decision; the server passes none.
+ * @param {{hop: function(number, number): void,
+ *   analysed: function(number, number|null, {bpm: number, confidence: number}|null): void}} [observer]
  */
-function createTracker() {
-  var ring = [], ringAt = 0, energy = 0;
-  for (var w = 0; w < WINDOW; w++) ring.push(0);
-  var env = [], hopCount = 0, hopZero = true, prevLog = null;
+function createTracker(observer) {
+  // The raw capture, brought down to 12 kHz mono: left and right summed over
+  // blocks of four frames. A frame (up to 3 bytes carried) and a block may be
+  // split across chunks.
+  var carried = 0, carry0 = 0, carry1 = 0, carry2 = 0;
+  var blockSum = 0, blockCount = 0;
+  // The hop in progress: its samples, their sum of squares, and whether all were zero.
+  var hopCount = 0, hopSquares = 0, hopZero = true;
+  // The window's energy is the sum of its last four hops'.
+  var hopEnergy = new Float64Array(HOPS_PER_WINDOW), hopAt = 0;
+  // The onset envelope, a ring; copied out oldest first for analyse().
+  var env = new Float64Array(ENVELOPE_FRAMES), envAt = 0, envCount = 0;
+  var envOrdered = new Float64Array(ENVELOPE_FRAMES);
+  var prevLog = null;
   var zeroRun = 0, silent = true;
   var sampleCount = 0, lastFrameAt = 0, sinceAnalysis = 0;
-  var history = [], published = null, pendingChange = null, latest = null;
+  var history = [], published = null, pendingChange = null, latest = null, lastAnalysis = null;
   // The tempo last published, kept through a stretch without one until silence, for its octave.
   var lastBpm = 0;
 
   function reset() {
-    env = [];
+    envAt = 0;
+    envCount = 0;
     prevLog = null;
     history = [];
     published = null;
@@ -245,7 +241,9 @@ function createTracker() {
   }
 
   function update() {
-    var a = analyse(env);
+    for (var i = 0; i < ENVELOPE_FRAMES; i++) envOrdered[i] = env[(envAt + i) % ENVELOPE_FRAMES];
+    var a = analyse(envOrdered);
+    lastAnalysis = a;
     if (!a) return;
     latest = { bpm: a.bpm, beatSample: lastFrameAt - a.beatsAgo * HOP - HOP / 2 };
     history.push(a.bpm);
@@ -272,36 +270,37 @@ function createTracker() {
   }
 
   function frameEnded() {
-    var lg = Math.log(Math.max(0, energy) / WINDOW + 1e-10);
+    var energy = 0;
+    for (var i = 0; i < HOPS_PER_WINDOW; i++) energy += hopEnergy[i];
+    var lg = Math.log(energy / WINDOW + 1e-10);
     // The first hop after silence has nothing before it to rise from.
     var onset = prevLog === null ? 0 : Math.max(0, lg - prevLog);
     prevLog = lg;
-    env.push(onset);
-    if (env.length > ENVELOPE_FRAMES) env.shift();
+    env[envAt] = onset;
+    envAt = (envAt + 1) % ENVELOPE_FRAMES;
+    if (envCount < ENVELOPE_FRAMES) envCount++;
+    if (observer) observer.hop(onset, energy / WINDOW);
     lastFrameAt = sampleCount;
     sinceAnalysis += HOP;
-    if (env.length === ENVELOPE_FRAMES && sinceAnalysis >= ANALYSE_EVERY_S * RATE) {
+    if (envCount === ENVELOPE_FRAMES && sinceAnalysis >= ANALYSE_EVERY_S * RATE) {
       sinceAnalysis = 0;
       update();
+      if (observer) observer.analysed(lastFrameAt, lastAnalysis && lastAnalysis.bpm, published);
     }
   }
 
-  function sample(v) {
-    sampleCount++;
-    energy += v * v - ring[ringAt] * ring[ringAt];
-    ring[ringAt] = v;
-    ringAt = (ringAt + 1) % WINDOW;
-    // Summed afresh once a second, so rounding in the running sum cannot build up.
-    if (sampleCount % RATE === 0) {
-      energy = 0;
-      for (var i = 0; i < WINDOW; i++) energy += ring[i] * ring[i];
-    }
-    if (v !== 0) hopZero = false;
-    if (++hopCount < HOP) return;
-    hopCount = 0;
-    if (hopZero) zeroRun += HOP;
+  /**
+   * A hop of HOP samples has ended. Its energy joins the window's even in
+   * silence, so the first window after it holds only what was heard.
+   * @param {number} squares the hop's sum of squares
+   * @param {boolean} zero whether every sample in it was zero
+   */
+  function hopEnded(squares, zero) {
+    sampleCount += HOP;
+    hopEnergy[hopAt] = squares;
+    hopAt = (hopAt + 1) % HOPS_PER_WINDOW;
+    if (zero) zeroRun += HOP;
     else zeroRun = 0;
-    hopZero = true;
     if (zeroRun >= SILENT_SAMPLES) {
       if (!silent) reset();
       silent = true;
@@ -311,15 +310,98 @@ function createTracker() {
     frameEnded();
   }
 
+  function keep(b) {
+    if (carried === 0) carry0 = b;
+    else if (carried === 1) carry1 = b;
+    else carry2 = b;
+    carried++;
+  }
+
+  /**
+   * The raw capture: 48 kHz stereo S16_LE, split anywhere. One pass over the
+   * bytes, with no call per frame or sample: at 192 000 bytes a second this
+   * loop is most of the capture's cost on the TV.
+   * @param {Buffer} buf
+   */
+  function push(buf) {
+    var n = buf.length, i = 0;
+    var sum = blockSum, count = blockCount, hc = hopCount, squares = hopSquares, zero = hopZero;
+    if (carried) {
+      if (carried + n < 4) {
+        for (; i < n; i++) keep(buf[i]);
+        return;
+      }
+      // Read in order: each buf[i++] takes the next byte.
+      var b1 = carried > 1 ? carry1 : buf[i++];
+      var b2 = carried > 2 ? carry2 : buf[i++];
+      var b3 = buf[i++];
+      sum += ((carry0 | b1 << 8) << 16 >> 16) + ((b2 | b3 << 8) << 16 >> 16);
+      count++;
+      carried = 0;
+    }
+    // A finished block is taken at the top, so one from the carried frame is
+    // too. A block with all its 16 bytes in this chunk is summed at once.
+    for (;; i += 4) {
+      if (count === DECIMATE) {
+        var v = sum / SCALE;
+        sum = 0;
+        count = 0;
+        squares += v * v;
+        if (v !== 0) zero = false;
+        if (++hc === HOP) {
+          hopEnded(squares, zero);
+          hc = 0;
+          squares = 0;
+          zero = true;
+        }
+      }
+      // Little-endian 16-bit, sign-extended.
+      if (count === 0 && i + 16 <= n) {
+        sum = ((buf[i] | buf[i + 1] << 8) << 16 >> 16) + ((buf[i + 2] | buf[i + 3] << 8) << 16 >> 16) +
+          ((buf[i + 4] | buf[i + 5] << 8) << 16 >> 16) + ((buf[i + 6] | buf[i + 7] << 8) << 16 >> 16) +
+          ((buf[i + 8] | buf[i + 9] << 8) << 16 >> 16) + ((buf[i + 10] | buf[i + 11] << 8) << 16 >> 16) +
+          ((buf[i + 12] | buf[i + 13] << 8) << 16 >> 16) + ((buf[i + 14] | buf[i + 15] << 8) << 16 >> 16);
+        count = DECIMATE;
+        i += 12;
+        continue;
+      }
+      if (i + 4 > n) break;
+      sum += ((buf[i] | buf[i + 1] << 8) << 16 >> 16) + ((buf[i + 2] | buf[i + 3] << 8) << 16 >> 16);
+      count++;
+    }
+    for (; i < n; i++) keep(buf[i]);
+    blockSum = sum;
+    blockCount = count;
+    hopCount = hc;
+    hopSquares = squares;
+    hopZero = zero;
+  }
+
   return {
-    push: createDecimator(sample),
-    /** @param {number[]} samples */
+    push: push,
+    /** @param {ArrayLike<number>} samples */
     pushSamples: function (samples) {
-      for (var i = 0; i < samples.length; i++) sample(samples[i]);
+      var hc = hopCount, squares = hopSquares, zero = hopZero;
+      for (var i = 0; i < samples.length; i++) {
+        var v = samples[i];
+        squares += v * v;
+        if (v !== 0) zero = false;
+        if (++hc === HOP) {
+          hopEnded(squares, zero);
+          hc = 0;
+          squares = 0;
+          zero = true;
+        }
+      }
+      hopCount = hc;
+      hopSquares = squares;
+      hopZero = zero;
     },
     // The decimated samples so far, the clock the beat's position is on.
-    samples: function () { return sampleCount; },
+    samples: function () { return sampleCount + hopCount; },
     silent: function () { return silent; },
+    // Whether a tempo is published: estimate() without making one.
+    published: function () { return !silent && !!published && !!latest; },
     /**
      * The published tempo and the latest beat heard, or null.
      * @returns {{bpm: number, confidence: number, beatSample: number}|null}
@@ -344,6 +426,5 @@ module.exports = {
   nearestOctave: nearestOctave,
   analyse: analyse,
   stability: stability,
-  createDecimator: createDecimator,
   createTracker: createTracker
 };
