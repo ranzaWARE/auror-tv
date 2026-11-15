@@ -1831,6 +1831,61 @@ app. eplmanager has no getter for the app info it holds. The C2 on the same
 webOS starts its screen saver; whether it reports no OSD capture support was
 not checked.
 
+A C1 (webOS 6.5.3) is the other way round. With Home in front 10 s after a
+key, a plain `turnOnScreenSaver` started the screen saver. Handing Home over
+first (`supportScreenSaverPolicy: true`, `screenSaverDelay: 1`) made the same
+request refused: `Request Screen Saver`, then `Screen On`, back to Active.
+Glasshouse's own retry the same way was refused too, and so was its Test
+before it, which then launched the app itself. Handed over the same way and
+asked 75 s later, with no key between, the request started the screen saver:
+on webOS 6.5.3 a `screenSaverDelay` of 1 is a hold of its own, 1 minute long,
+where the G3's eplmanager starts none at 3 or less.
+
+## LG Channels' video screen saver (C1, webOS 6.5.3)
+
+OLED48C15LA, firmware 03.53.45, 15 November 2026, with Glasshouse Home in
+LG's Home's place and a replacement screen saver mounted over
+`com.webos.app.screensaver`.
+
+- **A second screen saver app.** From Home, tvpower's idle screen saver came
+  up as `com.webos.app.videoads` ("Container App for video ads App", a web
+  app with `defaultWindowType: screenSaver`), so the replacement did not
+  show. Its video takes the sound: Spotify, playing behind it, stopped and
+  its Connect session dropped. Both `screenmanager` and `tvpowerd` name the
+  app.
+- **Its settings** are in the `lgchannels` category:
+  `isVideoScreenSaverEnabled` (`true`, `volatile` in its description),
+  `videoScreenSaverAppList` (`com.webos.app.home`, `seniorhome`,
+  `tnativehome`, `homeqml`, `fullhome`), `videoScreenSaverDisabledByError`,
+  `gdprConsent` and `consentExpireDate`. tvpowerd subscribes to
+  `isVideoScreenSaverEnabled`. screenmanager's `AServiceScreenSaver` also
+  fetches a "server option" through `com.webos.service.sdx` and decrypts it
+  into `/mnt/lg/cmn_data/screenamanger/` (LG's spelling); that folder did not
+  exist on this TV.
+- **An empty `videoScreenSaverAppList`**, with the setting left on, did not
+  stop it: after a power cycle, `videoads` came up from Home again.
+- **Switched off while the TV runs**, it parks tvpower: the next idle
+  request stopped at state `Active`, `processing: "Screen Saver Ready"`, with
+  no screen saver at all, until a power cycle (over an hour the first time).
+  Writing it back on did not release it. Seen twice: once after the setting
+  was written over luna, once after the owner switched it off in an option.
+- **Off from boot**, it works: from Home, tvpower's idle request at 2 minutes
+  started `com.webos.app.screensaver`, and the screen saver held for over 7
+  minutes. A value written on before a power cycle read off after it, with an
+  option the owner had set; which option writes it was not identified.
+
+## The cursor hiding as a key (C1, webOS 6.5.3)
+
+When the Magic Remote's pointer times out, `LGE M-RCU - Builtin [0]` sends
+EV_KEY 1199, down and up at once: `KEY_LGE_CURSOR_HIDE`, 1207 in
+`/usr/share/X11/xkb/keycodes/lg` less 8 (`KEY_LGE_CURSOR_SHOW` is 1198). It
+came 2 to 3 minutes after Glasshouse launched the screen saver itself, with
+tvpower still `Active`, and about 10 s before tvpower's own idle request.
+Glasshouse's watcher for that case closes the screen saver on any key down,
+so it closed it each time. With the video screen saver off from boot,
+tvpower's own request 3 s later started `com.webos.app.screensaver` again.
+configd's `screenSaverTimeout` reads 130 here, as on the CX.
+
 ## Home's snapshot (webOS 5.6.2, CX)
 
 The webOS 9 entries above describe the home app's CRIU checkpoint. On a CX:

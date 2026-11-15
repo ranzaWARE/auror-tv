@@ -81,6 +81,20 @@ assert.deepEqual(policies()[1], { appId: 'com.webos.app.home', supportScreenSave
 refusal(saver);
 assert.strictEqual(requests(), 1);
 
+// Start screen saver's plain request, refused, is not an idle one either:
+// the button lifts the hold itself, and the app is not marked as refusing.
+saver = start();
+powerState = 'Active';
+saver.ownRequest();
+refusal(saver);
+assert.strictEqual(policies().length, 0);
+assert.strictEqual(requests(), 0);
+// Once that request is past, a refusal is LG's idle one again.
+advance(5000);
+refusal(saver);
+assert.strictEqual(policies().length, 1);
+assert.strictEqual(requests(), 1);
+
 // Another app in front by the time it closes: screenmanager has handed that one over.
 saver = start();
 refusal(saver);

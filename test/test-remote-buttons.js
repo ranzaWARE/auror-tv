@@ -135,6 +135,37 @@ test('every key press reaches onAnyKey, through both local events and the worker
   }
 });
 
+test('the Magic Remote pointer hiding by itself is not a key press; showing is', function () {
+  var keys = [];
+  remotebuttons.init({ onAnyKey: function (code) { keys.push(code); } });
+  remotebuttons.handleParsedEvent(1, 1199, 1);
+  remotebuttons.handleParsedEvent(1, 1198, 1);
+  remotebuttons.handleParsedEvent(1, 158, 1);
+  assert.deepEqual(keys, [1198, 158]);
+
+  var fs = require('fs'), child = require('child_process'), EventEmitter = require('events').EventEmitter;
+  var originalExists = fs.existsSync, originalSpawn = child.spawn;
+  var worker = new EventEmitter();
+  worker.stdout = new EventEmitter();
+  worker.kill = function () {};
+  keys = [];
+  try {
+    fs.existsSync = function (p) {
+      if (p === '/proc/bus/input/devices') return false;
+      if (p === '/dev/input/event1') return true;
+      return originalExists(p);
+    };
+    child.spawn = function () { return worker; };
+    remotebuttons.start();
+    worker.stdout.emit('data', 'key 1199\nkey 1198\nkey 158\n');
+    assert.deepEqual(keys, [1198, 158]);
+  } finally {
+    remotebuttons.stop();
+    fs.existsSync = originalExists;
+    child.spawn = originalSpawn;
+  }
+});
+
 test('remotebuttons lifecycle and status', function () {
   remotebuttons.stop();
   assert.strictEqual(remotebuttons.isRunning(), false);
