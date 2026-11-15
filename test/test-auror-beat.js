@@ -92,10 +92,16 @@ function near(a, b, within, what) {
 });
 console.log('  ✓ 100, 128, 150 and 174 BPM click tracks: tempo within 1% after folding, beat within 30 ms');
 
+// The settled tempo: what estimate() gives once six windows agree, not the provisional one before.
+function settled(t) {
+  var e = t.estimate();
+  return e && !e.provisional ? e : null;
+}
+
 (function () {
   var t = audio.createTracker();
   t.pushSamples(noise(25, 0.3));
-  assert.strictEqual(t.estimate(), null, 'white noise');
+  assert.strictEqual(settled(t), null, 'white noise');
   t = audio.createTracker();
   t.pushSamples(noise(25, 0));
   assert.strictEqual(t.estimate(), null, 'silence');
@@ -103,21 +109,60 @@ console.log('  ✓ 100, 128, 150 and 174 BPM click tracks: tempo within 1% after
   // From 108 to 132 BPM and back, every 12 s: no steady tempo.
   t = audio.createTracker();
   t.pushSamples(clicks(120, 30, 0.1, 0.05, function (s) { return 0.5 / (1 + 0.1 * Math.sin(s * Math.PI / 6)); }).samples);
-  assert.strictEqual(t.estimate(), null, 'a tempo wandering by 10%');
-  console.log('  ✓ white noise, silence and a wandering tempo publish nothing');
+  assert.strictEqual(settled(t), null, 'a tempo wandering by 10%');
+  assert.strictEqual(t.estimate(), null, 'and the provisional tempo is given up with it');
+  console.log('  ✓ white noise, silence and a wandering tempo settle on nothing; the wandering one is not provisional either');
 })();
 
 (function () {
   var t = audio.createTracker();
   t.pushSamples(clicks(120, 10, 0.1, 0.05).samples);
-  assert.strictEqual(t.estimate(), null, 'not before six windows agree');
+  assert.strictEqual(settled(t), null, 'not settled before six windows agree');
   t.pushSamples(clicks(120, 10, 0.1, 0.05).samples);
-  assert.ok(t.estimate(), 'after 18 s');
+  assert.ok(settled(t), 'settled after 18 s');
   t.pushSamples(noise(0.5, 0));
   assert.strictEqual(t.estimate(), null, 'paused: null at once');
   t.pushSamples(clicks(120, 10, 0.1, 0.05).samples);
-  assert.strictEqual(t.estimate(), null, 'the windows from before the pause are gone');
-  console.log('  ✓ published only once six windows agree; a pause clears them');
+  assert.strictEqual(settled(t), null, 'the windows from before the pause are gone');
+  console.log('  ✓ settled only once six windows agree; a pause clears them');
+})();
+
+// ---- the provisional tempo
+(function () {
+  var t = audio.createTracker();
+  t.pushSamples(clicks(120, 2.9, 0.1, 0.05).samples);
+  assert.strictEqual(t.estimate(), null, 'nothing before 3 s of envelope and three analyses');
+  t.pushSamples(clicks(120, 3, 0.1, 0.05).samples);
+  var e = t.estimate();
+  assert.ok(e, 'a tempo within 6 s');
+  assert.strictEqual(e.provisional, true);
+  near(e.bpm, 120, 3.6, 'within 3% at first');
+  assert.ok(e.confidence >= 0.5, 'confident enough for the saver to follow');
+  t.pushSamples(clicks(120, 14, 0.1, 0.05).samples);
+  e = t.estimate();
+  assert.strictEqual(e.provisional, false, 'the settled tempo takes over');
+  near(e.bpm, 120, 1.2, 'and agrees with it');
+
+  // A provisional tempo is kept through windows that disagree: a far tempo replaces it only after six agree.
+  t = audio.createTracker();
+  t.pushSamples(clicks(100, 8, 0.1, 0.05).samples);
+  var first = t.estimate();
+  assert.ok(first && first.provisional, 'provisional at 100');
+  t.pushSamples(clicks(140, 4, 0.1, 0.05).samples);
+  near(t.estimate().bpm, first.bpm, 3, 'kept while the new tempo has not run six windows');
+  console.log('  ✓ a provisional tempo within 6 s: kept through windows that disagree, then handed to the settled one');
+})();
+
+(function () {
+  // After a settled tempo has been published the provisional one is not used again.
+  var t = audio.createTracker();
+  t.pushSamples(clicks(120, 20, 0.1, 0.05).samples);
+  assert.ok(settled(t));
+  t.pushSamples(clicks(120, 1, 0.1, 0.05).samples);
+  t.pushSamples(noise(14, 0.3));
+  var e = t.estimate();
+  assert.ok(!e || !e.provisional, 'no provisional tempo after a settled one');
+  console.log('  ✓ no provisional tempo once a settled one has been published');
 })();
 
 // ---- stability and hysteresis
@@ -659,7 +704,7 @@ function pollAndTick() { beatModule.polled(); beatModule.tick(); runQueued(); }
   console.log = realLog;
   audio.createTracker = realTracker;
   beatModule.stop();
-  assert.deepEqual(Object.keys(b1).sort(), ['bpm', 'confidence', 'epoch', 'phase', 'source']);
+  assert.deepEqual(Object.keys(b1).sort(), ['bpm', 'confidence', 'epoch', 'phase', 'provisional', 'source']);
   assert.deepEqual(logs, ['auror-beat: beat 120 BPM (audio, tempo only)',
     'auror-beat: beat 126 BPM (audio, tempo only)'], 'logged once per tempo');
   console.log('  ✓ the beat as published, logged once per tempo');
@@ -906,6 +951,22 @@ function rawClicks(bpm, seconds) {
     }
   });
   console.log('  ✓ the same beat each second leaves the saver\'s frames as they were');
+})();
+
+// A provisional tempo refined every second (Seven Nation Army: 120.2 BPM at 5 s, 124.6 at 18 s, the beats on a 124 BPM grid): Mimus's frame never jumps.
+(function () {
+  var n = 4, t0 = 50000, period = 60000 / 124, state = null, jumps = 0;
+  for (var sec = 0; sec <= 13; sec++) {
+    var at = t0 + sec * 1000;
+    var beat = Beat.usable({ bpm: 120.2 + sec * 0.34, epoch: t0 + Math.floor((at - t0) / period) * period + 150, phase: true,
+      confidence: 0.5, source: 'audio', provisional: sec < 13 }, at);
+    assert.ok(beat, 'a provisional beat at confidence 0.5 is followed');
+    var before = state ? Beat.frameAt(state, at, n) : null;
+    state = Beat.follow(state, beat, at);
+    if (before !== null && Beat.frameAt(state, at, n) !== before) jumps++;
+  }
+  assert.strictEqual(jumps, 0, 'a new tempo is taken where Mimus is, not with a jump');
+  console.log('  ✓ a tempo refined each second moves Mimus without a jump');
 })();
 
 try { fs.unlinkSync(pidFile); } catch (e) {}

@@ -32,6 +32,8 @@ var allocBuffer = require('../server/lib/util').allocBuffer;
 var BYTES_PER_S = 48000 * 4;
 var GAP_S = 0.5;
 var WITHIN = 0.02;
+// What Mimus can live with early: the saver puts him back on the beat each second, so a tempo this near holds.
+var COARSE = 0.05;
 
 function usage(why) {
   if (why) console.error(why);
@@ -218,8 +220,8 @@ function replay(c, dump) {
     };
   }
   var tr = audio.createTracker(observer);
-  var r = { firstPublish: null, firstConfirmed: null, publishedS: 0, refS: 0, withinS: 0, unsteadyS: 0,
-    transitions: 0, log: [], relock: [] };
+  var r = { firstPublish: null, firstConfirmed: null, firstWithin: null, firstCoarse: null, firstError: null, provisionalS: 0, jumps: 0,
+    publishedS: 0, refS: 0, withinS: 0, unsteadyS: 0, transitions: 0, log: [], relock: [] };
   var pos = 0, prev = null, logged, seen = c.segments[0], ref = seen.ref;
   chunks(c.buf).forEach(function (chunk) {
     tr.push(chunk);
@@ -238,6 +240,12 @@ function replay(c, dump) {
       if (r.firstPublish === null) r.firstPublish = t;
       if (r.firstConfirmed === null && !e.provisional) r.firstConfirmed = t;
       r.publishedS += dt;
+      if (e.provisional) r.provisionalS += dt;
+      // Past 1.4 apart is a jump of octave, not a refinement.
+      if (prev !== null && Math.max(bpm, prev) / Math.min(bpm, prev) > 1.4) r.jumps++;
+      if (seg.ref && seg.steady && r.firstError === null) r.firstError = octaveDistance(bpm, seg.ref);
+      if (seg.ref && seg.steady && r.firstCoarse === null && octaveDistance(bpm, seg.ref) <= COARSE) r.firstCoarse = t;
+      if (seg.ref && seg.steady && r.firstWithin === null && octaveDistance(bpm, seg.ref) <= WITHIN) r.firstWithin = t;
       if (!seg.steady) r.unsteadyS += dt;
       else if (seg.ref && t - seg.start >= seg.steadyFrom) {
         r.refS += dt;
@@ -276,10 +284,15 @@ cases = cases.concat(opts.inputs.map(fromArgument));
 
 var dumps = {};
 console.log('module ' + opts.module);
+// The first tempo near the true one on each steady track with a tempo, for the summary.
+var firsts = { firstCoarse: [], firstWithin: [] };
 cases.forEach(function (c) {
   var dump = opts.dump ? { hops: [], analyses: [] } : null;
   var r = replay(c, dump);
   if (dump) dumps[c.name] = dump;
+  if (c.segments.length === 1 && c.segments[0].ref && c.segments[0].steady) {
+    Object.keys(firsts).forEach(function (k) { firsts[k].push(r[k] === null ? Infinity : r[k]); });
+  }
   var steady = c.segments.some(function (s) { return s.steady && s.ref; });
   var unsteady = c.segments.some(function (s) { return !s.steady && s.name !== 'gap'; });
   var parts = [
@@ -288,10 +301,21 @@ cases.forEach(function (c) {
   ];
   if (steady) parts.push('within 2% ' + (r.refS ? (100 * r.withinS / r.refS).toFixed(1) + '%' : '-'));
   if (unsteady) parts.push('unsteady published ' + r.unsteadyS.toFixed(1) + ' s');
+  if (steady) parts.push('first within 5% ' + seconds(r.firstCoarse) + ', within 2% ' + seconds(r.firstWithin) + ', first off by ' +
+    (r.firstError === null ? '-' : (100 * r.firstError).toFixed(1) + '%'));
+  if (r.provisionalS) parts.push('provisional ' + r.provisionalS.toFixed(1) + ' s');
+  if (r.jumps) parts.push('octave jumps ' + r.jumps);
   parts.push('null/beat ' + r.transitions);
   r.relock.forEach(function (x) { parts.push('relock ' + x.name + ' ' + seconds(x.after)); });
   parts.push('push ' + pushCost(c, opts.runs).toFixed(0) + ' µs/s');
   console.log(c.name + ' (' + (c.buf.length / BYTES_PER_S).toFixed(1) + ' s): ' + parts.join(', '));
   console.log('  ' + (r.log.length ? r.log.join(' | ') : 'publishes nothing'));
+});
+[['firstCoarse', '5%'], ['firstWithin', '2%']].forEach(function (k) {
+  var list = firsts[k[0]].sort(function (a, b) { return a - b; });
+  if (list.length > 1) {
+    console.log('first within ' + k[1] + ' over ' + list.length + ' steady tracks with a tempo: median ' +
+      seconds(list[Math.floor((list.length - 1) / 2)]) + ', p90 ' + seconds(list[Math.ceil(0.9 * list.length) - 1]));
+  }
 });
 if (opts.dump) fs.writeFileSync(opts.dump, JSON.stringify({ module: opts.module, cases: dumps }));

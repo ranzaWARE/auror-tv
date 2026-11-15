@@ -461,7 +461,8 @@ function latencyMs() {
 
 /**
  * The beat for /api/home/look, or null.
- * @returns {{bpm: number, epoch: number, phase: boolean, confidence: number, source: string}|null}
+ * provisional is a tempo heard for a few seconds only, which the next will refine.
+ * @returns {{bpm: number, epoch: number, phase: boolean, confidence: number, source: string, provisional: boolean}|null}
  */
 function beat() {
   var now = nowMs();
@@ -475,9 +476,10 @@ function beat() {
     // Rolled forward to the latest beat, so a live one is never more than a period old.
     var rolled = heardAt + Math.floor((now - heardAt) / period) * period;
     out = { bpm: Math.round(e.bpm * 10) / 10, epoch: Math.round(rolled + (phase ? latency : 0)), phase: phase,
-      confidence: Math.round(e.confidence * 100) / 100, source: 'audio' };
+      confidence: Math.round(e.confidence * 100) / 100, source: 'audio', provisional: !!e.provisional };
   }
-  var said = out ? out.bpm + ' BPM (' + out.source + (out.phase ? ', on the beat' : ', tempo only') + ')' : 'none';
+  var said = out ? out.bpm + ' BPM (' + out.source + (out.phase ? ', on the beat' : ', tempo only') +
+    (out.provisional ? ', provisional' : '') + ')' : 'none';
   if (said !== logged) {
     if (logged || out) console.log('auror-beat: beat ' + said);
     logged = said;

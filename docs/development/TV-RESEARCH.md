@@ -2603,6 +2603,69 @@ holding a confirmed tempo through brief disagreement kept the Gymnopédie's
 (the capture starts at the screen saver's first look, the beat is read
 each second), and the detector keeps its six-window rule.
 
+That was later reversed, on the argument that until a tempo is found Mimus
+plays at 120 BPM, which is as wrong for any song not at 120: see "A
+provisional tempo, taken".
+
+### A provisional tempo, taken (15 November 2026)
+
+Replayed on the same 19 recordings (`scripts/beat-replay.js`, on the corpus
+above). The six-window tempo stays as it was, and a provisional one stands in
+front of it: from 3 s of the onset envelope, analysed each second, published
+when three analyses agree within 2.5%, marked `provisional`, and given up for
+good when the six windows show a spread past 15% (or, once a settled tempo
+has been published, not used at all).
+
+| | Shipped | With a provisional tempo |
+| :--- | :--- | :--- |
+| First tempo within 5%, steady songs with a tempo (10) | median 18.0 s, p90 28.1 s | median 5.0 s, p90 5.0 s |
+| First tempo within 2% | median 18.0 s, p90 30.1 s | median 5.0 s, p90 20.1 s |
+| Seconds published on the five pieces and narrations with no steady beat | 6.0 | 73.1 to 91.1, depending on three or four agreeing windows |
+
+The first guess is off by up to 3% at 5 s on most songs and is refined by each
+analysis as the envelope grows (Seven Nation Army: 120.2 BPM at 5 s, 124.6 at
+18 s, 124 true). Two songs are worse: We Will Rock You (81) is taken at 145,
+twice 72.5, until about 20 s, and When the Levee Breaks (141) at 145, 2.9% off,
+until the six windows settle at 28 s. The saver puts Mimus back on the beat
+each second, so a tempo a few percent off keeps its phase.
+
+What the earlier trial found still holds: no measure of a short window tells
+a steady beat from none (the autocorrelation peak against lag 0 was tried
+again: We Will Rock You's median, 0.10, is below the Nocturne's, 0.18). What
+changes is only what a wrong tempo costs. These were measured:
+
+- Three agreeing windows are weak evidence, as consecutive windows share most
+  of their samples: white noise gets a provisional tempo for 13 s, a tempo
+  wandering by 10% for 13 s, one by 6% at 0.1 Hz for 35 s, and the
+  Nocturne, the Adagio, the narration and Clair de Lune for 8 to 20 s each.
+  It ends at 18 s, when the six windows have had their say, for all but the
+  slowest wander.
+- Keeping a provisional tempo through a window that disagrees keeps humble
+  (150) right from 5 s to 18 s where letting it go dropped it for 14 s, and
+  keeps a wrong one as long; a different tempo replaces it only when six
+  analyses agree, which stopped the Levee's 4:3 reading (185 BPM for 3 s).
+- Giving the provisional tempo up whenever the six windows disagree lost it
+  on humble, Fly Me to the Moon and We Will Rock You for the 6 to 12 s the
+  settled one took; only a spread past 15% gives it up now. It does not
+  separate the Nocturne (11% at 18 s) from We Will Rock You (12%), so the
+  Nocturne's 104 BPM lasts to 26 s.
+
+The Gymnopédie's 158 BPM is now provisional from 13 s, nine seconds before
+it was settled.
+
+The extra analyses cost nothing measurable: HUMBLE.'s 60 s through `push` and
+the analyses took 197 µs per second of audio, against 201 as shipped (on a
+desktop).
+
+On the C1 (webOS 6.5.3), Billie Jean (117) from its first second with the
+saver up: the first tempo, 116.9 provisional, came 8.9 s after the capture
+started, and the settled 116.5 at 22 s. A second song at about 117, joined
+mid-way, had 118 provisional at 5.8 s and 117 settled at 18.9 s. The
+replay's 5 s does not count starting `arecord` and filling its first reads,
+which on the first run added about 4 s. Over 90 s from the capture's
+start, node took 1.5% of a core and `arecord` 0.77%, node's RSS steady at
+34 MB.
+
 ### The Gymnopédie's 158 BPM: kept (15 November 2026)
 
 The six windows that publish 158.2 BPM on Satie's Gymnopédie No. 1 (22 to

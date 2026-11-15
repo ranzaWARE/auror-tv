@@ -25,6 +25,19 @@ var FPS = RATE / HOP;
 var ENVELOPE_S = 8;
 var ENVELOPE_FRAMES = Math.round(ENVELOPE_S * FPS);
 var ANALYSE_EVERY_S = 2;
+/*
+ * The provisional tempo: the envelope so far, from QUICK_MIN_S of it,
+ * analysed every QUICK_EVERY_S, published once the last QUICK_AGREE analyses
+ * agree within QUICK_SPREAD (see updateProvisional).
+ */
+var QUICK_MIN_S = 3;
+var QUICK_EVERY_S = 1;
+var QUICK_AGREE = 3;
+var QUICK_SPREAD = 0.025;
+var QUICK_REPLACE = 6;
+// Six windows spread past this give the provisional tempo up: the steady tracks slow to settle stayed under 15%.
+var DOUBT_SPREAD = 0.15;
+var QUICK_MIN_FRAMES = Math.round(QUICK_MIN_S * FPS);
 var MIN_BPM = 80;
 var MAX_BPM = 160;
 var MIN_LAG = Math.floor(60 * FPS / MAX_BPM);
@@ -180,22 +193,24 @@ function nearestOctave(bpm, before) {
  * They are compared within one octave, so a tempo near 80 or 160 BPM that
  * folds one way in one window and the other in the next still agrees.
  * @param {ArrayLike<number>} history window tempos, oldest first
+ * @param {number} [count] how many of the last to compare, HISTORY by default
  * @returns {{bpm: number, spread: number, confidence: number}|null}
  */
-function stability(history) {
+function stability(history, count) {
+  count = count || HISTORY;
   var n = history.length;
-  if (n < HISTORY) return null;
+  if (n < count) return null;
   var places = [];
-  for (var k = n - HISTORY; k < n; k++) places.push(octavePlace(history[k]));
+  for (var k = n - count; k < n; k++) places.push(octavePlace(history[k]));
   places.sort(function (a, b) { return a - b; });
   // Cut the circle at its widest gap, and lay the places out from there.
-  var cut = 0, gap = places[0] + 1 - places[HISTORY - 1];
-  for (var i = 1; i < HISTORY; i++) {
+  var cut = 0, gap = places[0] + 1 - places[count - 1];
+  for (var i = 1; i < count; i++) {
     if (places[i] - places[i - 1] > gap) { gap = places[i] - places[i - 1]; cut = i; }
   }
   var line = places.slice(cut).concat(places.slice(0, cut).map(function (x) { return x + 1; }));
-  var median = (line[HISTORY / 2 - 1] + line[HISTORY / 2]) / 2;
-  var spread = Math.pow(2, line[HISTORY - 1] - line[0]) - 1;
+  var median = count % 2 ? line[(count - 1) / 2] : (line[count / 2 - 1] + line[count / 2]) / 2;
+  var spread = Math.pow(2, line[count - 1] - line[0]) - 1;
   var confidence = Math.max(0, Math.min(1, 1 - spread / MAX_SPREAD));
   return { bpm: MIN_BPM * Math.pow(2, median - Math.floor(median)), spread: spread, confidence: confidence };
 }
@@ -223,8 +238,10 @@ function createTracker(observer) {
   var envOrdered = new Float64Array(ENVELOPE_FRAMES);
   var prevLog = null;
   var zeroRun = 0, silent = true;
-  var sampleCount = 0, lastFrameAt = 0, sinceAnalysis = 0;
+  var sampleCount = 0, lastFrameAt = 0, sinceAnalysis = 0, sinceSettled = 0;
   var history = [], published = null, pendingChange = null, latest = null, lastAnalysis = null;
+  // The provisional tempo, the last few analyses it rests on, and whether a settled one has been published since reset.
+  var provisional = null, quick = [], settled = false, doubted = false;
   // The tempo last published, kept through a stretch without one until silence, for its octave.
   var lastBpm = 0;
 
@@ -238,20 +255,26 @@ function createTracker(observer) {
     latest = null;
     lastBpm = 0;
     sinceAnalysis = 0;
+    sinceSettled = 0;
+    provisional = null;
+    quick = [];
+    settled = false;
+    doubted = false;
   }
 
-  function update() {
-    for (var i = 0; i < ENVELOPE_FRAMES; i++) envOrdered[i] = env[(envAt + i) % ENVELOPE_FRAMES];
-    var a = analyse(envOrdered);
-    lastAnalysis = a;
-    if (!a) return;
-    latest = { bpm: a.bpm, beatSample: lastFrameAt - a.beatsAgo * HOP - HOP / 2 };
-    history.push(a.bpm);
+  // The settled tempo: the last six windows agree, as they did for every steady track.
+  function updateSettled(bpm) {
+    history.push(bpm);
     if (history.length > HISTORY) history.shift();
     var s = stability(history);
     if (!s || s.confidence < MIN_CONFIDENCE) {
       published = null;
       pendingChange = null;
+      // Six windows seen and a tempo far from steady among them: the early one was a guess.
+      if (s && !settled && s.spread > DOUBT_SPREAD) {
+        doubted = true;
+        provisional = null;
+      }
       return;
     }
     if (published && octaveDistance(s.bpm, published.bpm) <= REPUBLISH_CHANGE) {
@@ -267,6 +290,47 @@ function createTracker(observer) {
     pendingChange = null;
     published = { bpm: lastBpm ? nearestOctave(s.bpm, lastBpm) : s.bpm, confidence: s.confidence };
     lastBpm = published.bpm;
+    settled = true;
+    provisional = null;
+  }
+
+  /*
+   * The provisional tempo: the last QUICK_AGREE analyses agree. Once there
+   * is one it is kept through a window that disagrees, to be refined by the
+   * next, and a tempo more than REPUBLISH_CHANGE away replaces it only when
+   * QUICK_REPLACE agree: the early windows found 185 BPM for a 141 BPM track
+   * for three seconds. It ends when the settled analysis finds no steady
+   * tempo (doubted), or on silence.
+   */
+  function updateProvisional(bpm) {
+    quick.push(bpm);
+    if (quick.length > QUICK_REPLACE) quick.shift();
+    var s = stability(quick, QUICK_AGREE);
+    if (!s || s.spread > QUICK_SPREAD) return;
+    if (provisional && octaveDistance(s.bpm, provisional.bpm) > REPUBLISH_CHANGE) {
+      s = stability(quick, QUICK_REPLACE);
+      if (!s || s.spread > QUICK_SPREAD) return;
+    }
+    var value = lastBpm ? nearestOctave(s.bpm, lastBpm) : s.bpm;
+    provisional = { bpm: value, confidence: MIN_CONFIDENCE };
+    lastBpm = value;
+  }
+
+  // settledDue: the settled analysis is due too, with the envelope full and ANALYSE_EVERY_S since the last.
+  function update(settledDue) {
+    var frames = envOrdered;
+    if (envCount === ENVELOPE_FRAMES) for (var i = 0; i < ENVELOPE_FRAMES; i++) envOrdered[i] = env[(envAt + i) % ENVELOPE_FRAMES];
+    else frames = env.subarray(0, envCount);
+    var a = analyse(frames);
+    lastAnalysis = a;
+    if (!a) {
+      quick = [];
+      provisional = null;
+      return;
+    }
+    latest = { bpm: a.bpm, beatSample: lastFrameAt - a.beatsAgo * HOP - HOP / 2 };
+    if (settledDue) updateSettled(a.bpm);
+    if (!settled && !doubted) updateProvisional(a.bpm);
   }
 
   function frameEnded() {
@@ -282,10 +346,14 @@ function createTracker(observer) {
     if (observer) observer.hop(onset, energy / WINDOW);
     lastFrameAt = sampleCount;
     sinceAnalysis += HOP;
-    if (envCount === ENVELOPE_FRAMES && sinceAnalysis >= ANALYSE_EVERY_S * RATE) {
+    sinceSettled += HOP;
+    // The settled analysis keeps its own clock, so it falls where it always has; the quick one runs between.
+    var settledDue = envCount === ENVELOPE_FRAMES && sinceSettled >= ANALYSE_EVERY_S * RATE;
+    if (settledDue || (envCount >= QUICK_MIN_FRAMES && sinceAnalysis >= QUICK_EVERY_S * RATE)) {
       sinceAnalysis = 0;
-      update();
-      if (observer) observer.analysed(lastFrameAt, lastAnalysis && lastAnalysis.bpm, published);
+      if (settledDue) sinceSettled = 0;
+      update(settledDue);
+      if (observer) observer.analysed(lastFrameAt, lastAnalysis && lastAnalysis.bpm, published || provisional);
     }
   }
 
@@ -401,14 +469,16 @@ function createTracker(observer) {
     samples: function () { return sampleCount + hopCount; },
     silent: function () { return silent; },
     // Whether a tempo is published: estimate() without making one.
-    published: function () { return !silent && !!published && !!latest; },
+    published: function () { return !silent && !!(published || provisional) && !!latest; },
     /**
-     * The published tempo and the latest beat heard, or null.
-     * @returns {{bpm: number, confidence: number, beatSample: number}|null}
+     * The published tempo and the latest beat heard, or null. A provisional
+     * tempo says so, and gives way to the settled one.
+     * @returns {{bpm: number, confidence: number, beatSample: number, provisional: boolean}|null}
      */
     estimate: function () {
-      if (silent || !published || !latest) return null;
-      return { bpm: published.bpm, confidence: published.confidence, beatSample: latest.beatSample };
+      var p = published || provisional;
+      if (silent || !p || !latest) return null;
+      return { bpm: p.bpm, confidence: p.confidence, beatSample: latest.beatSample, provisional: !published };
     }
   };
 }
