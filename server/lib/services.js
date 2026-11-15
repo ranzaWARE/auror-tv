@@ -80,6 +80,66 @@ var CATALOG = [
     desc: msg('srv.service.remotelogger.desc', 'Ships system log messages to remote servers.')
   },
   /*
+   * LG's account client. Settings waits for its getLoginUserData before it
+   * shows, which took 6.8 to over 30 s with LG's servers blocked and an
+   * account signed in (an OLED77B46LA, webOS 10.3.2): off, Settings showed
+   * after 1.6 s rather than 8.1 s (#1456). It is held down by LG's own block
+   * list, which run-service reads at each start on webOS 10, so a call to it
+   * fails at once. A stub over its program instead left the call waiting
+   * past 90 s on a C2 (webOS 9.2.2), which has no such list, so it is not
+   * offered there.
+   */
+  {
+    id: 'accountmanager',
+    bin: 'accountmanager',
+    title: msg('srv.service.accountmanager', 'LG Account'),
+    unit: null,
+    upstart: null,
+    blocked: 'com.webos.service.accountmanager',
+    badge: msg('srv.service.badge.ram', '{mb} MB RAM', { mb: '2.3' }),
+    desc: msg('srv.service.accountmanager.desc', 'Keeps the TV signed in to an LG account. Settings waits for it before it opens, for up to 30 s where LG\'s servers are blocked. Off, anything that needs the LG account, such as signing in, ThinQ and the LG Content Store, stops working.')
+  },
+  /*
+   * Started by the service hub whenever something calls it (Type=dynamic in
+   * /usr/share/dbus-1/system-services), with no unit to stop or mask, so it is
+   * held down by mounting a program that exits at once over its own: the hub
+   * then starts that instead. A reboot or an unmount puts it back.
+   * iconnectivity (com.webos.service.ics, UEI QuickSet) is what reverse-looks
+   * up every address on the TV's network (#244). It is switched from the
+   * Devices section, as Network device scans, beside LG's Auto device
+   * detection, which on webOS 11 does not stop it (#1260), so it is not listed
+   * with the others.
+   */
+  // QuickSet is also universal control's IR blaster (com.webos.service.ics/blaster):
+  // held down, a set-top box set up for it stops answering the Magic Remote a few
+  // seconds after start, and LG's set-up hangs (#1266).
+  {
+    id: 'iconnectivity',
+    bin: 'iconnectivity',
+    title: msg('srv.service.iconnectivity', 'Network Device Scans'),
+    unit: null,
+    upstart: null,
+    stub: '/usr/sbin/iconnectivity',
+    badge: msg('srv.service.badge.network', 'Network'),
+    desc: msg('srv.service.iconnectivity.desc', 'Looks up every address on the home network to find devices for the Home Hub and LG\'s device setup. Off, they find no new devices.'),
+    hidden: true
+  },
+  /*
+   * iotframework asks iconnectivity for a scan every 300 s on webOS 11 (an
+   * OLED65C2PUA, firmware 43.21.74). Held down, an hourly sweep was left (an
+   * OLED65C34LA), and it serves the Home Hub's smart home devices, so it is no
+   * longer offered: held down by an earlier release, it is put back at start.
+   */
+  {
+    id: 'iotframework',
+    bin: 'com.webos.iotframework',
+    unit: null,
+    upstart: null,
+    stub: '/usr/palm/services/com.webos.iotframework/com.webos.iotframework',
+    hidden: true,
+    retired: true
+  },
+  /*
    * LG's voice assistant: the AI button, voice search and the microphone. Not
    * listed with the others: Remote keys switches it off while the AI button is
    * set, as with it running LG's voice screen opens over the app chosen (a C5,
@@ -114,6 +174,109 @@ var disabledFilePath = null;
 var initScriptPath = '/var/lib/webosbrew/init.d/20-tvweb-services';
 var oldInitScriptPath = '/var/lib/webosbrew/init.d/20-services.sh';
 var transientDir = '/run/systemd/transient';
+// Prefixed to a stub's path, and the mount table read, for the tests.
+var stubRoot = '';
+var mountsPath = '/proc/mounts';
+var run = execFile;
+
+// LG's list of services run-service refuses to start (webOS 10).
+var BLOCK_FILE = '/var/preferences/servicemanager/blocked-services.json';
+var RUN_SERVICE = '/usr/bin/run-service';
+var SERVICE_FILES = '/usr/share/luna-service2/services.d/';
+
+function blockFile() { return stubRoot + BLOCK_FILE; }
+
+function readBlockList() {
+  var data = null;
+  try { data = JSON.parse(fs.readFileSync(blockFile(), 'utf8')); } catch (e) { data = null; }
+  if (!data || typeof data !== 'object') data = {};
+  if (!Array.isArray(data.blockedServices)) data.blockedServices = [];
+  return data;
+}
+
+// Adds or removes a name, keeping LG's own entries and anything else in the file.
+function setBlocked(names, on) {
+  var data = readBlockList();
+  var list = data.blockedServices.filter(function (n) { return names.indexOf(n) === -1; });
+  if (on) list = list.concat(names);
+  // Nothing to take off: the file is left as LG wrote it.
+  if (!on && list.length === data.blockedServices.length) return true;
+  data.blockedServices = list;
+  try {
+    var dir = path.dirname(blockFile());
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, 493);
+    fs.writeFileSync(blockFile(), JSON.stringify(data), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('services: could not write LG\'s service block list: ' + e.message);
+    return false;
+  }
+}
+
+function isBlocked(item) { return readBlockList().blockedServices.indexOf(item.blocked) !== -1; }
+
+// For the uninstall: every name this server may have put on LG's block list taken off it.
+function releaseBlocked() {
+  var names = CATALOG.filter(function (item) { return item.blocked; }).map(function (item) { return item.blocked; });
+  if (fs.existsSync(blockFile())) setBlocked(names, false);
+}
+
+function stubFile() { return path.join(stateDir, 'service-stub'); }
+function stubTarget(item) { return stubRoot + item.stub; }
+
+function isStubbed(item) {
+  var text = '';
+  try { text = fs.readFileSync(mountsPath, 'utf8'); } catch (e) { return false; }
+  var target = stubTarget(item);
+  return text.split('\n').some(function (line) { return line.split(' ')[1] === target; });
+}
+
+function writeStubFile() {
+  try {
+    if (!fs.existsSync(stateDir)) fs.mkdirSync(stateDir, 493);
+    fs.writeFileSync(stubFile(), '#!/bin/sh\nexit 0\n', { mode: 493 });
+    fs.chmodSync(stubFile(), 493);
+    return true;
+  } catch (e) { return false; }
+}
+
+// Answers once they have gone, so the list read straight after the switch shows it stopped.
+function stopPrograms(item, cb) {
+  var tries = 0;
+  (function signal() {
+    var pids = runningPrograms()[item.bin] || [];
+    if (!pids.length || tries > 6) return cb();
+    pids.forEach(function (pid) {
+      try { process.kill(pid, tries === 6 ? 'SIGKILL' : 'SIGTERM'); } catch (e) {}
+    });
+    tries++;
+    setTimeout(signal, 500);
+  })();
+}
+
+// The program found running is stopped after the mount, so the hub's next start is the stub.
+function stub(item, cb) {
+  if (isStubbed(item)) return stopPrograms(item, function () { cb(true); });
+  if (!writeStubFile()) return cb(false);
+  run('mount', ['--bind', stubFile(), stubTarget(item)], function (err) {
+    if (err) console.error('services: could not hold ' + item.id + ' down: ' + err.message);
+    stopPrograms(item, function () { cb(!err); });
+  });
+}
+
+// Each mount is undone; the hub starts the real program at the next call.
+function unstub(item, cb) {
+  if (!isStubbed(item)) return cb(true);
+  run('umount', [stubTarget(item)], function (err) {
+    if (err) console.error('services: could not put ' + item.id + ' back: ' + err.message);
+    cb(!err);
+  });
+}
+
+// For the uninstall: the paths a stub may be mounted on.
+function stubTargets() {
+  return CATALOG.filter(function (item) { return item.stub; }).map(stubTarget);
+}
 
 // The processes running, by program name, from each one's executable.
 function runningPrograms() {
@@ -142,6 +305,10 @@ function enforce() {
   if (!disabled.length) return;
   var procs = runningPrograms(), systemctl = getSystemctl(), initctl = getInitctl();
   CATALOG.forEach(function (item) {
+    if (item.stub && disabled.indexOf(item.id) !== -1 && fs.existsSync(stubTarget(item)) && !isStubbed(item)) {
+      console.log('services: ' + item.id + ' was not held down while switched off, holding it');
+      return stub(item, function () {});
+    }
     var pids = item.bin && procs[item.bin];
     if (!pids || disabled.indexOf(item.id) === -1) return;
     console.log('services: ' + item.id + ' was running while switched off, stopping it');
@@ -213,10 +380,15 @@ function syncBootScript(disabledList) {
   var lines = [
     '#!/bin/sh',
     '# tvweb managed disabled services',
-    '(',
-    'if which systemctl >/dev/null 2>&1; then',
-    '  mkdir -p /run/systemd/transient'
+    '('
   ];
+  CATALOG.forEach(function (item) {
+    if (!item.stub || disabledList.indexOf(item.id) === -1) return;
+    var target = stubTarget(item);
+    lines.push('[ -e "' + target + '" ] && [ -x "' + stubFile() + '" ] && ! grep -q " ' + target + ' " /proc/mounts && mount --bind "' + stubFile() + '" "' + target + '"');
+  });
+  lines.push('if which systemctl >/dev/null 2>&1; then');
+  lines.push('  mkdir -p /run/systemd/transient');
 
   var upstartJobs = [];
   for (var i = 0; i < CATALOG.length; i++) {
@@ -252,6 +424,10 @@ function syncBootScript(disabledList) {
 }
 
 function serviceExists(item, systemctl, initctl) {
+  if (item.stub) return fs.existsSync(stubTarget(item));
+  if (item.blocked) {
+    return fs.existsSync(stubRoot + RUN_SERVICE) && fs.existsSync(stubRoot + SERVICE_FILES + item.blocked + '.service');
+  }
   if (systemctl && item.unit) {
     if (fs.existsSync('/etc/systemd/system/' + item.unit) ||
         fs.existsSync('/lib/systemd/system/' + item.unit) ||
@@ -272,13 +448,24 @@ function init(options) {
     stateDir = options.stateDir;
     disabledFilePath = path.join(stateDir, 'disabled_services.json');
   }
+  if (options && options.stubRoot !== undefined) stubRoot = options.stubRoot;
+  if (options && options.mounts) mountsPath = options.mounts;
+  if (options && options.run) run = options.run;
   if (options && options.initDir) {
     initScriptPath = path.join(options.initDir, path.basename(initScriptPath));
     oldInitScriptPath = path.join(options.initDir, path.basename(oldInitScriptPath));
   }
 
   var disabled = readDisabledList();
-  var kept = disabled.filter(function (id) { return RETIRED.indexOf(id) === -1; });
+  // A stubbed entry no longer offered is put back, as a retired unit is unmasked below.
+  CATALOG.forEach(function (item) {
+    if (item.retired && item.stub && (disabled.indexOf(item.id) !== -1 || isStubbed(item))) {
+      unstub(item, function (ok) { if (ok) console.log('services: ' + item.id + ' put back, as it is no longer offered'); });
+    }
+  });
+  var kept = disabled.filter(function (id) {
+    return RETIRED.indexOf(id) === -1 && !CATALOG.some(function (item) { return item.id === id && item.retired; });
+  });
   if (kept.length !== disabled.length) {
     disabled = kept;
     writeDisabledList(disabled);
@@ -288,6 +475,13 @@ function init(options) {
   } catch (e) {}
   // Written again at each start, so a hook from an earlier release takes this one's form.
   syncBootScript(disabled);
+  CATALOG.forEach(function (item) {
+    if (item.stub && disabled.indexOf(item.id) !== -1 && fs.existsSync(stubTarget(item))) stub(item, function () {});
+    // Kept on LG's list, should anything have taken it off.
+    if (item.blocked && disabled.indexOf(item.id) !== -1 && serviceExists(item) && !isBlocked(item)) {
+      if (setBlocked([item.blocked], true)) stopPrograms(item, function () {});
+    }
+  });
 
   var systemctl = getSystemctl();
 
@@ -335,7 +529,8 @@ function getServices(cb) {
   var systemctl = getSystemctl();
   var initctl = getInitctl();
 
-  if (!systemctl && !initctl) {
+  var stubbable = CATALOG.some(function (item) { return (item.stub || item.blocked) && !item.hidden && serviceExists(item); });
+  if (!systemctl && !initctl && !stubbable) {
     return cb({ ok: true, supported: false, services: [] });
   }
 
@@ -350,7 +545,7 @@ function getServices(cb) {
         title: item.title,
         badge: item.badge,
         desc: item.desc,
-        unit: item.unit || item.upstart,
+        unit: item.unit || item.upstart || item.bin,
         disabled: disabledList.indexOf(item.id) !== -1,
         running: false
       });
@@ -406,7 +601,7 @@ function toggleService(id, disabled, cb) {
   switchService(id, disabled, cb, false);
 }
 
-// For the module that owns a hidden entry: Remote keys and the voice assistant.
+// For what owns a hidden entry: Remote keys and the voice assistant, and the Devices section's network scans.
 function switchHidden(id, disabled, cb) {
   switchService(id, disabled, cb, true);
 }
@@ -416,13 +611,13 @@ function switchService(id, disabled, cb, hiddenToo) {
   for (var i = 0; i < CATALOG.length; i++) {
     if (CATALOG[i].id === id) { catItem = CATALOG[i]; break; }
   }
-  if (!catItem || (catItem.hidden && !hiddenToo)) {
+  if (!catItem || catItem.retired || (catItem.hidden && !hiddenToo)) {
     return cb({ ok: false, error: 'Unknown service ID: ' + id });
   }
 
   var systemctl = getSystemctl();
   var initctl = getInitctl();
-  if (!systemctl && !initctl) {
+  if (!systemctl && !initctl && !catItem.stub && !catItem.blocked) {
     return cb({ ok: false, error: msg('srv.service.unsupported', 'Service management is not supported on this platform') });
   }
 
@@ -436,7 +631,20 @@ function switchService(id, disabled, cb, hiddenToo) {
   }
   writeDisabledList(list);
 
-  if (systemctl && catItem.unit) {
+  if (catItem.blocked) {
+    if (!setBlocked([catItem.blocked], !!disabled)) {
+      return cb({ ok: false, error: msg('srv.service.stubFailed', 'The TV did not allow the change') });
+    }
+    // Back on, the next call starts it.
+    if (!disabled) return cb({ ok: true, id: id, disabled: false, running: false });
+    return stopPrograms(catItem, function () { cb({ ok: true, id: id, disabled: true, running: false }); });
+  }
+  if (catItem.stub) {
+    return (disabled ? stub : unstub)(catItem, function (ok) {
+      if (!ok) return cb({ ok: false, error: msg('srv.service.stubFailed', 'The TV did not allow the change') });
+      cb({ ok: true, id: id, disabled: !!disabled, running: false });
+    });
+  } else if (systemctl && catItem.unit) {
     var maskFile = path.join(transientDir, catItem.unit);
     if (disabled) {
       try {
@@ -489,5 +697,7 @@ module.exports = {
   switchHidden: switchHidden,
   isDisabled: isDisabled,
   available: available,
+  stubTargets: stubTargets,
+  releaseBlocked: releaseBlocked,
   startEnforcing: startEnforcing
 };

@@ -87,6 +87,9 @@ function init(opts) {
   saverActedOn = 0;
   clearInterval(saverCheck);
   saverCheck = saverState ? setInterval(checkSaver, SAVER_CHECK_MS) : null;
+  // The server's own sockets keep it running. Unref'd, a check left behind does not hold up an exit: on
+  // node 0.10 and 0.12 clearInterval goes through the global clearTimeout, which a test can replace.
+  if (saverCheck && saverCheck.unref) saverCheck.unref();
   clearTimeout(sleep.warn);
   clearTimeout(sleep.off);
   sleep = { at: 0, warn: null, off: null };

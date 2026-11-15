@@ -9,6 +9,7 @@ var execFile = require('child_process').execFile;
 var msg = require('./say').msg;
 var timers = require('./timers');
 var saverPowerOff = require('./saverpoweroff');
+var nosignal = require('./nosignal');
 var clock = require('./clock');
 var names = require('./names');
 var typing = require('./typing');
@@ -20,6 +21,9 @@ var typing = require('./typing');
  * which is why it never worked.
  *
  * Over CEC to an external box, KEY_PLAY behaves as a toggle instead.
+ *
+ * On a C1 (webOS 6.4) KEY_PLAYPAUSE never reaches a web app either, while
+ * KEY_PAUSE and KEY_PLAY arrive as keyCode 19 and 415.
  */
 var RCU_KEY_CODES = {
   play: 207,
@@ -94,6 +98,8 @@ var huesync = null;
 var servicesModule = null;
 /** @type {typeof import('./screensavers')} */
 var screensavers = null;
+/** @type {typeof import('./inputbar')} */
+var inputBar = null;
 /** @type {typeof import('./apps')} */
 var appsModule = null;
 /** @type {typeof import('./lgsettings')} */
@@ -108,6 +114,8 @@ var ntpModule = null;
 var historyModule = null;
 /** @type {typeof import('./backup')} */
 var backupModule = null;
+/** @type {typeof import('./resettime')} */
+var resettimeModule = null;
 /** @type {typeof import('./home')} */
 var homeModule = null;
 var republishDiscoveryFn = null;
@@ -123,6 +131,7 @@ var toastSourceId = null;
 var toastIconDir = path.join(__dirname, '..', 'toast-icons');
 var tileHidingOffMsg = null;
 var writeSettingsFn = null;
+var pointerChangedFn = function () {};
 // Whether LG's on-screen keyboard is up, from the live window list.
 var keyboardVisibleFn = function () { return false; };
 
@@ -216,13 +225,34 @@ function injectKey(code, cb, delayMs) {
  * No key toggles the built-in player, so this asks what it is doing and sends
  * the other one. An external input reports "playing" whatever the box on the
  * end is doing, and KEY_PLAY is a toggle over CEC, so that path just sends it;
- * so does nothing playing.
+ * so does nothing playing. An app with no media pipe (one playing through Web
+ * Audio) can't be read, so it gets pause and play in turn.
  */
 function sendPlayPause(cb) {
-  telemetry.readMediaState(function (media) {
+  telemetry.readMediaState(function (media, noPipe) {
+    if (noPipe) return sendUnreadPlayPause(cb);
+    lastUnreadKey = null;
     var playing = !!(media && media.state === 'playing' && media.playerType !== 'external input');
     sendMediaKey(playing ? 'pause' : 'play', cb);
   }, true);
+}
+
+/*
+ * The key Play / Pause last sent with no pipe to read, and to which app. Pause
+ * comes first, as Play / Pause is mostly pressed on something playing, and
+ * again for another app. com.webos.media gives nothing for an external input
+ * either, so one in front keeps KEY_PLAY.
+ */
+var lastUnreadKey = null;
+var lastUnreadApp = null;
+function sendUnreadPlayPause(cb) {
+  luna('com.webos.applicationManager/getForegroundAppInfo', {}, function (fg) {
+    var app = fg && fg.appId;
+    if (names.isInputAppId(app)) return sendMediaKey('play', cb);
+    lastUnreadKey = lastUnreadKey === 'pause' && lastUnreadApp === app ? 'play' : 'pause';
+    lastUnreadApp = app;
+    sendMediaKey(lastUnreadKey, cb);
+  });
 }
 
 function sendMediaKey(cmd, cb) {
@@ -845,12 +875,15 @@ function doControl(action, value, cb) {
      * tvpowerd subscribes to the key, so writing it is all LG's menu does.
      * Only on firmware that has it: a C2 on webOS 9.2 does, a B8 on 4.4 does not.
      */
-    // LG's device scans answered on the TV (lib/privacy.js).
-    case 'localLookups':
-      return privacy.setLocalLookups(value === true || value === 'on' || value === 'true', function (r) {
-        telemetry.clearCache();
-        cb(r);
-      });
+    /*
+     * Glasshouse's own, beside LG's Auto device detection: the service that
+     * looks up every address on the network, held down where off (lib/services),
+     * which LG's setting does not do on webOS 11 (#1260).
+     */
+    case 'deviceScans':
+      if (!servicesModule || !servicesModule.available('iconnectivity')) return cb({ ok: false, error: 'not on this TV' });
+      var scansOn = (value === true || value === 'on' || value === 'ON' || value === 'true');
+      return servicesModule.switchHidden('iconnectivity', !scansOn, function (r) { cb({ ok: !!(r && r.ok), error: r && r.error }); });
 
     // LG's universal control device detection (other/ueiEnable); see telemetry.
     case 'deviceDetection':
@@ -909,8 +942,23 @@ function doControl(action, value, cb) {
                     alwaysOnDisableEndHour: String((offHour + 5) % 24), alwaysOnDisableEndMinute: '0' } },
                   function (r) {
                     telemetry.clearCache();
+                    if (resettimeModule) resettimeModule.apply();
                     cb({ ok: !!(r && r.returnValue) });
                   });
+
+    case 'nightlyRefresh':
+      var nrOn = (value === true || value === 'on' || value === 'ON' || value === 'true');
+      if (!resettimeModule || !resettimeModule.supported()) {
+        return cb({ ok: false, error: 'nightly refresh reboot is not supported on this TV' });
+      }
+      if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
+      return writeSettingsFn({ nightlyRefresh: nrOn }, function (err) {
+        if (err) return cb({ ok: false, error: err.message || String(err) });
+        if (config) config.nightlyRefresh = nrOn;
+        resettimeModule.setEnabled(nrOn, function () {
+          cb({ ok: true });
+        });
+      });
 
     // LG's On or Off Timer: { timer: 'on' or 'off', enabled, time, days }.
     case 'powerTimer':
@@ -931,6 +979,10 @@ function doControl(action, value, cb) {
       return piccap.setPower(capOn, function (r) {
         cb({ ok: !!(r && r.ok), error: r && !r.ok ? r.error : undefined });
       });
+
+    case 'huesyncSetting':
+      if (!huesync || !value || typeof value !== 'object') return cb({ ok: false, error: 'Invalid Hue Sync setting' });
+      return huesync.setSetting(value.key, value.value, cb);
 
     case 'huesync':
       // Hue Sync's streaming to a Philips Ambience light.
@@ -1051,21 +1103,65 @@ function doControl(action, value, cb) {
        * written into the same file, so setting one without the other would
        * quietly reset it.
        */
-      var ssMode = value, ssLevel = screensavers.screensaverLevel();
+      var ssMode = value, ssLevel = screensavers.screensaverBrightness(), ssChoice, ssPool;
       if (value && typeof value === 'object') {
         ssMode = value.mode;
+        // brightness: a percentage. level: "dim" or "bright", as before it.
         if (value.level) ssLevel = value.level;
+        if (value.brightness !== undefined) ssLevel = value.brightness;
+        if (typeof value.choice === 'string') ssChoice = value.choice;
+        if (Array.isArray(value.pool)) ssPool = value.pool;
       }
-      return screensavers.setScreensaver(String(ssMode || '').trim(), ssLevel, function (r) {
+      ssMode = String(ssMode || '').trim();
+      if (ssPool && screensavers.setRandomPool) screensavers.setRandomPool(ssPool);
+      // The option in use stays with a change of level, as the level does with a change of option.
+      if (ssChoice === undefined && ssMode === screensavers.screensaverMode()) ssChoice = screensavers.screensaverChoice();
+      return screensavers.setScreensaver(ssMode, ssLevel, function (r) {
         telemetry.clearCache();
         cb(r);
-      });
+      }, ssChoice);
+
+    case 'screensaverRandomPool':
+      var newPool;
+      if (Array.isArray(value)) {
+        newPool = value;
+      } else if (value && Array.isArray(value.pool)) {
+        newPool = value.pool;
+      } else if (value && typeof value.toggle === 'string') {
+        var curPool = screensavers.getRandomPool();
+        var idx = curPool.indexOf(value.toggle);
+        if (idx === -1) {
+          curPool.push(value.toggle);
+        } else {
+          curPool.splice(idx, 1);
+        }
+        newPool = curPool;
+      } else {
+        return cb({ ok: false, error: 'pool must be an array of screen saver ids' });
+      }
+      screensavers.setRandomPool(newPool);
+      telemetry.clearCache();
+      return cb({ ok: true, pool: screensavers.getRandomPool() });
 
     case 'screensaver':
       return screensavers.trigger(function (r) {
         telemetry.clearCache();
         cb(r);
       });
+
+    case 'screensaverEntities':
+      if (!screensavers) return cb({ ok: false, error: 'screensavers module not available' });
+      if (!value || typeof value !== 'object' || !value.saver || !value.entities) {
+        return cb({ ok: false, error: 'screensaverEntities requires saver and entities' });
+      }
+      return screensavers.setSaverEntities(value.saver, value.entities, cb);
+
+    case 'screensaverColor':
+      if (!screensavers) return cb({ ok: false, error: 'screensavers module not available' });
+      if (!value || typeof value !== 'object' || !value.saver || !value.color) {
+        return cb({ ok: false, error: 'screensaverColor requires saver and color' });
+      }
+      return screensavers.setSaverColor(value.saver, value.color, cb);
 
     case 'toast':
       /* Both the payload's sourceId and luna-send's -a have to name an app the
@@ -1225,6 +1321,10 @@ function doControl(action, value, cb) {
         cb(getUpdateSummary());
       });
 
+    // LG's No Signal screen: as LG made it, plain "No Signal", or disconnected cable icon.
+    case 'plainNoSignal':
+      return nosignal.set(value, cb);
+
     // Poweroff after: minutes of screen saver before standby, 0 or blank for off.
     case 'screensaverPowerOff':
       var offMin = saverPowerOff.parseMinutes(value);
@@ -1240,6 +1340,37 @@ function doControl(action, value, cb) {
         saverPowerOff.apply();
         cb({ ok: true, minutes: offMin });
       });
+
+    case 'setPointerEnabled':
+      var pointerOn = value === true || value === 'on' || value === 'true';
+      if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
+      return writeSettingsFn({ pointer: { enabled: pointerOn } }, function (err) {
+        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+        config.pointer = config.pointer || {};
+        config.pointer.enabled = pointerOn;
+        pointerChangedFn();
+        cb(getUpdateSummary());
+      });
+
+    case 'setPointerSettings':
+      var pointerSettings = value && typeof value === 'object' ? value : {};
+      var transport = pointerSettings.transport === 'http' ? 'http' : 'websocket';
+      var rate = Number(pointerSettings.updatesPerSecond);
+      if ([60, 120, 240].indexOf(rate) === -1) return cb({ ok: false, error: 'pointer update rate must be 60, 120 or 240' });
+      if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
+      return writeSettingsFn({ pointer: { transport: transport, updatesPerSecond: rate } }, function (err) {
+        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+        config.pointer = config.pointer || {};
+        config.pointer.transport = transport;
+        config.pointer.updatesPerSecond = rate;
+        pointerChangedFn();
+        cb(getUpdateSummary());
+      });
+
+    // Once the input bar's experimental switch. It is offered wherever it can
+    // work now (lib/compat), so an older backup that sets it changes nothing.
+    case 'setInputBarAllowed':
+      return cb(getUpdateSummary());
 
     case 'setWebos10ScreensaversAllowed':
       var allowSs = (value === true || value === 'on' || value === 'true');
@@ -1405,6 +1536,7 @@ function init(opts) {
   if (opts.clearLunaCache) clearLunaCache = opts.clearLunaCache;
   if (opts.config) config = opts.config;
   if (opts.writeSettings) writeSettingsFn = opts.writeSettings;
+  if (opts.pointerChanged) pointerChangedFn = opts.pointerChanged;
   if (opts.telemetry) telemetry = opts.telemetry;
   if (opts.oled) oled = opts.oled;
   if (opts.privacy) privacy = opts.privacy;
@@ -1412,6 +1544,7 @@ function init(opts) {
   if (opts.huesync) huesync = opts.huesync;
   if (opts.services) servicesModule = opts.services;
   if (opts.screensavers) screensavers = opts.screensavers;
+  if (opts.inputBar) inputBar = opts.inputBar;
   if (opts.apps) appsModule = opts.apps;
   if (opts.lgSettings) lgSettings = opts.lgSettings;
   if (opts.updater) updater = opts.updater;
@@ -1419,6 +1552,7 @@ function init(opts) {
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
   if (opts.backup) backupModule = opts.backup;
+  if (opts.resettime) resettimeModule = opts.resettime;
   if (opts.home) homeModule = opts.home;
   if (opts.republishDiscovery) republishDiscoveryFn = opts.republishDiscovery;
   if (opts.deviceNameChanged) deviceNameChangedFn = opts.deviceNameChanged;
