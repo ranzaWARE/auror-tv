@@ -92,6 +92,21 @@ var ROWS = [
     title: msg('srv.lgs.aiSettingsNudge', 'Smart tips in Settings'),
     desc: msg('srv.lgs.aiSettingsNudge.desc', 'Suggested settings shown in LG\'s Settings menu. LG calls this Smart Tips in Settings.') },
 
+  // What the TV may upload to LG, kept as true/false rather than 'on'/'off'.
+  // uploadd, the diagnostics uploader, subscribes to both and refuses to send
+  // while either is false; PmLogDaemon, prosense and remotediag read
+  // faultLogUpload. LG's own menus have no switch for either. hold: 'off'
+  // because PmLogDaemon writes dbgLogUpload at each boot from LG's server's
+  // answer (its debug log whitelist, rdxdev_secure): an OLED77C5PUA on webOS
+  // 11.2.0 had it true again after every start, with LG's defaultSettings.json
+  // saying false. An off chosen here is put back; see reapply.
+  { id: 'dbgLogUpload', section: 'uploads', category: 'option', key: 'dbgLogUpload', on: true, off: false, hold: 'off',
+    title: msg('srv.lgs.dbgLogUpload', 'Debug log upload'),
+    desc: msg('srv.lgs.dbgLogUpload.desc', 'Lets the TV send its debug logs to LG. Some TVs switch it back on at each start; an off chosen here is kept. Not in LG\'s own menus.') },
+  { id: 'faultLogUpload', section: 'uploads', category: 'option', key: 'faultLogUpload', on: true, off: false, hold: 'off',
+    title: msg('srv.lgs.faultLogUpload', 'Fault log upload'),
+    desc: msg('srv.lgs.faultLogUpload.desc', 'Lets the TV send crash and fault reports to LG. Not in LG\'s own menus.') },
+
   // LG's Game Optimizer, from its own app on webOS 9.2. LG keeps these for the
   // game input and genre in use, which it reports as the category's
   // dimension, and applies them while the picture mode is Game Optimizer.
@@ -511,19 +526,86 @@ var ROWS = [
     desc: msg('srv.lgs.ipControl.desc', 'Lets home automation systems control the TV over the network with LG\'s own protocol. Off unless something needs it.') }
 ];
 
+var path = require('path');
+var util = require('./util');
+
 var luna = null;
 var lunaCached = null;
 var clearLunaCache = null;
+var heldFile = null;
 
 function init(opts) {
   luna = opts.luna;
   lunaCached = opts.lunaCached;
   clearLunaCache = opts.clearLunaCache;
+  heldFile = path.join(opts.stateDir || '/var/lib/tvweb', 'lgsettings-held.json');
+}
+
+function readHeld() {
+  var h = util.readJson(heldFile, null);
+  return h && typeof h === 'object' && !Array.isArray(h) ? h : {};
+}
+
+function remember(r, value) {
+  if (r.hold !== 'off') return;
+  var held = readHeld();
+  if (value === false) held[r.id] = false;
+  else delete held[r.id];
+  try { util.writeJsonAtomic(heldFile, held); } catch (e) {
+    console.log('lgsettings: could not record ' + r.id + ': ' + e.message);
+  }
 }
 
 function rowById(id) {
   for (var i = 0; i < ROWS.length; i++) if (ROWS[i].id === id) return ROWS[i];
   return null;
+}
+
+// The current picture as LG reports it, without the dashboard's defaults or
+// conversions: each Picture key the TV returned, and the per-app ones
+// (aspect ratio, Just Scan, TruMotion) for the app or input on screen.
+function exportPicture(cb) {
+  luna('com.webos.service.settings/getSystemSettings', { category: 'picture' }, function (r) {
+    if (!r || r.returnValue !== true || !r.settings || typeof r.settings !== 'object' || Array.isArray(r.settings)) {
+      return cb({ ok: false, error: msg('srv.lgs.pictureExportFailed', 'The current picture settings could not be exported.') });
+    }
+    var settings = {};
+    function keep(key, value) { if (value !== null && value !== undefined) settings[key] = value; }
+    var perApp = [];
+    ROWS.forEach(function (row) {
+      if (row.section !== 'picture') return;
+      if (row.perApp) perApp.push(row);
+      else if (row.category === 'picture') keep(row.key, r.settings[row.key]);
+    });
+    var dimension = {};
+    ['input', 'pictureMode', 'dynamicRange'].forEach(function (key) {
+      var value = r.dimension && r.dimension[key];
+      dimension[key] = typeof value === 'string' ? value : null;
+    });
+    function done(appId) {
+      dimension.app = appId || null;
+      cb({ format: 'glasshouse-picture-settings', version: 1, created: new Date().toISOString(),
+        dimension: dimension, settings: settings });
+    }
+    luna('com.webos.applicationManager/getForegroundAppInfo', {}, function (f) {
+      var appId = f && typeof f.appId === 'string' && f.appId ? f.appId : null;
+      if (!appId) return done(null);
+      // One read per category, naming the keys, as LG's Settings app asks; a
+      // key the TV lacks is left out rather than failing the export.
+      var categories = [];
+      perApp.forEach(function (row) { if (categories.indexOf(row.category) === -1) categories.push(row.category); });
+      (function next(i) {
+        if (i >= categories.length) return done(appId);
+        var own = perApp.filter(function (row) { return row.category === categories[i]; });
+        luna('com.webos.service.settings/getSystemSettings',
+          { category: categories[i], app_id: appId, keys: own.map(function (row) { return row.key; }) }, function (res) {
+            var got = (res && res.settings) || {};
+            own.forEach(function (row) { keep(row.key, got[row.key]); });
+            next(i + 1);
+          });
+      })(0);
+    });
+  });
 }
 
 // desc: what the TV's settings service describes for the key, if it was asked.
@@ -779,10 +861,37 @@ function set(id, value, cb) {
     if (r.perApp) payload.current_app = true;
     luna('com.webos.service.settings/setSystemSettings', payload, function (res) {
       clearLunaCache();
-      if (res && res.returnValue) return cb({ ok: true });
+      if (res && res.returnValue) {
+        remember(r, value);
+        return cb({ ok: true });
+      }
       cb({ ok: false, error: msg('srv.lgs.refused', 'The TV did not take the change.') });
     });
   }
+}
+
+function reapply(cb) {
+  cb = cb || function () {};
+  var held = readHeld();
+  var ids = Object.keys(held);
+  if (!ids.length || !luna) return cb();
+  var i = 0;
+  (function next() {
+    if (i >= ids.length) return cb();
+    var r = rowById(ids[i++]);
+    if (!r || r.hold !== 'off') return next();
+    luna('com.webos.service.settings/getSystemSettings', { category: r.category, keys: [r.key] }, function (res) {
+      var now = res && res.settings ? res.settings[r.key] : undefined;
+      if (now === undefined || now === r.off) return next();
+      var settings = {};
+      settings[r.key] = r.off;
+      luna('com.webos.service.settings/setSystemSettings', { category: r.category, settings: settings }, function (w) {
+        if (clearLunaCache) clearLunaCache();
+        console.log('lgsettings: ' + r.id + (w && w.returnValue ? ' put back off' : ' could not be put back off'));
+        next();
+      });
+    });
+  })();
 }
 
 // The value LG stores for a row's value, or undefined if the TV does not take it.
@@ -803,6 +912,8 @@ function valueToStore(r, value, desc) {
 module.exports = {
   init: init,
   collect: collect,
+  exportPicture: exportPicture,
   set: set,
+  reapply: reapply,
   ROWS: ROWS
 };

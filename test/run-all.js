@@ -16,6 +16,7 @@
 var child = require('child_process');
 var path = require('path');
 var fs = require('fs');
+var os = require('os');
 
 var testDir = __dirname;
 var args = process.argv.slice(2);
@@ -36,6 +37,12 @@ if (suites.length === 0) {
  * every Nth step (test/shard.js), as its steps wait on real timers one after
  * another.
  */
+function headerOf(suite) {
+  try { return fs.readFileSync(path.join(testDir, suite), 'utf8').slice(0, 3000); } catch (e) { return ''; }
+}
+
+function isSlow(suite) { return /@slow\b/.test(headerOf(suite)); }
+
 function shardsOf(suite) {
   var head = '';
   try { head = fs.readFileSync(path.join(testDir, suite), 'utf8').slice(0, 3000); } catch (e) {}
@@ -44,41 +51,154 @@ function shardsOf(suite) {
 }
 
 /*
- * All suites at once: each runs in its own process, with its own temporary
- * files and ports, and the slow ones (the server start-up, MQTT reconnects,
- * the watchdog) spend their time waiting on real timers. Output is held per
- * suite and printed in name order once all have finished.
+ * Each suite runs in its own process, with its own temporary files and ports,
+ * and the slow ones (the server start-up, MQTT reconnects, the watchdog) spend
+ * their time waiting on real timers, so several run side by side. Not all at
+ * once: 136 node processes on a 4-CPU GitHub runner starved it until GitHub
+ * lost the runner ("lost communication with the server") and the job hung for
+ * 45 minutes, and the CPU starvation made timing-based steps flaky. Output is
+ * held per suite and printed in name order once all have finished.
  */
 var runs = [];
 suites.forEach(function (suite) {
   var count = shardsOf(suite);
-  for (var i = 0; i < count; i++) runs.push({ suite: suite, shard: count > 1 ? i + '/' + count : '' });
+  var slow = isSlow(suite);
+  for (var i = 0; i < count; i++) runs.push({ suite: suite, shard: count > 1 ? i + '/' + count : '', slow: slow });
 });
+// The suites whose header says "@slow" start first, so the longest (the server
+// start-up, 40 s) runs alongside the rest rather than after them, and capping
+// the number at once leaves the total where the slowest suite puts it.
+runs.sort(function (a, b) { return (b.slow ? 1 : 0) - (a.slow ? 1 : 0) || (a.suite < b.suite ? -1 : a.suite > b.suite ? 1 : 0); });
 var left = runs.length;
 var startedAt = Date.now();
+var defaultTimeoutSecs = Number(process.env.TEST_TIMEOUT_SECS) || 60;
+var concurrency = Number(process.env.TEST_CONCURRENCY) || Math.max(4, os.cpus().length * 2);
+/*
+ * Suites that never run at the same time. Now and then a CI runner stops
+ * answering altogether; the heartbeat of one that did (on Node 20) last showed
+ * server-boot and tvwebctl running together and nothing else, as did the live
+ * log of an earlier one, and in 60 jobs the freezes came only where the two
+ * overlapped (docs/development/testing.md). Kept apart, to see whether the
+ * freezes stop.
+ */
+var APART = { 'test-server-boot.js': 'test-tvwebctl.js', 'test-tvwebctl.js': 'test-server-boot.js' };
+function heldApart(run) {
+  var other = APART[run.suite];
+  return !!other && runs.some(function (r) { return r.suite === other && r.started && !r.finished; });
+}
 
-runs.forEach(function (run) {
+// Every suite running, with how long it has run.
+function progressLine() {
+  var elapsed = Math.round((Date.now() - startedAt) / 1000);
+  var running = runs.filter(function (r) { return r.started && !r.finished; }).map(function (r) {
+    return r.suite.replace(/^test-|\.js$/g, '') + (r.shard ? '#' + r.shard : '') + ' ' + Math.round((Date.now() - r.startedAt) / 1000) + 's';
+  });
+  return '[' + elapsed + 's] ' + (runs.length - left) + '/' + runs.length + ' done; running: ' + running.join(', ');
+}
+
+/*
+ * A CI job whose runner stops answering keeps no log, so what was running is
+ * also written to RUN_ALL_STATUS, where present, at each start and finish:
+ * the job posts it to GitHub as it changes (scripts/ci-heartbeat.sh), and the
+ * last post outlives the runner.
+ */
+var statusFile = process.env.RUN_ALL_STATUS || '';
+function writeStatus(line) {
+  if (!statusFile) return;
+  try { fs.writeFileSync(statusFile, line + '\n'); } catch (e) {}
+}
+
+var progressTimer = setInterval(function () {
+  if (left <= 0) { clearInterval(progressTimer); return; }
+  var line = progressLine();
+  console.log(line);
+  writeStatus(line);
+}, 5000);
+if (progressTimer.unref) progressTimer.unref();
+
+// Starts the next suite in order that is not held apart, if any.
+function startNext() {
+  for (var i = 0; i < runs.length; i++) {
+    if (!runs[i].started && !heldApart(runs[i])) { startRun(runs[i]); return true; }
+  }
+  return false;
+}
+
+// As many as are allowed at once: a suite held apart leaves its turn to the
+// next, and takes it back when the one it waits for finishes.
+function fillSlots() {
+  var running = runs.filter(function (r) { return r.started && !r.finished; }).length;
+  while (running < concurrency && startNext()) running++;
+}
+
+function startRun(run) {
+  run.started = true;
   var env = {};
   for (var k in process.env) env[k] = process.env[k];
   if (run.shard) env.TEST_SHARD = run.shard;
   var proc = child.fork(path.join(testDir, run.suite), [], { silent: true, env: env });
   run.out = { stdout: '', stderr: '', code: null };
+  run.finished = false;
+  run.startedAt = Date.now();
+  writeStatus(progressLine());
   proc.stdout.on('data', function (d) { run.out.stdout += d; });
   proc.stderr.on('data', function (d) { run.out.stderr += d; });
-  proc.on('close', function (code) {
+
+  var closeTimer = null;
+  var timer = null;
+
+  function finish(code) {
+    if (run.finished) return;
+    run.finished = true;
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
     run.out.code = code;
-    run.ms = Date.now() - startedAt;
-    if (--left === 0) report();
+    run.ms = Date.now() - run.startedAt;
+    --left;
+    writeStatus(left === 0 ? 'all ' + runs.length + ' finished in ' + Math.round((Date.now() - startedAt) / 1000) + 's' : progressLine());
+    if (left === 0) report();
+    else fillSlots();
+  }
+
+  proc.on('exit', function (code, sig) {
+    var exitCode = (code !== null) ? code : (sig ? 128 : 1);
+    // SIGKILL from outside: in CI, the memory cap on the unit tests.
+    if (sig) run.out.signal = sig;
+    closeTimer = setTimeout(function () {
+      try { proc.kill('SIGKILL'); } catch (e) {}
+      finish(exitCode);
+    }, 500);
   });
-});
+
+  // A suite ended by a signal has no exit code: it failed, as killed by the
+  // memory cap in CI, though 'close' can come before 'exit' says so.
+  proc.on('close', function (code, sig) {
+    if (sig) run.out.signal = sig;
+    finish(code !== null ? code : (sig ? 128 : 0));
+  });
+
+  var suiteTimeoutMs = (run.suite.indexOf('boot') !== -1 ? Math.max(90, defaultTimeoutSecs) : defaultTimeoutSecs) * 1000;
+  timer = setTimeout(function () {
+    if (run.finished) return;
+    run.out.stderr += '\nFAIL: ' + run.suite + (run.shard ? ' (shard ' + run.shard + ')' : '') +
+      ' timed out after ' + Math.round(suiteTimeoutMs / 1000) + 's\n';
+    try { proc.kill('SIGTERM'); } catch (e) {}
+    setTimeout(function () {
+      try { proc.kill('SIGKILL'); } catch (e) {}
+    }, 1000);
+    finish(124);
+  }, suiteTimeoutMs);
+}
 
 function report() {
+  clearInterval(progressTimer);
   var failed = {};
   runs.forEach(function (run) {
     process.stdout.write(run.out.stdout);
     if (run.out.stderr) process.stderr.write(run.out.stderr);
     if (run.out.code !== 0) {
-      console.error('FAIL: ' + run.suite + (run.shard ? ' (shard ' + run.shard + ')' : '') + ' exited with code ' + run.out.code);
+      console.error('FAIL: ' + run.suite + (run.shard ? ' (shard ' + run.shard + ')' : '') +
+        (run.out.signal ? ' was killed by ' + run.out.signal : ' exited with code ' + run.out.code));
       failed[run.suite] = true;
     }
   });
@@ -102,4 +222,5 @@ function report() {
   process.exit(failures > 0 ? 1 : 0);
 }
 
-console.log('Running ' + suites.length + ' test suite(s)...\n');
+console.log('Running ' + suites.length + ' test suite(s), ' + concurrency + ' at a time...\n');
+fillSlots();

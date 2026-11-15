@@ -7,6 +7,7 @@ The **Control** tab, `/?tab=control`, turns the TV into a locally controlled dev
 ![The D-pad opened: arrows around OK, with Back and Home below](../screenshots/control-dpad.png)
 
 * **D-pad navigation:** Directional arrows (Up, Down, Left, Right), OK/Select, Back, Home and Settings (LG's quick settings) to navigate webOS menus and built-in interfaces.
+* **Pointer:** Moves the TV cursor as you drag over its pad; tap the pad or press **Click** to click, and use the mouse wheel or two-finger scroll to scroll. Moving, clicking or scrolling dismisses a Glasshouse screen saver. A WebSocket opens only while this section is open. Choose WebSocket or HTTP and the update rate under **Server → Advanced → Pointer input**.
 * **Keyboard box:** types into the text field selected on the TV, such as a search box or a web address, as you type, backspace included, up to 500 characters at a time. **Enter** submits it and empties the box. On webOS 6 and later the note under it says whether LG's on-screen keyboard is up, and a line below says which way the last change was typed. Where the TV has a field of LG's in focus, or LG's keyboard is up, the text goes through LG's input method. Otherwise the server picks a way by the app in front:
   * **A web app, such as YouTube:** the keys are sent to the app's page through the web app debugger, so capitals, digits and any other character arrive as typed, and Enter is pressed in the page. This needs the debugger running, which is Developer Mode's (the **Web app debugger** switch under System is about whether it is also open to the network, and does not affect this). Open the app's own search or keyboard first so that its field is in focus. Without Developer Mode nothing is sent, as web apps ignore key presses from here, and the note under the box says so.
   * **YouTube on newer TVs** is not a web app but runs on Google's Cobalt, and took none of the key presses on a C2 (webOS 9.2). Nothing is sent, and the note under the box says to use the keyboard YouTube shows on the TV.
@@ -16,6 +17,15 @@ The **Control** tab, `/?tab=control`, turns the TV into a locally controlled dev
 * **Media playback:** Dedicated transport controls (Play, Pause, Stop, Rewind, Fast Forward) for active media players.
 * **Volume and mute:** Volume slider, precision step buttons (`+` and `-`), and a one-click mute toggle.
 * **Source selection:** One-click switching across active TV inputs, including HDMI ports and Live TV, with an active indicator marking the current display source.
+
+## Ambient Light
+
+**Hue Sync** and **PicCap** quick toggles sit directly below
+Playback, in that order. Each shows On or Off and switches independently.
+Unavailable integrations are hidden. All settings are on the
+[Ambient Light](ambient-light.md) page.
+
+![Ambient Light quick toggles below Playback, simulated data](../screenshots/control-ambient.png)
 
 ## Picture and sound
 
@@ -27,6 +37,7 @@ The **Control** tab, `/?tab=control`, turns the TV into a locally controlled dev
 * **OLED light and backlight:** Live slider adjusting the panel luminance level for the active picture mode.
 * **Energy saving:** Quick toggles for Auto, Off, Minimum, Medium, Maximum, and Screen off energy-saving states.
 * **Sound output routing:** Switch audio output between TV Speaker, HDMI ARC, Optical, Headphone, and Bluetooth.
+* **Bluetooth device:** choose one of the headphones or speakers paired with the TV, then **Connect** or **Disconnect** it. To add a new one, use **Find devices** on the [Audio tab](audio.md#bluetooth-audio).
 
 ## Panel, timers and power
 

@@ -243,6 +243,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .dev.focus,.ch.focus,.rec.focus{background:#23272e !important;outline-color:#f5a000 !important;box-shadow:0 22px 44px rgba(0,0,0,.6);
   -webkit-transform:translateY(-6px) scale(1.06);transform:translateY(-6px) scale(1.06)}
 .arranging .dev.held,.arranging .ch.held{outline-style:dashed !important}
+/* Preview in the tile lays the picture over its tile from the Top Shelf: a tile with it stays its size and in its place, so the picture fits it. */
+.dev.live,.ch.live{-webkit-transform:none !important;transform:none !important;-webkit-transition:none !important;transition:none !important}
 .light .dev,.light .ch{background:#fff !important;border-color:#e5e7eb}
 .light .dev .path,.light .dev .st,.light .ch .nm,.light .ch .next{color:#5d6472 !important}
 .light .dev.last .st em{color:#b47400 !important}
@@ -605,3 +607,10 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 #shelf #preview #pvInfo{color:#e0e4ea}
 .light #shelf #preview:after{border-color:#e5e7eb}
 .arranging #shelf #preview{display:none}
+/* Internet TV's guide under the Top Shelf, which names the programme in focus beside its preview, as the rows sit. */
+#guide{top:600px;background:#14171d}
+.light #guide{background:#f3f4f6}
+.guiding #rowsView{visibility:hidden}
+.guiding #shelfTitle,.guiding #shelfSub{max-width:1000px}
+/* Grown to Internet TV's player: the whole screen, from the Top Shelf's corner 8 px outside it. */
+#shelf #preview.full{left:8px;top:8px;right:auto;width:1920px;height:1080px;border-radius:0;box-shadow:none}
