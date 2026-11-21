@@ -3367,6 +3367,20 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
    */
   var mascotTimer = null;
   var MASCOTS = { mimus: { ms: 9000, file: 'mimus-run' }, quetza: { ms: 14000, file: 'quetza' } };
+  /*
+   * The season Mimus dresses for, by the TV's date, as the AUROR screen
+   * saver's seasonOf(): a hat for Christmas and New Year, a pumpkin at
+   * Halloween. ?season=xmas shows one out of its time.
+   */
+  function seasonOf(d) {
+    var asked = /[?&]season=(xmas|newyear|halloween|none)/.exec(location.search);
+    if (asked) return asked[1] === 'none' ? '' : asked[1];
+    var m = d.getMonth() + 1, day = d.getDate();
+    if ((m === 12 && day === 31) || (m === 1 && day <= 6)) return 'newyear';
+    if (m === 12) return 'xmas';
+    if ((m === 10 && day >= 25) || (m === 11 && day === 1)) return 'halloween';
+    return '';
+  }
   function planMascot() {
     clearTimeout(mascotTimer);
     var demo = /[?&]mascots=demo/.test(location.search);
@@ -3377,10 +3391,11 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
     if (!layout || !look().mascots || document.hidden || state.arranging || recents.open || settings.open || faultShown) return planMascot();
     var who = /[?&]mascot=(mimus|quetza)/.exec(location.search);
     who = who ? who[1] : Math.random() < 0.5 ? 'mimus' : 'quetza';
-    el.innerHTML = '<img src="/assets/screensavers/auror/' + MASCOTS[who].file + '-' + themeName + '.gif" alt="">';
+    var season = who === 'mimus' ? seasonOf(new Date()) : '';
+    el.innerHTML = '<img src="/assets/screensavers/auror/' + MASCOTS[who].file + (season ? '-' + season : '') + '-' + themeName + '.gif" alt="">';
     el.className = '';
     void el.offsetWidth;
-    el.className = who;
+    el.className = who + (season ? ' season' : '');
     mascotTimer = setTimeout(function () { el.className = ''; el.innerHTML = ''; planMascot(); }, MASCOTS[who].ms + 200);
   }
 

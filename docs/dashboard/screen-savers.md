@@ -141,7 +141,9 @@ Black for the OLED panel: Mimus asleep in the middle with the time beneath him, 
 
 While music plays in Spotify or another music app, Mimus plays along instead: with headphones, at a DJ console, between speakers, on saxophone, electric guitar, drums, a microphone or a keyboard, under a disco ball, with a stereo on his shoulder, conducting, or conducting an orchestra of fifteen small Mimus, one at random and another every three minutes. On webOS 6, where Glasshouse can hear the TV's sound, he keeps to the song's tempo, taking a first guess at it within 6 to 9 seconds and settling on it after about 20; elsewhere, and for music without a steady beat, he plays at 120 beats a minute, though for the first seconds of such music he may follow a tempo it only seems to have. **Mimus on the beat** in Glasshouse Home's settings switches that off, and **Beat offset** there moves him later or earlier where speakers or headphones add delay. The player saying it is paused puts him back to sleep.
 
-After 30 minutes of any screen saver, AUROR switches the TV off as by the remote, unless music plays behind it as above. **Switch the TV off after** in Glasshouse Home's settings sets 15, 30, 60 or 120 minutes, or never. **Poweroff after** above works alongside it, whatever plays.
+From 1 to 30 December Mimus wears a Christmas hat, from 31 December to 6 January a party hat, and from 25 October to 1 November a pumpkin, asleep and in every scene, by the TV's date.
+
+After 30 minutes of any screen saver, AUROR switches the TV off as by the remote, unless music plays behind it as above. **Switch the TV off after** in Glasshouse Home's settings sets 15, 30, 60 or 120 minutes, or never. **Power off after** above works alongside it, whatever plays.
 
 ### AUROR · Immich
 

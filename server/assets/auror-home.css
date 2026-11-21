@@ -392,6 +392,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 #mascot.mimus{display:block;top:920px;width:192px;height:147px;opacity:.9;
   -webkit-animation:mimus-run 9s linear forwards;animation:mimus-run 9s linear forwards}
 .inputs #mascot.mimus{top:400px}
+/* In a season's hat his GIF is six cells taller (scripts/auror-mimus-music.py RUN_RISE): drawn at the same scale, feet where they were. */
+#mascot.mimus.season{height:192px;margin-top:-45px}
 #mascot.quetza{display:block;top:24px;width:295px;height:160px;opacity:.9;
   -webkit-animation:quetza-fly 14s ease-in-out forwards;animation:quetza-fly 14s ease-in-out forwards}
 .light #mascot.mimus,.light #mascot.quetza{opacity:.85}

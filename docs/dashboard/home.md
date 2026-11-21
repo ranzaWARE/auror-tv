@@ -38,7 +38,7 @@ Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile.
 
 At the top left a greeting changes each time Home comes back, by the time of day, with the owner's name when one is set in **Settings › Look**.
 
-The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, a whole pixel every 15 seconds, so no text stays on the same pixels and no edge is drawn between two. Every few minutes Mimus runs along the bottom or Quetza flies across the top.
+The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, a whole pixel every 15 seconds, so no text stays on the same pixels and no edge is drawn between two. Every few minutes Mimus runs along the bottom or Quetza flies across the top. In December, round New Year and at Halloween Mimus runs in the season's hat, as in the [AUROR screen saver](screen-savers.md#auror).
 
 ### Settings from a browser
 

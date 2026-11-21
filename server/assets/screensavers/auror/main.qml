@@ -14,6 +14,9 @@
  * set on each half-beat, beat.js working out which, as AnimatedImage's
  * speed needs QtQuick 2.11 and webOS 4 and 5 have 2.6 and 2.9.
  *
+ * In December, round New Year and at Halloween he wears the season's hat:
+ * a GIF of his for each season beside the plain one.
+ *
  * Mounted over com.webos.app.screensaver like the others; the GIF beside this
  * file is staged with it. The fonts come from the server and fall back to the
  * platform's own while it is not answering.
@@ -77,6 +80,16 @@ WebOSWindow {
 
     function two(n) { return n < 10 ? "0" + n : "" + n }
 
+    // The season Mimus dresses for, by the TV's date; as Home's seasonOf().
+    property string season: ""
+    function seasonOf(d) {
+        var m = d.getMonth() + 1, day = d.getDate();
+        if ((m === 12 && day === 31) || (m === 1 && day <= 6)) return "newyear";
+        if (m === 12) return "xmas";
+        if ((m === 10 && day >= 25) || (m === 11 && day === 1)) return "halloween";
+        return "";
+    }
+
     // Where the pair is drawn: the middle, moved by the drift below.
     property real driftX: 0
     property real driftY: 0
@@ -94,7 +107,7 @@ WebOSWindow {
             width: sourceSize.width * 3
             height: sourceSize.height * 3
             smooth: false
-            source: win.music && win.scene >= 0 ? "mimus-" + win.scenes[win.scene] + "-dark.gif" : "mimus-sleep-dark.gif"
+            source: "mimus-" + (win.music && win.scene >= 0 ? win.scenes[win.scene] : "sleep") + (win.season ? "-" + win.season : "") + "-dark.gif"
             visible: win.mascots
             playing: visible
             paused: win.following
@@ -218,6 +231,7 @@ WebOSWindow {
     function refresh() {
         var now = new Date();
         clock.text = win.two(now.getHours()) + ":" + win.two(now.getMinutes());
+        win.season = win.seasonOf(now);
         // Qt.formatDate writes the engine's own locale, English on the TV.
         date.text = (win.lang ? now.toLocaleDateString(Qt.locale(win.lang), "dddd d MMMM") : Qt.formatDate(now, "dddd d MMMM")).toUpperCase();
     }
