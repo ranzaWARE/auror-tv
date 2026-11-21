@@ -19,7 +19,7 @@ ASSETS = os.path.join(ROOT, 'server', 'assets')
 HERE = os.path.join(ROOT, 'scripts', 'auror-demo')
 
 # What the view and the phone page load, beside them as on the TV.
-COPY = ['auror-home.css', 'i18n.js', 'qr.js', 'devicons.js', 'favicon.svg', 'fonts', 'banners', 'i18n',
+COPY = ['auror-home.css', 'i18n.js', 'qr.js', 'devicons.js', 'video-order.js', 'favicon.svg', 'fonts', 'banners', 'i18n',
         os.path.join('screensavers', 'auror')]
 
 # Made-up shows for the Jellyfin shelf, the search and the posters.

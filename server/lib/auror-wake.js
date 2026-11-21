@@ -32,6 +32,7 @@ var stateDir = '/var/lib/tvweb';
 var dgram = dgramModule;
 var arpFile = ARP_FILE;
 var interfacesFn = function () { try { return os.networkInterfaces() || {}; } catch (e) { return {}; } };
+/** @type {function(Function, number): any} */
 var setTimer = setTimeout;
 var control = null;
 var cfg = null;

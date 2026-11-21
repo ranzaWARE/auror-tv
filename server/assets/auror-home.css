@@ -153,7 +153,8 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 
 /* ---- Rows under the shelf ---- */
 #rowsView{position:absolute;left:0;right:0;top:600px;bottom:0;overflow:hidden}
-#rows{top:0 !important;bottom:0 !important;
+/* As tall as its rows: scrollRows moves it up under the shelf, and #rowsView clips it, so a tall row (Continue watching, Recommended) shows whole. */
+#rows{top:0 !important;bottom:auto !important;overflow:visible !important;
   -webkit-transition:-webkit-transform .28s cubic-bezier(.2,.7,.2,1),opacity .32s;transition:transform .28s cubic-bezier(.2,.7,.2,1),opacity .32s}
 .row{margin-bottom:8px !important}
 .row h2{font-family:"Space Mono",monospace;font-size:18px !important;font-weight:400 !important;color:#99a2af !important;
