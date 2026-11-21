@@ -27,6 +27,7 @@ var aurorTv = require('./auror-tv');
 var aurorBeat = require('./auror-beat');
 var aurorHa = require('./auror-ha');
 var aurorWake = require('./auror-wake');
+var aurorSong = require('./auror-song');
 var nosignal = require('./nosignal');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
@@ -1346,7 +1347,12 @@ function handleHomeRoute(req, res, u, pathname) {
         // The AUROR screen saver asks every 5 s: the beat's capture runs only while it does (lib/auror-beat).
         aurorBeat.polled(music);
         if (music && aurorBeat.followed(look.look)) look.beat = aurorBeat.beat();
-        reply(look);
+        if (!music) return reply(look);
+        // The song's title and artist, where the TV names them (lib/auror-song).
+        aurorSong.read(function (song) {
+          if (song) look.song = song;
+          reply(look);
+        });
       });
     }
     /*

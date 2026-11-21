@@ -514,6 +514,8 @@ has not recorded one.
 
 `test-auror-wake.js` checks that a MAC is taken however it is written and kept with the computer's address, that the magic packet goes to each network's broadcast address, 255.255.255.255 and the computer on ports 9 and 7, only before Moonlight opens and only once a computer is set, and that Find reads the MAC from the ARP table after sending the address a packet, not from an incomplete entry. A fake `dgram` records what is sent.
 
+`test-auror-song.js` checks that the AUROR screen saver's song is the first active media session's title and artist, kept four seconds, that a session without a title gives none, and that a TV without the media controller service is asked once.
+
 `test-auror-tv.js` covers AUROR's top bar and SSH setting: Wi-Fi, cable or no network and online, limited or off, kept for 15 s; the sleep timer's steps, its toast a minute before and switching off, cancelled when the TV goes off another way and kept across a restart of the server; and SSH's flag, with dropbear started once and only dropbear stopped.
 
 `test-homescreen-webos10.js` checks webOS 10's Home screen layout over a stand-in folder: the banner taking the height of the rows hidden, nothing changed before the experimental switch is on, the layout put back after a restart of the TV, the banner text hidden by a copy of LG's language files with the two strings blank and LG's left alone, a black or uploaded banner picture in each size folder, an upload cropped for each shape the banner takes with the one for its shape shown and the others kept until a part shown or hidden needs them, a bad upload refused with the picture before kept, and putting LG's Home screen back forgetting the choices and the upload.

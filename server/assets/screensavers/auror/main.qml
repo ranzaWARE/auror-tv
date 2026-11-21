@@ -14,6 +14,9 @@
  * set on each half-beat, beat.js working out which, as AnimatedImage's
  * speed needs QtQuick 2.11 and webOS 4 and 5 have 2.6 and 2.9.
  *
+ * Where the TV names the song (lib/auror-song), its title and artist are
+ * under the date while he plays.
+ *
  * In December, round New Year and at Halloween he wears the season's hat:
  * a GIF of his for each season beside the plain one.
  *
@@ -57,6 +60,8 @@ WebOSWindow {
     property string lang: ""
     // Music playing in front (the server says), and the scene Mimus plays it in.
     property bool music: false
+    // The song's title and artist, where the TV names them (lib/auror-song), else "".
+    property string song: ""
     property var scenes: ["headphones", "dj", "speakers", "sax", "guitar", "drums", "microphone", "discoball", "keyboard", "boombox", "conductor", "orchestra"]
     property int scene: -1
     // The server's beat while Mimus follows it, else null; his anchor and tempo (beat.js).
@@ -134,6 +139,19 @@ WebOSWindow {
             color: win.muted
             text: ""
         }
+
+        // What plays, under the date, while Mimus plays along to it.
+        Text {
+            id: playing
+            x: (pair.width - width) / 2
+            width: Math.min(implicitWidth, 900)
+            visible: win.song !== "" && win.mascots
+            elide: Text.ElideRight
+            font.family: grotesk.status === FontLoader.Ready ? grotesk.name : ""
+            font.pixelSize: 26
+            color: win.muted
+            text: win.song
+        }
     }
 
     /*
@@ -166,6 +184,7 @@ WebOSWindow {
                 if (r && r.look && typeof r.look.mascots === "boolean") win.mascots = r.look.mascots;
                 if (r && r.look) win.followBeat = r.look.followBeat !== false;
                 if (r && typeof r.lang === "string" && r.lang !== win.lang) { win.lang = r.lang; win.refresh(); }
+                win.song = r && r.music && r.song && r.song.title ? r.song.title + (r.song.artist ? "  \u00b7  " + r.song.artist : "") : "";
                 if (r && typeof r.music === "boolean" && r.music !== win.music) {
                     if (r.music) win.newScene();
                     win.music = r.music;
