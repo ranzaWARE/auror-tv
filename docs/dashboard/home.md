@@ -44,6 +44,8 @@ The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand
 
 The web dashboard's **Home** tab has an **AUROR** section with the same, while Glasshouse Home is on: the owner's name, the network, the sleep timer, the photos behind Home (**Manage** opens their page in a new tab), Immich (**Link** opens its page, **Unlink**, the screen saver's album and the memories on the Top Shelf), Home Assistant (**Link** or **Choose** opens its page, **Unlink**, and its readings on the Top Shelf) and SSH.
 
+**Computer for Steam Link** in that section is the computer Steam Link (Moonlight, under Steam's banner) streams from: opening the tile on Glasshouse Home first sends it a Wake-on-LAN magic packet, and the TV says it is waking it, as Moonlight shows the computer offline until it is up. With the computer on, type its IP address and **Find** takes its MAC address from the TV's ARP table; or type the MAC and **Save**. **Wake now** sends the packet at once, to try it. The packet goes to the network's broadcast address and to 255.255.255.255 on ports 9 and 7, and to the computer's address. The computer needs Wake-on-LAN switched on in its firmware and its operating system (on Linux, `ethtool -s <interface> wol g`, kept across boots), and is best on a cable: few Wi-Fi cards wake.
+
 ### Settings on the TV
 
 The gear opens Glasshouse Home's own settings, worked with the remote; **‹ Home**, above the sections, goes back, and a list longer than the screen moves with the focus:
