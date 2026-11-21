@@ -130,7 +130,9 @@ def open_conflict_pr(tag, ref, files):
     if DRY:
         print('would open a pull request for %s: %s' % (tag, ', '.join(files)), file=sys.stderr)
         return
-    sh('git', 'push', '--force', 'origin', '%s:refs/heads/%s' % (ref, branch))
+    # A branch already there may carry the merge done by hand: left as it is.
+    if not sh('git', 'ls-remote', 'origin', 'refs/heads/' + branch):
+        sh('git', 'push', 'origin', '%s:refs/heads/%s' % (ref, branch))
     if sh('gh', 'pr', 'list', '--head', branch, '--state', 'open', '--json', 'number', '--jq', 'length') != '0':
         return
     body = ('Glasshouse %s does not merge into main on its own: these files changed on both sides.\n\n%s\n\n'

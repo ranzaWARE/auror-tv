@@ -97,6 +97,15 @@ function loadFilter(broken, extra) {
       send: function (service, method, payload, cb) {
         sent.push({ uri: service + method, payload: JSON.parse(payload) });
         if (method === '/getAppInfo') cb(JSON.stringify({ returnValue: true, appInfo: { type: tv.homeType } }));
+        else if (method === '/getSystemSettings' || method === '/setSystemSettings') {
+          // tv.deferred holds the answers back, as the settings service is not instant.
+          var answer = function () {
+            if (method === '/getSystemSettings') return cb(JSON.stringify({ returnValue: true, settings: { backlight: String(tv.backlight) } }));
+            tv.backlight = Number(JSON.parse(payload).settings.backlight);
+            if (cb) cb(JSON.stringify({ returnValue: true }));
+          };
+          if (tv.deferred) tv.deferred.push(answer); else answer();
+        }
         else if (cb) cb(JSON.stringify({ returnValue: true }));
       }
     },
@@ -148,7 +157,7 @@ step(function (next) {
     assert.ok(r.keys.every(function (k) { return k.action === 'lg' && k.id === ''; }));
     assert.strictEqual(r.inChain, false);
     assert.deepEqual(r.choices.map(function (c) { return c.id; }),
-      ['action:screenOff', 'action:powerOff', 'media:ok', 'media:play', 'media:pause', 'media:stop', 'media:rewind', 'media:fastForward',
+      ['action:screenOff', 'action:powerOff', 'action:brightnessUp', 'action:brightnessDown', 'media:ok', 'media:play', 'media:pause', 'media:stop', 'media:rewind', 'media:fastForward',
        'media:volumeUp', 'media:volumeDown', 'media:mute',
        'com.webos.app.hdmi1', 'com.webos.app.hdmi2', 'com.webos.app.livetv',
        'com.webos.app.home', 'netflix', 'youtube.leanback.v4']);
@@ -323,6 +332,128 @@ step(function (next) {
         console.log('  ✓ a key set to Screen off blanks the panel on its release, and a press while it is off only wakes it');
         next();
       }));
+    }));
+  }));
+});
+
+step(function (next) {
+  rk.setRemoteKey('red', 'open', 'action:brightnessUp', guard(function (up) {
+    assert.strictEqual(up.ok, true);
+    rk.setRemoteKey('netflix', 'open', 'action:brightnessDown', guard(function (down) {
+      assert.strictEqual(down.ok, true);
+      var f = loadFilter();
+      var writes = function () { return f.sent.filter(function (m) { return m.uri === 'com.webos.service.settings/setSystemSettings'; }).length; };
+      // expire() runs every timer set so far; one tick runs those waiting and drops them.
+      var tick = function () { var n = f.timers.length; f.expire(); f.timers.splice(0, n); };
+      f.timers.length = 0;
+      tv.backlight = 50;
+      assert.strictEqual(f.handle(1004, true, false), 'accepted');
+      assert.strictEqual(tv.backlight, 60, 'up one step on the press');
+      // This remote sends no auto-repeat: the filter's own timer repeats while the key is down.
+      f.handle(1004, true, true);
+      assert.strictEqual(tv.backlight, 60, 'an auto-repeat is not a second press');
+      tick();
+      assert.strictEqual(tv.backlight, 70, 'a held key steps again on the timer');
+      tick();
+      assert.strictEqual(tv.backlight, 80, 'and again');
+      f.handle(1004, false, false);
+      assert.strictEqual(tv.backlight, 80, 'the release itself steps nothing');
+      tick();
+      assert.strictEqual(tv.backlight, 80, 'no step once the key is up');
+      tv.backlight = 90;
+      f.handle(1004, true, false);
+      assert.strictEqual(tv.backlight, 100);
+      tick();
+      assert.strictEqual(tv.backlight, 100, 'stops at the end of the range');
+      f.handle(1004, false, false);
+      tv.backlight = 50;
+      f.handle(1004, true, false);
+      f.handle(1004, false, false);
+      assert.strictEqual(tv.backlight, 60);
+      // A tap soon after another: the first press's timer must not step again.
+      f.timers.length = 0;
+      tv.backlight = 50;
+      f.handle(1004, true, false);
+      f.handle(1004, false, false);
+      f.handle(1004, true, false);
+      assert.strictEqual(tv.backlight, 70, 'the second tap is one step');
+      // The first press's repeat timer fires with the second key still down: it must do nothing,
+      // so only the second press's own repeat adds a step.
+      tick();
+      assert.strictEqual(tv.backlight, 80, 'a timer left from the first tap does not step again');
+      f.handle(1004, false, false);
+      // Taps while a step is still being written each count, one after another.
+      f.timers.length = 0;
+      tv.backlight = 50;
+      tv.deferred = [];
+      [1, 2, 3, 4].forEach(function () { f.handle(1004, true, false); f.handle(1004, false, false); });
+      while (tv.deferred.length) tv.deferred.shift()();
+      tv.deferred = null;
+      tick();
+      assert.strictEqual(tv.backlight, 90, 'four quick taps are four steps');
+      assert.strictEqual(f.launched.length, 0, 'opens no app');
+      tv.backlight = 98;
+      f.handle(1004, true, false);
+      assert.strictEqual(tv.backlight, 100, 'clamped to 100');
+      var before = writes();
+      f.handle(1004, true, false);
+      assert.strictEqual(writes(), before, 'nothing written at the top');
+      tv.backlight = 3;
+      f.handle(1001, true, false);
+      assert.strictEqual(tv.backlight, 0, 'down clamped to 0');
+      rk.getRemoteKeys(guard(function (r) {
+        assert.ok(r.choices.some(function (c) { return c.id === 'action:brightnessUp'; }));
+        var red = r.keys.filter(function (k) { return k.key === 'red'; })[0];
+        assert.strictEqual(red.opens, 'Brightness up');
+        rk.setRemoteKey('red', 'lg', '', guard(function () {
+          rk.setRemoteKey('netflix', 'lg', '', guard(function () {
+            console.log('  ✓ Brightness up and down step the panel brightness in the filter, repeat while held, and stop at 0 and 100');
+            next();
+          }));
+        }));
+      }));
+    }));
+  }));
+});
+
+step(function (next) {
+  rk.setRemoteKey('red', 'open', 'action:brightnessUp', guard(function () {
+    rk.getRemoteKeys(guard(function (before) {
+      assert.strictEqual(before.brightnessStep, 10, 'ten points unless set');
+      var refused = 0;
+      var bad = [0, 51, 2.5, 'x', -5];
+      (function refuse(i) {
+        if (i === bad.length) return accepted();
+        rk.setBrightnessStep(bad[i], guard(function (r) {
+          assert.strictEqual(r.ok, false, String(bad[i]) + ' refused');
+          refuse(i + 1);
+        }));
+      })(0);
+      function accepted() {
+        rk.setBrightnessStep(20, guard(function (r) {
+          assert.strictEqual(r.ok, true);
+          assert.strictEqual(tv.keys.brightnessStep, 20, 'sent to the filter with the keys');
+          var f = loadFilter();
+          tv.backlight = 30;
+          f.handle(1004, true, false);
+          assert.strictEqual(tv.backlight, 50, 'the filter steps by the set size');
+          // Kept through a change of keys, and by a later update of the filter.
+          rk.setRemoteKey('netflix', 'open', 'action:brightnessDown', guard(function () {
+            assert.strictEqual(tv.keys.brightnessStep, 20);
+            rk.getRemoteKeys(guard(function (after) {
+              assert.strictEqual(after.brightnessStep, 20);
+              rk.setRemoteKey('netflix', 'lg', '', guard(function () {
+                rk.setRemoteKey('red', 'lg', '', guard(function () {
+                  rk.setBrightnessStep(10, guard(function () {
+                    console.log('  ✓ the brightness step is a setting from 1 to 50 that the filter follows and a change of keys keeps');
+                    next();
+                  }));
+                }));
+              }));
+            }));
+          }));
+        }));
+      }
     }));
   }));
 });
@@ -810,6 +941,91 @@ step(function (next) {
                 assert.ok(ok2);
                 assert.deepEqual(tv.removed, ['com.tvweb.inputbar'], 'restore() removes the bar app with the keys');
                 console.log('  ✓ the bar\'s app is removed when no key opens it any more, by dropInputBar(), and by restore() at uninstall');
+                next();
+              }));
+            }));
+          }));
+        }));
+      }));
+    }));
+  }));
+});
+
+// ---------------------------------------------------------------- Glasshouse Bar on a key
+// Beside Glasshouse Home, which keeps the Home key (#1499).
+var hb = { calls: [], installs: true, allowed: true, launcher: false, pokes: 0 };
+step(function (next) {
+  rk.init({ luna: luna, inputNames: { hdmi1: 'HDMI 1', hdmi2: 'Apple TV' }, stateDir: stateDir, filtersDir: filtersDir,
+    homeBarAllowed: function () { return hb.allowed; },
+    homeBarApp: function (action, cb) {
+      hb.calls.push(action);
+      process.nextTick(function () { cb({ ok: action !== 'install' || hb.installs }); });
+    },
+    homeBarLauncher: function () { return hb.launcher; },
+    onHomeBarKey: function () { hb.pokes++; } });
+  rk.getRemoteKeys(guard(function (r) {
+    assert.ok(r.choices.some(function (c) { return c.id === 'com.tvweb.homebar' && c.title === 'Glasshouse Bar'; }), 'Glasshouse Bar is offered');
+    hb.allowed = false;
+    rk.getRemoteKeys(guard(function (r2) {
+      assert.ok(!r2.choices.some(function (c) { return c.id === 'com.tvweb.homebar'; }), 'not offered where the bars are not');
+      hb.allowed = true;
+      hb.installs = false;
+      rk.setRemoteKey('input', 'open', 'com.tvweb.homebar', guard(function (s) {
+        assert.strictEqual(s.ok, false, 'refused when its app cannot be installed');
+        assert.strictEqual(rk.opensHomeBar(), false, 'the key is left as it was');
+        hb.installs = true;
+        rk.setRemoteKey('input', 'open', 'com.tvweb.homebar', guard(function (s2) {
+          assert.ok(s2.ok, s2.error);
+          assert.deepEqual(hb.calls, ['install', 'install']);
+          assert.strictEqual(rk.opensHomeBar(), true);
+          assert.strictEqual(hb.pokes, 1, 'lib/homebar is told, to keep it loaded');
+          console.log('  ✓ Glasshouse Bar is offered for a key where the bars are, and choosing it installs its app first');
+          next();
+        }));
+      }));
+    }));
+  }));
+});
+
+step(function (next) {
+  var f = loadFilter(null, {
+    WebOS: { Key_webOS_Netflix: 1001, Key_webOS_Amazon: 1002, Key_webOS_TVGuide: 1003, Key_webOS_Red: 1004,
+             Key_webOS_USP: 1005, Key_webOS_InputSource: 1006 },
+    Qt: { Key_Super_L: 2001, Key_Right: 3001 },
+    global: { isForegroundApp: function () { return false; }, sendKeyToFocusWindow: function () {} }
+  });
+  f.handle(1006, true, false);
+  f.handle(1006, false, false);
+  f.handle(1006, true, false);
+  assert.deepEqual(f.launched.map(function (l) { return l.id; }), ['com.tvweb.homebar', 'com.tvweb.homebar']);
+  var p1 = JSON.parse(f.launched[0].params), p2 = JSON.parse(f.launched[1].params);
+  assert.strictEqual(p1.glasshouse, 'bar');
+  assert.ok(p2.press > p1.press, 'each press numbered, as the Home key opens it, so a second press closes it');
+  console.log('  ✓ the key opens Glasshouse Bar as the Home key does, a number for each press');
+  next();
+});
+
+step(function (next) {
+  hb.launcher = true;
+  rk.setRemoteKey('input', 'lg', '', guard(function (s) {
+    assert.ok(s.ok, s.error);
+    setImmediate(guard(function () {
+      assert.deepEqual(hb.calls, ['install', 'install'], 'its app stays while the Bar is the launcher');
+      hb.calls = [];
+      rk.setRemoteKey('input', 'open', 'com.tvweb.homebar', guard(function (s2) {
+        assert.ok(s2.ok, s2.error);
+        assert.deepEqual(hb.calls, [], 'nothing to install while the Bar is the launcher');
+        hb.launcher = false;
+        rk.setRemoteKey('input', 'nothing', '', guard(function (s3) {
+          assert.ok(s3.ok, s3.error);
+          setImmediate(guard(function () {
+            assert.deepEqual(hb.calls, ['remove'], 'the last key leaving it removes its app');
+            rk.setRemoteKey('input', 'open', 'com.tvweb.homebar', guard(function () {
+              tv.removed = [];
+              rk.restore(guard(function (ok) {
+                assert.ok(ok);
+                assert.deepEqual(tv.removed, ['com.tvweb.homebar'], 'restore() removes its app with the keys');
+                console.log('  ✓ Glasshouse Bar\'s app is removed when no key opens it, unless it is the launcher, and by restore()');
                 next();
               }));
             }));
