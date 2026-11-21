@@ -26,6 +26,8 @@ var aurorUpdate = require('./auror-autoupdate');
 var aurorTv = require('./auror-tv');
 var aurorBeat = require('./auror-beat');
 var aurorHa = require('./auror-ha');
+var aurorWake = require('./auror-wake');
+var aurorSong = require('./auror-song');
 var nosignal = require('./nosignal');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
@@ -1345,7 +1347,12 @@ function handleHomeRoute(req, res, u, pathname) {
         // The AUROR screen saver asks every 5 s: the beat's capture runs only while it does (lib/auror-beat).
         aurorBeat.polled(music);
         if (music && aurorBeat.followed(look.look)) look.beat = aurorBeat.beat();
-        reply(look);
+        if (!music) return reply(look);
+        // The song's title and artist, where the TV names them (lib/auror-song).
+        aurorSong.read(function (song) {
+          if (song) look.song = song;
+          reply(look);
+        });
       });
     }
     /*
@@ -1389,6 +1396,7 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/immich/thumb') return homeModule.immich.thumb(u.query || {}, res);
     // Home Assistant's panel (lib/auror-ha), through this server with the token added.
     if (pathname === '/api/home/ha/status') return reply(aurorHa.status());
+    if (pathname === '/api/home/wake') return reply(aurorWake.status());
     if (pathname === '/api/home/ha/states') return aurorHa.states(reply);
     if (pathname === '/api/home/ha/camera') return aurorHa.camera(u.query || {}, res);
     if (pathname === '/api/home/immich/memories') return homeModule.immich.memories(String(u.query && u.query.day || ''), reply);
@@ -1545,6 +1553,10 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/ha/forget') return aurorHa.forget(reply);
       if (pathname === '/api/home/ha/act') return aurorHa.act(body, reply);
       if (pathname === '/api/home/ha/dashboard') return aurorHa.openDashboard(reply);
+      // The computer Steam Link wakes (lib/auror-wake).
+      if (pathname === '/api/home/wake') return aurorWake.save(body, reply);
+      if (pathname === '/api/home/wake/find') return aurorWake.find(body && body.ip, reply);
+      if (pathname === '/api/home/wake/send') return aurorWake.wake(reply);
       if (pathname === '/api/home/immich/forget') return homeModule.immich.forget(reply);
       if (pathname === '/api/home/immich/saver') return homeModule.immich.setSaverAlbum(body && body.album !== undefined ? body.album : null, reply);
       if (pathname === '/api/home/recents') {

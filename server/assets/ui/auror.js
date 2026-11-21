@@ -2,7 +2,7 @@
 // change, from a browser. The pages for photos and for linking Immich and Home Assistant are the
 // phone's own, opened in a new tab with a code from the server.
 
-const aurorState = { net: null, sleep: null, ssh: null, gallery: null, albums: null, busy: '' };
+const aurorState = { net: null, sleep: null, ssh: null, gallery: null, albums: null, wake: null, wakeSent: false, busy: '' };
 const AUROR_SLEEP_STEPS = [0, 30, 60, 90, 120];
 
 async function aurorGet(path) {
@@ -11,10 +11,11 @@ async function aurorGet(path) {
 
 async function loadAuror() {
   if (!q('auror-sec') || !homeStatus || !homeStatus.enabled) return;
-  const [net, sleep, ssh, gallery] = await Promise.all([
-    aurorGet('/api/home/network'), aurorGet('/api/home/sleep'), aurorGet('/api/home/ssh'), aurorGet('/api/home/gallery')
+  const [net, sleep, ssh, gallery, wake] = await Promise.all([
+    aurorGet('/api/home/network'), aurorGet('/api/home/sleep'), aurorGet('/api/home/ssh'), aurorGet('/api/home/gallery'),
+    aurorGet('/api/home/wake')
   ]);
-  Object.assign(aurorState, { net, sleep, ssh, gallery });
+  Object.assign(aurorState, { net, sleep, ssh, gallery, wake });
   const im = homeCat && homeCat.immich;
   if (im && im.configured && !aurorState.albums) {
     const r = await aurorGet('/api/home/immich/albums');
@@ -89,6 +90,51 @@ function renderAuror() {
       (ssh.passwordNow ? ' · ' + t('auror.sshPassword', 'the root password lets in: add a key in the Server tab to switch it off') : ssh.keys ? ' · ' + t('auror.sshKeys', 'keys only') : '') +
       (aurorState.net && aurorState.net.ip ? ' · root@' + aurorState.net.ip : '');
   aurorOnOff('auror-ssh', !!(ssh && ssh.enabled), aurorState.busy === 'ssh');
+
+  const wake = aurorState.wake;
+  q('auror-wake-state').textContent = wake && wake.configured
+    ? t('auror.wakeSet', 'Opening Steam Link on Glasshouse Home first wakes {mac}. The computer needs Wake-on-LAN on, and a cable to the network.', { mac: wake.mac })
+    : t('auror.wakeNone', 'None set. With the computer on, Find takes its MAC from its address; or type the MAC. Opening Steam Link then wakes it first.');
+  const ip = q('auror-wake-ip'), mac = q('auror-wake-mac');
+  if (document.activeElement !== ip) ip.value = (wake && wake.ip) || '';
+  if (document.activeElement !== mac) mac.value = (wake && wake.mac) || '';
+  const send = q('auror-wake-send');
+  send.textContent = aurorState.wakeSent ? t('auror.wakeSent', 'Sent') : t('auror.wakeSend', 'Wake now');
+  send.disabled = !(wake && wake.configured) || aurorState.busy === 'wake';
+}
+
+async function aurorSaveWake() {
+  const btn = q('auror-wake-save');
+  try {
+    aurorState.wake = await homePost('/api/home/wake', { mac: q('auror-wake-mac').value.trim(), ip: q('auror-wake-ip').value.trim() });
+    btn.textContent = t('auror.saved', 'Saved');
+    setTimeout(() => { btn.textContent = t('auror.save', 'Save'); }, 1600);
+  } catch (e) { showErr(e.message); }
+  renderAuror();
+}
+
+// The MAC from the TV's ARP table, while the computer is on; kept with the address.
+async function aurorFindWake() {
+  const btn = q('auror-wake-find');
+  btn.disabled = true;
+  try {
+    const found = await homePost('/api/home/wake/find', { ip: q('auror-wake-ip').value.trim() });
+    aurorState.wake = await homePost('/api/home/wake', { mac: found.mac, ip: found.ip });
+  } catch (e) { showErr(e.message); }
+  btn.disabled = false;
+  renderAuror();
+}
+
+async function aurorSendWake() {
+  aurorState.busy = 'wake';
+  renderAuror();
+  try {
+    await homePost('/api/home/wake/send', {});
+    aurorState.wakeSent = true;
+    setTimeout(() => { aurorState.wakeSent = false; renderAuror(); }, 1600);
+  } catch (e) { showErr(e.message); }
+  aurorState.busy = '';
+  renderAuror();
 }
 
 async function aurorSaveName() {

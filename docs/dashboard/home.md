@@ -38,11 +38,13 @@ Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile.
 
 At the top left a greeting changes each time Home comes back, by the time of day, with the owner's name when one is set in **Settings › Look**.
 
-The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, a whole pixel every 15 seconds, so no text stays on the same pixels and no edge is drawn between two. Every few minutes Mimus runs along the bottom or Quetza flies across the top.
+The theme is light from sunrise to sunset at the place set for the [weather badge](#weather-badge) from the internet, worked out on the TV for each day, and from 06:00 to 17:00 where no place is set. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, a whole pixel every 15 seconds, so no text stays on the same pixels and no edge is drawn between two. Every few minutes Mimus runs along the bottom or Quetza flies across the top. In December, round New Year and at Halloween Mimus runs in the season's hat, as in the [AUROR screen saver](screen-savers.md#auror).
 
 ### Settings from a browser
 
 The web dashboard's **Home** tab has an **AUROR** section with the same, while Glasshouse Home is on: the owner's name, the network, the sleep timer, the photos behind Home (**Manage** opens their page in a new tab), Immich (**Link** opens its page, **Unlink**, the screen saver's album and the memories on the Top Shelf), Home Assistant (**Link** or **Choose** opens its page, **Unlink**, and its readings on the Top Shelf) and SSH.
+
+**Computer for Steam Link** in that section is the computer Steam Link (Moonlight, under Steam's banner) streams from: opening the tile on Glasshouse Home first sends it a Wake-on-LAN magic packet, and the TV says it is waking it, as Moonlight shows the computer offline until it is up. With the computer on, type its IP address and **Find** takes its MAC address from the TV's ARP table; or type the MAC and **Save**. **Wake now** sends the packet at once, to try it. The packet goes to the network's broadcast address and to 255.255.255.255 on ports 9 and 7, and to the computer's address. The computer needs Wake-on-LAN switched on in its firmware and its operating system (on Linux, `ethtool -s <interface> wol g`, kept across boots), and is best on a cable: few Wi-Fi cards wake.
 
 ### Settings on the TV
 
@@ -53,7 +55,9 @@ The gear opens Glasshouse Home's own settings, worked with the remote; **‹ Hom
 
 * **Look**: the owner's name for the greeting, typed on the TV's keyboard, the theme (automatic, light or dark), the 24-hour clock (the TV's own setting, as on the Advanced tab), the [AUROR screen saver](screen-savers.md) and its brightness, Mimus and Quetza, and Mimus on the beat, for him to dance to the song's own tempo in the screen saver where the TV allows it. Under it, **Beat offset** moves him from the calibrated timing, from -100 to +400 ms in 50 ms steps, for speakers or headphones that add delay, and **Test** starts the screen saver to check it with music playing; Back returns to Home. Both wait until the AUROR screen saver without Immich's photos, Mimus and Quetza and Mimus on the beat are on. With Immich linked, the screen saver can show Immich's photos instead, from an album or the whole library.
 * **Top Shelf**: what Jellyfin, Glasshouse, Immich, Home Assistant and the HDMI inputs show there.
-* **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), then hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
+* **Rows**: the apps' order, **Automatic** (the most used first) or **Manual** (as arranged), **Continue watching** while Jellyfin is linked, then hiding inputs with nothing connected, last watched, CEC addresses, the app count and fading, the same switches as on the dashboard.
+
+With Jellyfin linked, a **Continue watching** row sits under Apps: what the server has half watched, with how far, asked for again every five minutes while Home is up. The Top Shelf shows the one in focus and the next two; OK opens Jellyfin's app, which picks up where it was. The row is left out while there is nothing to resume, is not arranged with the others, and goes with **Continue watching** off in **Rows**.
 * **Tiles**: which apps show. LG's Home always does.
 * **Backgrounds**: photos behind Home, one of them or all in turn, added from a phone or computer (see [Backgrounds](#backgrounds)).
 * **Search**: the switch, and TMDB's key, linked from a phone by a QR code (see [Search](#search)).
@@ -149,7 +153,7 @@ The gear opens Glasshouse Home's own settings, worked with the remote; **‹ Hom
 
     ---
 
-    AUROR's view has its own colours: light from 06:00 to 17:00 and dark after, with the switch at its top right keeping the other until the next change. Neither dashboard offers Glasshouse's colour presets.
+    AUROR's view has its own colours: light from sunrise to sunset (06:00 to 17:00 without a weather place) and dark after, with the switch at its top right keeping the other until the next change. Neither dashboard offers Glasshouse's colour presets.
 
 </div>
 

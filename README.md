@@ -15,12 +15,14 @@ Gira direttamente su una TV LG webOS con root, senza servizi cloud. Pensata per 
 - **Sfondi:** foto caricate dal telefono o dal computer nella rete di casa, una fissa o a rotazione.
 - **Immich:** album, foto e video sulla TV, i ricordi di oggi sulla fascia in alto e le foto come salvaschermo.
 - **Home Assistant:** luci, prese, tapparelle, scene, sensori e telecamere dal divano, riscaldamento e aria condizionata regolati col telecomando, e la dashboard completa nel browser della TV.
+- **Continua a guardare:** con Jellyfin collegato, una riga sotto le app con quello che hai lasciato a metà.
 - **Altre app:** una cartella per le app che non servono sempre, senza nasconderle.
-- **Tema chiaro e scuro:** chiaro dalle 6:00 alle 17:00, scuro dalle 17:00. Un pulsante lo cambia fino al passaggio successivo.
+- **Tema chiaro e scuro:** chiaro dall'alba al tramonto nel luogo scelto per il meteo (senza luogo, dalle 6:00 alle 17:00), scuro dopo. Un pulsante lo cambia fino al passaggio successivo.
 - **Anti burn-in:** tutta la pagina si sposta lentamente di pochi pixel e non ci sono scritte fisse.
 - **Impostazioni dalla TV e dal browser:** tema, nome, salvaschermo, mascotte, fascia in alto, app visibili, sfondi, SSH. Jellyfin, TMDB, Immich e Home Assistant si collegano dal telefono con un codice QR.
 - **Salvaschermo per OLED:** orologio su nero con Mimus che dorme, oppure le foto di Immich.
-- **Mimus e Quetza:** le due mascotte in pixel art attraversano ogni tanto la Home.
+- **Mimus e Quetza:** le due mascotte in pixel art attraversano ogni tanto la Home. A dicembre Mimus mette il cappello di Natale, a Capodanno quello da festa e ad Halloween la zucca.
+- **Steam Link:** il riquadro apre Moonlight e prima accende il PC con Wake-on-LAN.
 - **Aggiornamenti automatici:** ogni release di Glasshouse viene unita ad AUROR e la TV la installa da sola, a TV spenta o di notte.
 
 ## Installazione

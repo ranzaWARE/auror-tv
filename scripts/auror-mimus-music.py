@@ -4,10 +4,14 @@ Mimus with music, for the AUROR screen saver while music plays: twelve
 pixel-art scenes in the cells of his sleeping and running sprites (5 px), his
 white and AUROR's amber for what he plays, each four frames at 120 BPM.
 
+Then the seasons: Mimus in a Christmas hat (1 to 30 December), a party hat
+(31 December to 6 January) and a pumpkin (25 October to 1 November), in every
+scene and in his sleeping and running sprites.
+
     ./scripts/auror-mimus-music.py [folder]
 
-writes mimus-<scene>-dark.gif into the folder, by default the saver's own
-(server/assets/screensavers/auror).
+writes mimus-<scene>-dark.gif and mimus-<sprite>-<season>-<theme>.gif into
+the folder, by default the saver's own (server/assets/screensavers/auror).
 """
 import os
 import sys
@@ -16,6 +20,7 @@ from PIL import Image
 
 INK = (240, 240, 245, 255)
 AMB = (245, 160, 0, 255)
+RED = (222, 42, 52, 255)
 CELL, PAD = 5, 4
 
 # His head, neck and body as the run sprite has them (rows 0-11).
@@ -52,8 +57,9 @@ class Frame:
     def __init__(self, w, h):
         self.w, self.h, self.c = w, h, {}
 
+    # Above the top is kept: a hat can rise over it, and save() makes room.
     def px(self, x, y, col=INK):
-        if 0 <= x < self.w and 0 <= y < self.h:
+        if 0 <= x < self.w and y < self.h:
             self.c[(x, y)] = col
 
     def clear(self, x, y):
@@ -77,10 +83,13 @@ class Frame:
     def note(self, x, y, kind=0):
         self.art(QUAVER if kind == 0 else SEMIS, x, y)
 
-    def image(self, scale=1):
-        img = Image.new('RGBA', (PAD + self.w * CELL, PAD + self.h * CELL), (0, 0, 0, 0))
+    def top(self):
+        return min([0] + [y for (x, y) in self.c])
+
+    def image(self, scale=1, rise=0):
+        img = Image.new('RGBA', (PAD + self.w * CELL, PAD + (self.h + rise) * CELL), (0, 0, 0, 0))
         for (x, y), col in self.c.items():
-            X, Y = PAD + x * CELL, PAD + y * CELL
+            X, Y = PAD + x * CELL, PAD + (y + rise) * CELL
             img.paste(col, (X, Y, X + CELL, Y + CELL))
         if scale != 1:
             img = img.resize((img.width * scale, img.height * scale), Image.NEAREST)
@@ -122,13 +131,17 @@ def mimus(f, ox, oy, legs='stand', dy=0, head=0, headdy=0, beak='shut', wing=Tru
     if phones:
         for (x, y) in PHONES:
             f.px(ox + x + head, oy + y + dy + headdy, AMB)
+    if HAT:
+        # Over the headphones' band where he wears them.
+        hat(f, ox + 16 + head, oy + dy + headdy - (2 if phones else 0), INK)
 
 
 BEAT = 250   # ms a frame: two frames a beat at 120 BPM
 
 
 def save(frames, path, durations=None):
-    imgs = [fr.image() for fr in frames]
+    rise = -min(fr.top() for fr in frames)
+    imgs = [fr.image(rise=rise) for fr in frames]
     d = durations or [BEAT] * len(imgs)
     imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=d, loop=0, disposal=2, transparency=0)
 
@@ -509,6 +522,95 @@ def orchestra():
     return out
 
 
+# ---------------------------------------------------------------- seasons
+# Each hat sits on his head, its bottom row over the head's top; the column
+# given is the one over the head's first cell. '#' is his own colour.
+HATS = {
+    'xmas': (3, ["#RR....",
+                 ".RRRR..",
+                 "..RRRR.",
+                 ".######"]),
+    'newyear': (1, ["..#..",
+                    "..o..",
+                    ".o#o.",
+                    ".#o#.",
+                    "o#o#o"]),
+    'halloween': (3, ["...#...",
+                      ".ooooo.",
+                      "o.ooo.o",
+                      "oo...oo",
+                      ".ooooo."]),
+}
+SEASONS = ['xmas', 'newyear', 'halloween']
+HAT = None
+
+
+def hat(f, hx, hy, ink):
+    """The season's hat on a head whose top-left cell is (hx, hy)."""
+    col, rows = HATS[HAT]
+    f.art(rows, hx - col, hy - len(rows), {'#': ink, 'o': AMB, 'R': RED})
+
+
+# The sleeping and running sprites: 24 by 18 cells, padded 4 px all round.
+SPRITE_W, SPRITE_H = 24, 18
+# Running, he takes as many rows more in every season, so Home draws him at one size.
+RUN_RISE = 6
+
+
+def read_sprite(path):
+    """The cells of each frame of a sprite GIF, and its frame times."""
+    im = Image.open(path)
+    frames, times = [], []
+    for k in range(im.n_frames):
+        im.seek(k)
+        rgba = im.convert('RGBA')
+        f = Frame(SPRITE_W, SPRITE_H)
+        for r in range(SPRITE_H):
+            for c in range(SPRITE_W):
+                p = rgba.getpixel((PAD + c * CELL + 2, PAD + r * CELL + 2))
+                if p[3] >= 128:
+                    f.px(c, r, p)
+        frames.append(f)
+        times.append(im.info.get('duration', BEAT))
+    return frames, times
+
+
+def head_of(f):
+    """His head's top-left cell: three cells over a row of seven."""
+    for (x, y) in sorted(f.c, key=lambda p: (p[1], p[0])):
+        row = [(x + k, y) in f.c for k in (-1, 0, 1, 2, 3)]
+        under = all((x + k, y + 1) in f.c for k in range(-1, 6))
+        if row == [False, True, True, True, False] and under:
+            return x, y
+    raise ValueError('no head in the frame')
+
+
+def season_sprite(src, dst, rise=None):
+    frames, times = read_sprite(src)
+    col, rows = HATS[HAT]
+    heads = [head_of(f) for f in frames]
+    ink = frames[0].c[heads[0]]
+    # Above his head is only the sleeping sprite's Zs: lifted clear of the hat.
+    above = [y for f, (hx, hy) in zip(frames, heads) for (x, y) in f.c if y < hy]
+    lift = max(0, max(above) - (heads[0][1] - len(rows) - 2)) if above else 0
+    out = []
+    for f, (hx, hy) in zip(frames, heads):
+        g = Frame(SPRITE_W, SPRITE_H)
+        for (x, y), c in f.c.items():
+            g.px(x, y - lift if y < hy else y, c)
+        hat(g, hx, hy, ink)
+        out.append(g)
+    rise = rise if rise is not None else -min(g.top() for g in out)
+    imgs = []
+    for g in out:
+        img = Image.new('RGBA', (2 * PAD + SPRITE_W * CELL, 2 * PAD + (SPRITE_H + rise) * CELL), (0, 0, 0, 0))
+        for (x, y), c in g.c.items():
+            X, Y = PAD + x * CELL, PAD + (y + rise) * CELL
+            img.paste(c, (X, Y, X + CELL, Y + CELL))
+        imgs.append(img)
+    imgs[0].save(dst, save_all=True, append_images=imgs[1:], duration=times, loop=0, disposal=2, transparency=0)
+
+
 def on_odd(scene):
     """The scene a frame later: what it drew on frame 0 falls on frame 1."""
     return lambda: (lambda frames: frames[-1:] + frames[:-1])(scene())
@@ -524,9 +626,17 @@ VARIANTS = [('headphones', headphones), ('dj', dj), ('speakers', speakers), ('sa
 
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'server', 'assets', 'screensavers', 'auror')
+    global HAT
     for name, draw in VARIANTS:
         save(draw(), os.path.join(out, 'mimus-%s-dark.gif' % name))
-    print('%d scenes in %s' % (len(VARIANTS), os.path.normpath(out)))
+    for HAT in SEASONS:
+        for name, draw in VARIANTS:
+            save(draw(), os.path.join(out, 'mimus-%s-%s-dark.gif' % (name, HAT)))
+        season_sprite(os.path.join(out, 'mimus-sleep-dark.gif'), os.path.join(out, 'mimus-sleep-%s-dark.gif' % HAT))
+        for theme in ('dark', 'light'):
+            season_sprite(os.path.join(out, 'mimus-run-%s.gif' % theme), os.path.join(out, 'mimus-run-%s-%s.gif' % (HAT, theme)), RUN_RISE)
+    HAT = None
+    print('%d scenes and their %d seasons in %s' % (len(VARIANTS), len(SEASONS), os.path.normpath(out)))
 
 
 if __name__ == '__main__':

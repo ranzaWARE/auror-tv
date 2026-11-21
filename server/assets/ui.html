@@ -1814,7 +1814,7 @@
   <!-- AUROR's own on Glasshouse Home, as its settings on the TV have them (assets/ui/auror.js) -->
   <div id="auror-sec">
   <div class="pv-g" translate="no">AUROR</div>
-  <div class="sub" data-t="auror.desc">What Glasshouse Home’s settings on the TV change, from here: the greeting, the sleep timer, the photos behind Home, Immich, Home Assistant and SSH.</div>
+  <div class="sub" data-t="auror.desc">What Glasshouse Home’s settings on the TV change, from here: the greeting, the sleep timer, the photos behind Home, Immich, Home Assistant and SSH; and the computer Steam Link wakes.</div>
   <div class="prot-table">
     <div class="prot-row">
       <div class="prot-main">
@@ -1894,6 +1894,21 @@
         <div class="prot-desc" id="auror-ssh-state">&mdash;</div>
       </div>
       <div class="prot-status"><button type="button" class="pill idle" id="auror-ssh" onclick="aurorSsh()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="auror.wake">Computer for Steam Link</div>
+        <div class="prot-desc" id="auror-wake-state">&mdash;</div>
+        <form class="toast-form" onsubmit="event.preventDefault();aurorFindWake();">
+          <input type="text" id="auror-wake-ip" inputmode="decimal" autocomplete="off" spellcheck="false" translate="no" placeholder="192.168.1.20" aria-label="The computer's IP address" data-t-aria-label="auror.wakeIp">
+          <button type="submit" id="auror-wake-find" data-t="auror.wakeFind">Find</button>
+        </form>
+        <form class="toast-form" onsubmit="event.preventDefault();aurorSaveWake();">
+          <input type="text" id="auror-wake-mac" autocomplete="off" spellcheck="false" translate="no" placeholder="aa:bb:cc:dd:ee:ff" aria-label="The computer's MAC address" data-t-aria-label="auror.wakeMac">
+          <button type="submit" id="auror-wake-save" data-t="auror.save">Save</button>
+        </form>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="auror-wake-send" onclick="aurorSendWake()">&mdash;</button></div>
     </div>
   </div>
   </div>

@@ -46,6 +46,7 @@ var gallery = require('./auror-gallery');
 var immich = require('./auror-immich');
 // Home Assistant's panel, behind a tile in the Apps row once it is linked (lib/auror-ha).
 var aurorHa = require('./auror-ha');
+var aurorWake = require('./auror-wake');
 var recommended = require('./home-recommended');
 var screensaversModule = null;
 
@@ -648,6 +649,8 @@ function normaliseLook(raw) {
   // AUROR: ms added to the calibrated delay from the captured beat to Mimus, for speakers that add their own (lib/auror-beat).
   if (BEAT_OFFSET_STEPS.indexOf(raw.beatOffsetMs) !== -1) d.beatOffsetMs = raw.beatOffsetMs;
   if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
+  // AUROR: the view's Continue watching row, from Jellyfin, off only when false.
+  if (raw.jfRow === false) d.jfRow = false;
   // AUROR: minutes of screen saver before the TV is switched off, 0 for never.
   if (SAVER_OFF_STEPS.indexOf(raw.saverOff) !== -1) d.saverOff = raw.saverOff;
   // AUROR: the owner's name for the greeting on the Top Shelf.
@@ -1112,12 +1115,12 @@ function layoutOf(c) {
     searchBlocked: search.blocked() };
 }
 
-// From the view's settings: any of theme, mascots, followBeat, beatOffsetMs, saverBright, saverOff, name and shelf, the rest kept.
+// From the view's settings: any of theme, mascots, followBeat, beatOffsetMs, saverBright, saverOff, name, jfRow and shelf, the rest kept.
 function setLook(body, cb) {
   var c = readConfig();
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
   var merged = JSON.parse(JSON.stringify(c.look));
-  ['theme', 'mascots', 'followBeat', 'beatOffsetMs', 'saverBright', 'saverOff', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  ['theme', 'mascots', 'followBeat', 'beatOffsetMs', 'saverBright', 'saverOff', 'name', 'jfRow'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
   if (body.shelf && typeof body.shelf === 'object') {
     for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
   }
@@ -2307,7 +2310,13 @@ function open(body, cb) {
       // A saved page opens as LG's tile opens it: the browser, at its address.
       if (hit.page) return launch(BROWSER_APP, { target: hit.page }, opened('app', id, cb));
       if (id === AIRPLAY_APP) return openAirPlay(opened('app', id, cb));
-      launch(id, null, opened('app', id, cb));
+      // Steam Link (Moonlight): the computer it streams from is woken first.
+      aurorWake.beforeOpen(hit, function (woke) {
+        launch(id, null, opened('app', id, function (r) {
+          if (woke && r && typeof r === 'object') r.woke = true;
+          cb(r);
+        }));
+      });
     });
   }
   if (kind === 'dev' && id === TUNER_TILE) {
