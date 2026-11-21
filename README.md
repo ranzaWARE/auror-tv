@@ -15,6 +15,7 @@ Gira direttamente su una TV LG webOS con root, senza servizi cloud. Pensata per 
 - **Sfondi:** foto caricate dal telefono o dal computer nella rete di casa, una fissa o a rotazione.
 - **Immich:** album, foto e video sulla TV, i ricordi di oggi sulla fascia in alto e le foto come salvaschermo.
 - **Home Assistant:** luci, prese, tapparelle, scene, sensori e telecamere dal divano, riscaldamento e aria condizionata regolati col telecomando, e la dashboard completa nel browser della TV.
+- **Continua a guardare:** con Jellyfin collegato, una riga sotto le app con quello che hai lasciato a metà.
 - **Altre app:** una cartella per le app che non servono sempre, senza nasconderle.
 - **Tema chiaro e scuro:** chiaro dall'alba al tramonto nel luogo scelto per il meteo (senza luogo, dalle 6:00 alle 17:00), scuro dopo. Un pulsante lo cambia fino al passaggio successivo.
 - **Anti burn-in:** tutta la pagina si sposta lentamente di pochi pixel e non ci sono scritte fisse.

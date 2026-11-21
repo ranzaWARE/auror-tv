@@ -136,6 +136,7 @@ function card(it) {
   var pic = picture(it);
   var played = it.UserData && typeof it.UserData.PlayedPercentage === 'number' ? it.UserData.PlayedPercentage : null;
   return {
+    id: String(it.Id || ''),
     title: String((episode && it.SeriesName) || it.Name || ''),
     // The view words the line under the title: season and episode, or the kind.
     kind: episode ? 'episode' : it.Type === 'Series' ? 'series' : 'movie',

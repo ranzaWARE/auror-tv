@@ -649,6 +649,8 @@ function normaliseLook(raw) {
   // AUROR: ms added to the calibrated delay from the captured beat to Mimus, for speakers that add their own (lib/auror-beat).
   if (BEAT_OFFSET_STEPS.indexOf(raw.beatOffsetMs) !== -1) d.beatOffsetMs = raw.beatOffsetMs;
   if (typeof raw.saverBright === 'boolean') d.saverBright = raw.saverBright;
+  // AUROR: the view's Continue watching row, from Jellyfin, off only when false.
+  if (raw.jfRow === false) d.jfRow = false;
   // AUROR: minutes of screen saver before the TV is switched off, 0 for never.
   if (SAVER_OFF_STEPS.indexOf(raw.saverOff) !== -1) d.saverOff = raw.saverOff;
   // AUROR: the owner's name for the greeting on the Top Shelf.
@@ -1113,12 +1115,12 @@ function layoutOf(c) {
     searchBlocked: search.blocked() };
 }
 
-// From the view's settings: any of theme, mascots, followBeat, beatOffsetMs, saverBright, saverOff, name and shelf, the rest kept.
+// From the view's settings: any of theme, mascots, followBeat, beatOffsetMs, saverBright, saverOff, name, jfRow and shelf, the rest kept.
 function setLook(body, cb) {
   var c = readConfig();
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'look expected' });
   var merged = JSON.parse(JSON.stringify(c.look));
-  ['theme', 'mascots', 'followBeat', 'beatOffsetMs', 'saverBright', 'saverOff', 'name'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
+  ['theme', 'mascots', 'followBeat', 'beatOffsetMs', 'saverBright', 'saverOff', 'name', 'jfRow'].forEach(function (k) { if (body[k] !== undefined) merged[k] = body[k]; });
   if (body.shelf && typeof body.shelf === 'object') {
     for (var k in merged.shelf) if (body.shelf[k] !== undefined) merged.shelf[k] = body.shelf[k];
   }

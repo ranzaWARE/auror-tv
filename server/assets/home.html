@@ -900,7 +900,8 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
     dev: t('home.row.inputs', 'Inputs'),
     ch: t('home.row.channels', 'Channels'),
     rec: t('home.row.recommended', 'Recommended'),
-    iptv: t('home.row.iptv', 'Internet TV')
+    iptv: t('home.row.iptv', 'Internet TV'),
+    jf: t('home.jf.row', 'Continue watching')
   };
   var LG_HOME_TILE = 'lg-home';
   // AUROR's Immich tile, in the row once Immich is linked: its albums open here.
@@ -1209,6 +1210,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
    */
   function items(kind) {
     var out = [];
+    if (kind === 'jf') return state.arranging ? out : jfRow.items;
     // The apps' cards follow the Apps row, so arranging moves the row, not its cards.
     if (!state.arranging && rowOff(kind)) return out;
     if (kind === 'rec') return state.arranging ? out : recCards();
@@ -1285,7 +1287,10 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
   function leftOut(kind, it) { return kind === 'dev' && it.unused && layout.hideUnused === true && !state.arranging; }
   function rowKey() { return layout.rows[state.row]; }
   // A row with nothing to show is left out of the view, but not while arranging.
-  function shown(ri) { return state.arranging || items(layout.rows[ri]).length > 0; }
+  function shown(ri) {
+    if (layout.rows[ri] === 'jf') return !state.arranging && jfRow.items.length > 0;
+    return state.arranging || items(layout.rows[ri]).length > 0;
+  }
   // The first shown row from ri on in direction dir, or ri when there is none.
   function nextShown(ri, dir) {
     for (var i = ri; i >= 0 && i < layout.rows.length; i += dir) if (shown(i)) return i;
@@ -1300,12 +1305,13 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
   // ---------------------------------------------------------------- rows
 
   function sortLabel(kind) {
-    if (kind === 'rec') return '';
+    if (kind === 'rec' || kind === 'jf') return '';
     if (byUse(kind)) return t('home.arrange.orderUse', 'Order: most used');
     return byRecent(kind) ? t('home.arrange.orderRecent', 'Order: last opened') : t('home.arrange.orderCustom', 'Order: yours');
   }
 
   function rowNote(kind, list) {
+    if (kind === 'jf') return list.length ? 'Jellyfin' : '';
     if (kind === 'app') {
       if (layout.showAppCount === false) return '';
       var folded = folderItems().length;
@@ -1597,6 +1603,13 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
         body += '<div class="prog quiet">' + esc(bad || c.group || '') + '</div>';
       }
       return '<div class="' + cls + '" data-c="' + i + '">' + body + '</div>';
+    },
+    jf: function (c, i) {
+      var pic = c.image ? ' style="background-image:url(\'' + esc(c.image.replace(/'/g, '%27')) + '\')"' : '';
+      return '<div class="tile rec jf" data-c="' + i + '"><i class="pic"' + pic + '>' +
+        (c.progress !== null ? '<i class="prog"><b style="width:' + c.progress + '%"></b></i>' : '') + '</i>' +
+        '<div class="nm">' + esc(c.title) + '</div>' +
+        '<div class="cat">' + esc(cardLine(c)) + '</div></div>';
     },
     rec: function (r, i) {
       var app = find(data.apps, r.app);
@@ -2087,6 +2100,48 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
   }
   function isJellyfin(it) { return /jellyfin/i.test(it.id + ' ' + it.title); }
 
+  /*
+   * Continue watching, under Apps: what Jellyfin's server has half watched,
+   * asked for with Home's catalogue and every few minutes while Home is up.
+   * A row of the view's own, not the server's layout: it is put in as the
+   * layout comes and left out when the layout is saved.
+   */
+  var JF_ROW_MS = 5 * 60000;
+  var jfRow = { items: [], at: 0, timer: null };
+  function viewLayout(l) {
+    if (l && l.rows && l.rows.indexOf('jf') === -1) {
+      var at = l.rows.indexOf('app');
+      l.rows.splice(at === -1 ? 0 : at + 1, 0, 'jf');
+    }
+    return l;
+  }
+  function jellyfinApp() {
+    for (var i = 0; i < (data.apps || []).length; i++) if (isJellyfin(data.apps[i])) return data.apps[i];
+    return null;
+  }
+  function jfRowOn() { return !!(data && data.jellyfin && data.jellyfin.configured && look().jfRow !== false && jellyfinApp()); }
+  function loadJfRow(force) {
+    clearTimeout(jfRow.timer);
+    jfRow.timer = setTimeout(function () { loadJfRow(true); }, JF_ROW_MS);
+    if (!jfRowOn()) return setJfRow([]);
+    if (!force && Date.now() - jfRow.at < JELLYFIN_TTL_MS) return;
+    jfRow.at = Date.now();
+    getJson('/api/home/jellyfin', function (r) {
+      if (!r || !r.ok) { jfRow.at = 0; return; }
+      setJfRow(r.state === 'resume' ? r.items : []);
+      // The Top Shelf takes it too, rather than asking again.
+      shelfData.jellyfin = r;
+      shelfData.jellyfinAt = Date.now();
+    });
+  }
+  function setJfRow(list) {
+    if (JSON.stringify(list) === JSON.stringify(jfRow.items)) return;
+    jfRow.items = list;
+    if (state.arranging) return;
+    if (rowKey() === 'jf' && !list.length) state.row = nextShown(state.row, 1);
+    renderWhenStill();
+  }
+
   function shelfFor(kind, it) {
     var open = t('home.shelf.open', 'Press OK to open');
     if (kind === 'app') {
@@ -2139,6 +2194,11 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
         sub: (lastDev ? t('home.dev.last', 'Last watched') : t('home.dev.connected', 'Connected')) + ' · ' +
           t('home.shelf.switch', 'Press OK to switch to this input')
       };
+    }
+    // Continue watching: the one in focus and the next two, as Jellyfin's tile shows them.
+    if (kind === 'jf') {
+      var resume = jfRow.items, from = Math.max(0, resume.indexOf(it));
+      return { mode: 'cards', kind: t('home.jf.resume', 'Jellyfin · Continue watching'), items: resume.slice(from, from + 3) };
     }
     // A card of the Recommended row: it and the app's next two, with their pictures.
     if (kind === 'rec') {
@@ -2734,7 +2794,15 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
         help: autoOrder ? t('home.set.appOrderAuto', 'The apps opened most come first') : t('home.set.appOrderManual', 'As arranged by holding OK on a tile'),
         value: autoOrder ? t('home.set.orderAuto', 'Automatic') : t('home.set.orderManual', 'Manual'),
         act: function () { setLayoutFlags({ sort: { app: autoOrder ? 'custom' : 'use' } }, true); } };
-      return [orderRow].concat(flags.map(function (f) {
+      var rowsList = [orderRow];
+      // Continue watching under Apps, while Jellyfin is linked.
+      if (data.jellyfin && data.jellyfin.configured) {
+        var jfOn = lk.jfRow !== false;
+        rowsList.push({ kind: 'switch', on: jfOn, label: t('home.jf.row', 'Continue watching'),
+          help: t('home.set.jfRowHelp', 'A row under Apps with what Jellyfin has half watched. OK opens Jellyfin'),
+          value: onText(jfOn), act: function () { setLook({ jfRow: !jfOn }); } });
+      }
+      return rowsList.concat(flags.map(function (f) {
         var on = f[3] ? layout[f[0]] !== false : layout[f[0]] === true;
         if (f[0] === 'search' && blocked) {
           return { kind: 'switch', on: false, locked: true, label: f[1], help: f[2], value: t('home.searchUnavailable', 'Unavailable') };
@@ -3277,6 +3345,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
       applyTheme();
       renderShelf();
       renderSettings();
+      if (patch.jfRow !== undefined) loadJfRow(true);
       if (then) then();
     });
   }
@@ -3309,7 +3378,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
   function setLayoutFlags(patch, reorder) {
     postJson('/api/home/layout', patch, function (r) {
       if (!r || !r.ok || !r.layout) return toast(t('home.set.saveFailed', 'That setting could not be saved'), r && r.error);
-      layout = r.layout;
+      layout = viewLayout(r.layout);
       if (r.layoutVersion) layoutVersion = r.layoutVersion;
       stageClass();
       render();
@@ -3324,7 +3393,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
     if (!hide && i !== -1) list.splice(i, 1);
     postJson('/api/home/layout', { hidden: { app: list } }, function (r) {
       if (!r || !r.ok || !r.layout) return toast(t('home.arrange.saveFailed', 'Layout could not be saved'));
-      layout = r.layout;
+      layout = viewLayout(r.layout);
       if (r.layoutVersion) layoutVersion = r.layoutVersion;
       render();
       renderSettings();
@@ -3720,6 +3789,12 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
     if (state.rail) return openSearch();
     var kind = rowKey(), it = items(kind)[colOf(kind)];
     if (!it) return;
+    // Continue watching opens Jellyfin's app, which picks up where it was.
+    if (kind === 'jf') {
+      it = jellyfinApp();
+      kind = 'app';
+      if (!it) return;
+    }
     if (it.folder) return openFolder();
     if (kind === 'iptv') {
       if (it.add) return openAdder();
@@ -7109,7 +7184,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
     layoutBusy = true;
     var order = {};
     for (var kind in movedRows) order[kind] = data.order[kind];
-    var body = { rows: layout.rows, order: order, sort: layout.sort, hidden: layout.hidden, folder: layout.folder || [] };
+    var body = { rows: layout.rows.filter(function (k) { return k !== 'jf'; }), order: order, sort: layout.sort, hidden: layout.hidden, folder: layout.folder || [] };
     if (channelsChanged) body.channels = layout.channels;
     for (var k in extra) body[k] = extra[k];
     postJson('/api/home/layout', body, function (r) {
@@ -7120,7 +7195,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
       }
       movedRows = {};
       channelsChanged = false;
-      layout = r.layout;
+      layout = viewLayout(r.layout);
       if (!stay) {
         layoutBusy = false;
         toast(t('home.arrange.saved', 'Layout saved'), t('home.arrange.savedDesc', 'The dashboard\'s Home tab shows it too'));
@@ -7138,6 +7213,8 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
     var kind = rowKey(), cur = items(kind)[colOf(kind)];
     state.arranging = on;
     state.held = false;
+    // Continue watching is not arranged: the focus goes up to Apps.
+    if (on && kind === 'jf') { state.row = Math.max(0, layout.rows.indexOf('app')); cur = null; }
     state.bar = -1;
     state.rail = false;
     if (cur) {
@@ -7175,7 +7252,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
 
   // A row's Order: between its own order and last opened.
   function toggleSort(kind) {
-    if (layoutBusy || kind === 'rec') return;
+    if (layoutBusy || kind === 'rec' || kind === 'jf') return;
     state.held = false;
     if (!layout.sort) layout.sort = {};
     // AUROR: between the row's own order and Most used; Last opened stays for a row set to it elsewhere.
@@ -7201,6 +7278,8 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
 
   function shiftRow(dr) {
     var i = state.row, j = i + dr;
+    // Continue watching is the view's own, under Apps: rows move past it.
+    if (layout.rows[j] === 'jf') j += dr;
     if (j < 0 || j >= layout.rows.length) return;
     var tmp = layout.rows[i]; layout.rows[i] = layout.rows[j]; layout.rows[j] = tmp;
     state.row = j;
@@ -7262,7 +7341,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
       if (!r || !r.ok || !r.layout) return toast(t('home.arrange.resetFailed', 'Layout could not be reset'));
       movedRows = {};
       channelsChanged = false;
-      layout = r.layout;
+      layout = viewLayout(r.layout);
       state.row = 0; state.col = {}; state.held = false;
       load(function () { render(); toast(t('home.arrange.resetDone', 'Layout reset'), t('home.arrange.resetDesc', 'Apps, Inputs, then Channels, in their first order')); }, true);
     });
@@ -8758,7 +8837,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
       (r.iptv || []).forEach(tidyItem);
       data = r;
       loadLineup();
-      layout = r.layout;
+      layout = viewLayout(r.layout);
       if (!searchOn()) { closeSearch(); state.rail = false; }
       setFadeOn(layout.fade === true);
       applyMotion(layout);
@@ -8776,6 +8855,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
       if (!state.arranging) render();
       if (firstLoad) { beat(); fadeIn(); planMascot(); greet(); refreshNet(); refreshSleep(); }
       renderSettings();
+      loadJfRow();
       if (!layout.hintSeen) {
         toast(t('home.hint.title', 'Hold OK to arrange'), t('home.hint.desc', 'Move or hide tiles and rows. LG\'s Home is the last tile in Apps.'));
         postJson('/api/home/layout', { hintSeen: true });
