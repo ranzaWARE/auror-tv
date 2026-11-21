@@ -2325,22 +2325,65 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
   // ---------------------------------------------------------------- theme
 
   /*
-   * Light from 06:00 to 17:00, dark from 17:00, the wallpapers' evening slot.
+   * Light from sunrise to sunset at the weather's place, where one is set on
+   * the dashboard, else from 06:00 to 17:00, the wallpapers' evening slot.
    * A switch by hand lasts until the next of those changes: it is kept with
-   * the period it was made in, and a night runs from 17:00 to 06:00 the next
-   * day. ?hour= previews another hour here too.
+   * the period it was made in, and a night runs to the next morning. ?hour=
+   * previews another hour here too.
    */
   var THEME_KEY = 'glasshouse.home.theme';
   var themeOverride = null;
   try { themeOverride = JSON.parse(window.localStorage.getItem(THEME_KEY) || 'null'); } catch (e) {}
 
+  /*
+   * Sunrise and sunset on the day of d at lat, lon: when the sun's top edge
+   * meets the horizon, refraction included (-0.833°), by the sunrise
+   * equation as SunCalc works it, to within a minute or two. null where the
+   * sun does not rise or does not set that day.
+   */
+  var DAY_MS = 86400000, J1970 = 2440588, J2000 = 2451545, RAD = Math.PI / 180;
+  function sunTimes(d, lat, lon) {
+    var noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+    var days = noon.getTime() / DAY_MS - 0.5 + J1970 - J2000;
+    var lw = -lon * RAD, phi = lat * RAD;
+    var n = Math.round(days - 0.0009 - lw / (2 * Math.PI));
+    var ds = 0.0009 + lw / (2 * Math.PI) + n;
+    var M = RAD * (357.5291 + 0.98560028 * ds);
+    var L = M + RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)) + RAD * 102.9372 + Math.PI;
+    var dec = Math.asin(Math.sin(RAD * 23.4397) * Math.sin(L));
+    var cosW = (Math.sin(-0.833 * RAD) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec));
+    if (cosW < -1 || cosW > 1) return null;
+    var w = Math.acos(cosW);
+    var transit = J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    var set = J2000 + 0.0009 + (w + lw) / (2 * Math.PI) + n + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    var rise = transit - (set - transit);
+    function date(j) { return new Date((j + 0.5 - J1970) * DAY_MS); }
+    return { rise: date(rise), set: date(set) };
+  }
+
+  function themePlace() {
+    var p = layout && layout.weatherPlace;
+    return p && typeof p.lat === 'number' && typeof p.lon === 'number' ? p : null;
+  }
+
+  // The day's light hours: the sun's where there is a place, else 06:00 to 17:00.
+  function lightHours(d) {
+    var place = themePlace(), sun = place && sunTimes(d, place.lat, place.lon);
+    if (sun) return sun;
+    return { rise: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 6), set: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 17) };
+  }
+
   function themePeriod() {
     var d = new Date();
-    var h = preview.hour !== undefined ? +preview.hour % 24 : d.getHours();
-    var day = h >= 6 && h < 17;
-    if (h < 6) d = new Date(d.getTime() - 24 * 3600 * 1000);
-    return { auto: day ? 'light' : 'dark', until: day ? '17:00' : '06:00',
-             period: (day ? 'day ' : 'night ') + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() };
+    if (preview.hour !== undefined) d = new Date(d.getFullYear(), d.getMonth(), d.getDate(), +preview.hour % 24, 0);
+    var today = lightHours(d), day = d >= today.rise && d < today.set, until, from = d;
+    if (day) until = today.set;
+    else if (d < today.rise) {
+      until = today.rise;
+      from = new Date(d.getTime() - DAY_MS);
+    } else until = lightHours(new Date(d.getTime() + DAY_MS)).rise;
+    return { auto: day ? 'light' : 'dark', until: hm(until),
+             period: (day ? 'day ' : 'night ') + from.getFullYear() + '-' + (from.getMonth() + 1) + '-' + from.getDate() };
   }
 
   // Settings can keep one theme instead; the button then switches that.
@@ -2549,7 +2592,7 @@ body.no-slide #recents,body.no-slide #finder,body.no-slide #folder,body.no-slide
     immich: { url: null, error: '', at: 0 }, ha: { url: null, error: '' } };
   var SET_CATS = [
     { id: 'look', label: t('home.set.look', 'Look'),
-      desc: t('home.set.lookDesc', 'Home’s theme and the screen saver. Automatic: light from 06:00 to 17:00, dark from 17:00.') },
+      desc: t('home.set.lookDesc', 'Home’s theme and the screen saver. Automatic: light from sunrise to sunset where the weather’s place is set on the dashboard, else from 06:00 to 17:00.') },
     { id: 'shelf', label: t('home.set.shelf', 'Top Shelf'),
       desc: t('home.set.shelfDesc', 'What the band at the top shows when an app or an input is selected.') },
     { id: 'rows', label: t('home.set.rows', 'Rows'),

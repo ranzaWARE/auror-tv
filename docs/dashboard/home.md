@@ -38,7 +38,7 @@ Jellyfin's and Glasshouse's are asked for only once the focus rests on the tile.
 
 At the top left a greeting changes each time Home comes back, by the time of day, with the owner's name when one is set in **Settings › Look**.
 
-The theme is light from 06:00 to 17:00 and dark from 17:00. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, a whole pixel every 15 seconds, so no text stays on the same pixels and no edge is drawn between two. Every few minutes Mimus runs along the bottom or Quetza flies across the top. In December, round New Year and at Halloween Mimus runs in the season's hat, as in the [AUROR screen saver](screen-savers.md#auror).
+The theme is light from sunrise to sunset at the place set for the [weather badge](#weather-badge) from the internet, worked out on the TV for each day, and from 06:00 to 17:00 where no place is set. Switching it by hand holds until the next of those changes. Against burn-in, the whole page wanders a few pixels, a whole pixel every 15 seconds, so no text stays on the same pixels and no edge is drawn between two. Every few minutes Mimus runs along the bottom or Quetza flies across the top. In December, round New Year and at Halloween Mimus runs in the season's hat, as in the [AUROR screen saver](screen-savers.md#auror).
 
 ### Settings from a browser
 
@@ -151,7 +151,7 @@ The gear opens Glasshouse Home's own settings, worked with the remote; **‹ Hom
 
     ---
 
-    AUROR's view has its own colours: light from 06:00 to 17:00 and dark after, with the switch at its top right keeping the other until the next change. Neither dashboard offers Glasshouse's colour presets.
+    AUROR's view has its own colours: light from sunrise to sunset (06:00 to 17:00 without a weather place) and dark after, with the switch at its top right keeping the other until the next change. Neither dashboard offers Glasshouse's colour presets.
 
 </div>
 
