@@ -1,7 +1,8 @@
-/* Who may reach AUROR's Home Assistant panel through routes.handleRequest:
- * only the TV's own pages. A page reached through a rebinding name
- * (evil.example resolving to 127.0.0.1) is refused. Timers and Date.now run
- * on a fake clock. Strict ES5. */
+/* Who may reach AUROR's Home Assistant panel and SSH switch through
+ * routes.handleRequest: the HA panel only the TV's own pages, the SSH switch
+ * those or a device on the network presenting the token. A page reached
+ * through a rebinding name (evil.example resolving to 127.0.0.1) is refused
+ * either way. Timers and Date.now run on a fake clock. Strict ES5. */
 var assert = require('assert');
 var events = require('events');
 var fs = require('fs');
@@ -156,6 +157,99 @@ row('HA act from another site', function () {
   assert.strictEqual(r.json.error, 'cross-origin request refused');
 });
 done('camera and act likewise; the token does not open them, and another site is refused');
+
+// ---- The SSH switch: the TV's own pages, or the network with the token
+setConfig('', true);
+row('SSH from the network, no token set', function () {
+  var st = request({ url: '/api/home/ssh', from: LAN, host: '192.168.8.2:8080' });
+  assert.strictEqual(st.statusCode, 200);
+  assert.strictEqual(st.json.writable, false);
+  assert.strictEqual(st.json.needsToken, true);
+  assert.ok(!('passwordNow' in st.json) && !('passwordAfterReboot' in st.json), 'password fields trimmed');
+  var r = request({ url: '/api/home/ssh', method: 'POST', from: LAN, host: '192.168.8.2:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 403);
+  assert.strictEqual(r.json.error, 'Switching SSH from another device needs a token in config.json.');
+  assert.ok(!flagSet(), 'no flag file');
+});
+row('SSH from a rebinding page, no token set', function () {
+  var r = request({ url: '/api/home/ssh', method: 'POST', from: '127.0.0.1', host: 'evil.example:8080',
+    origin: 'http://evil.example:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 403);
+  assert.ok(!flagSet(), 'no flag file');
+});
+setConfig('', false);
+row('SSH from the TV with controls off', function () {
+  var st = request({ url: '/api/home/ssh', from: '127.0.0.1' });
+  assert.strictEqual(st.json.writable, true);
+  assert.strictEqual(st.json.needsToken, false);
+  assert.strictEqual(st.json.passwordNow, true);
+  var r = request({ url: '/api/home/ssh', method: 'POST', from: '127.0.0.1', origin: 'http://localhost:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 200);
+  assert.strictEqual(r.json.enabled, true);
+  assert.strictEqual(r.json.writable, true);
+  assert.ok(flagSet(), 'flag file written');
+});
+done('without a token, only the TV switches SSH, controls on or off');
+
+setConfig('secret', true);
+row('SSH from the network with ?k=', function () {
+  var r = request({ url: '/api/home/ssh?k=secret', method: 'POST', from: LAN, host: '192.168.8.2:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 200);
+  assert.ok(flagSet(), 'flag file written');
+  var st = request({ url: '/api/home/ssh?k=secret', from: LAN, host: '192.168.8.2:8080' });
+  assert.strictEqual(st.json.writable, true);
+  assert.strictEqual(st.json.needsToken, false);
+  assert.strictEqual(st.json.passwordNow, true);
+});
+['Bearer secret', 'bearer secret', 'BEARER  secret'].forEach(function (auth) {
+  row('SSH from the network with ' + auth, function () {
+    var r = request({ url: '/api/home/ssh', method: 'POST', from: LAN, host: '192.168.8.2:8080', auth: auth, body: { on: true } });
+    assert.strictEqual(r.statusCode, 200);
+    assert.ok(flagSet(), 'flag file written');
+  });
+});
+row('SSH from the network with a wrong token', function () {
+  var r = request({ url: '/api/home/ssh?k=wrong', method: 'POST', from: LAN, host: '192.168.8.2:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 401);
+  assert.ok(!flagSet(), 'no flag file');
+});
+row('SSH from a rebinding page, token set, not given', function () {
+  var st = request({ url: '/api/home/ssh', from: '127.0.0.1', host: 'evil.example:8080' });
+  assert.strictEqual(st.json.writable, false);
+  assert.ok(!('passwordNow' in st.json), 'password fields trimmed');
+  var r = request({ url: '/api/home/ssh', method: 'POST', from: '127.0.0.1', host: 'evil.example:8080',
+    origin: 'http://evil.example:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 403);
+  assert.ok(!flagSet(), 'no flag file');
+});
+row('SSH from a rebinding page with the token', function () {
+  var r = request({ url: '/api/home/ssh?k=secret', method: 'POST', from: '127.0.0.1', host: 'evil.example:8080',
+    origin: 'http://evil.example:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 200);
+  assert.ok(flagSet(), 'flag file written');
+});
+row('SSH from the TV, token set, not given', function () {
+  var r = request({ url: '/api/home/ssh', method: 'POST', from: '::1', host: 'localhost:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 200);
+  assert.ok(flagSet(), 'flag file written');
+});
+row('SSH from another site', function () {
+  var r = request({ url: '/api/home/ssh', method: 'POST', from: '127.0.0.1', origin: 'http://evil.example', body: { on: true } });
+  assert.strictEqual(r.statusCode, 403);
+  assert.strictEqual(r.json.error, 'cross-origin request refused');
+  assert.ok(!flagSet(), 'no flag file');
+});
+setConfig('secret', false);
+row('SSH from the network with the token, controls off', function () {
+  var st = request({ url: '/api/home/ssh?k=secret', from: LAN, host: '192.168.8.2:8080' });
+  assert.strictEqual(st.json.writable, false);
+  assert.strictEqual(st.json.needsToken, false, 'the token would not help');
+  var r = request({ url: '/api/home/ssh?k=secret', method: 'POST', from: LAN, host: '192.168.8.2:8080', body: { on: true } });
+  assert.strictEqual(r.statusCode, 403);
+  assert.strictEqual(r.json.error, 'controls disabled in config');
+  assert.ok(!flagSet(), 'no flag file');
+});
+done('with a token, the network switches SSH only by presenting it, and a rebinding page only with it too');
 
 // ---- A refusal is logged once a minute per address and route
 setConfig('', true);

@@ -42,7 +42,7 @@ Controllo della TV senza cloud, privacy e blocco della pubblicità, gestione del
 
 La dashboard non ha autenticazione di default ed è pensata per la rete di casa. **Non esporre mai la porta 8080 su internet.** [Security](https://ranzaware.github.io/auror-tv/SECURITY/) spiega il token e come chiudere la porta alla rete.
 
-Il pannello di Home Assistant della Home (stati, telecamere, comandi) risponde solo alla TV stessa, mai ad altri dispositivi della rete, nemmeno con il token.
+Il pannello di Home Assistant della Home (stati, telecamere, comandi) risponde solo alla TV stessa, mai ad altri dispositivi della rete, nemmeno con il token. L'interruttore SSH, dalla dashboard nel browser, funziona solo con il token di `config.json`.
 
 ## Avvertenze
 

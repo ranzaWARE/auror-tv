@@ -24,8 +24,8 @@ async function loadAuror() {
   renderAuror();
 }
 
-function aurorOnOff(id, on, busy) {
-  updateToggle(id, { cls: on ? 'good' : 'idle', label: busy ? t('auror.switching', 'Switching…') : on ? t('common.on', 'On') : t('common.off', 'Off'), on: on, disabled: !!busy });
+function aurorOnOff(id, on, busy, disabled) {
+  updateToggle(id, { cls: on ? 'good' : 'idle', label: busy ? t('auror.switching', 'Switching…') : on ? t('common.on', 'On') : t('common.off', 'Off'), on: on, disabled: !!busy || !!disabled });
 }
 
 function renderAuror() {
@@ -87,9 +87,13 @@ function renderAuror() {
   const ssh = aurorState.ssh;
   q('auror-ssh-state').textContent = !ssh ? '—'
     : (ssh.running ? t('auror.sshListening', 'Listening on port 22') : t('auror.sshStopped', 'Not running')) +
-      (ssh.passwordNow ? ' · ' + t('auror.sshPassword', 'the root password lets in: add a key in the Server tab to switch it off') : ssh.keys ? ' · ' + t('auror.sshKeys', 'keys only') : '') +
-      (aurorState.net && aurorState.net.ip ? ' · root@' + aurorState.net.ip : '');
-  aurorOnOff('auror-ssh', !!(ssh && ssh.enabled), aurorState.busy === 'ssh');
+      (ssh.passwordNow ? ' · ' + t('auror.sshPassword', 'the root password lets in: add a key in the Server tab to switch it off')
+        // A caller who may not switch is sent no password fields, so keys alone would wrongly read as keys only.
+        : ssh.keys && ssh.writable !== false ? ' · ' + t('auror.sshKeys', 'keys only') : '') +
+      (aurorState.net && aurorState.net.ip ? ' · root@' + aurorState.net.ip : '') +
+      (ssh.needsToken ? ' · ' + t('auror.sshNeedsToken', 'switching it from here needs a token in config.json')
+        : ssh.writable === false ? ' · ' + t('common.controlsOff', 'Controls are disabled in config.json.') : '');
+  aurorOnOff('auror-ssh', !!(ssh && ssh.enabled), aurorState.busy === 'ssh', !!(ssh && ssh.writable === false));
 
   const wake = aurorState.wake;
   q('auror-wake-state').textContent = wake && wake.configured
@@ -214,7 +218,7 @@ async function aurorHaShelf() {
 
 async function aurorSsh() {
   const ssh = aurorState.ssh;
-  if (!ssh || aurorState.busy) return;
+  if (!ssh || ssh.writable === false || aurorState.busy) return;
   aurorState.busy = 'ssh';
   renderAuror();
   try { aurorState.ssh = await homePost('/api/home/ssh', { on: !ssh.enabled }); } catch (e) { showErr(e.message); }
