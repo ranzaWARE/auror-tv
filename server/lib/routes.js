@@ -26,6 +26,70 @@ var aurorUpdate = require('./auror-autoupdate');
 var aurorTv = require('./auror-tv');
 var aurorBeat = require('./auror-beat');
 var aurorHa = require('./auror-ha');
+
+// AUROR's access checks for its own /api/home routes, kept in one block apart from Glasshouse's code.
+
+// The TV's own pages ask for localhost; a page reached through a rebinding
+// name comes from 127.0.0.1 as well, but under its own name.
+function aurorFromTVPage(req) {
+  return fromTV(req) && hostAllowed(req);
+}
+
+// A LAN scanner would otherwise fill tvweb.log on the TV's storage.
+var aurorRefusalsLogged = {};
+function aurorRefuse(req, res, pathname, error) {
+  var address = (req.connection && req.connection.remoteAddress) || '';
+  var seen = address + ' ' + pathname, nowMs = Date.now();
+  if (!(aurorRefusalsLogged[seen] > nowMs - 60000)) {
+    if (Object.keys(aurorRefusalsLogged).length >= 64) aurorRefusalsLogged = {};
+    aurorRefusalsLogged[seen] = nowMs;
+    console.log('auror: refused ' + pathname + ' from ' + address + ' Host ' + String(req.headers.host || ''));
+  }
+  send(res, 403, JSON.stringify({ ok: false, error: error }));
+  return true;
+}
+
+// Home Assistant's panel acts with the owner's long-lived token, so not even the dashboard's token opens it.
+function aurorTvOnly(req, res, pathname) {
+  return aurorFromTVPage(req) ? false : aurorRefuse(req, res, pathname, msg('srv.auror.haTvOnly', 'Home Assistant\'s panel answers only the TV itself.'));
+}
+
+// The token as authed() reads it. Unlike authed(), a request from the TV is
+// not let through without it, since a rebinding name reaches 127.0.0.1 too.
+// Check this when a sync changes how authed() reads the token.
+function aurorTokenGiven(q, req) {
+  if (!config.token) return false;
+  var bearer = /^Bearer\s+(\S+)$/i.exec((req.headers && req.headers.authorization) || '');
+  if (bearer && tokenMatches(bearer[1])) return true;
+  return !!(q && tokenMatches(q.k));
+}
+
+// The SSH switch: from the TV's own pages, or from the network with the token presented.
+function aurorSshWritable(req, q) {
+  return aurorFromTVPage(req) || (!!config.allowControl && !!config.token && aurorTokenGiven(q, req));
+}
+
+// SSH's state with whether this caller may switch it; whether the root password lets in only to one who may.
+function aurorSshReply(req, q, reply) {
+  var writable = aurorSshWritable(req, q);
+  var needsToken = !aurorFromTVPage(req) && !!config.allowControl && !writable;
+  return function (r) {
+    if (r) {
+      r.writable = writable;
+      r.needsToken = needsToken;
+      if (!writable) { delete r.passwordNow; delete r.passwordAfterReboot; }
+    }
+    reply(r);
+  };
+}
+
+function aurorSshSwitch(req, res, u, pathname, body, reply) {
+  if (!aurorSshWritable(req, u.query)) {
+    return aurorRefuse(req, res, pathname, msg('srv.auror.sshNeedsToken', 'Switching SSH from another device needs a token in config.json.'));
+  }
+  return aurorTv.setSsh(!!(body && body.on === true), aurorSshReply(req, u.query, reply));
+}
+
 var aurorWake = require('./auror-wake');
 var aurorSong = require('./auror-song');
 var nosignal = require('./nosignal');
@@ -1369,7 +1433,7 @@ function handleHomeRoute(req, res, u, pathname) {
     // AUROR's top bar and settings (lib/auror-tv).
     if (pathname === '/api/home/network') return aurorTv.networkStatus(reply);
     if (pathname === '/api/home/sleep') return reply(aurorTv.sleepStatus());
-    if (pathname === '/api/home/ssh') return aurorTv.sshStatus(reply);
+    if (pathname === '/api/home/ssh') return aurorTv.sshStatus(aurorSshReply(req, u.query, reply));
     if (pathname === '/api/home/jellyfin/image') return homeModule.jellyfin.image(u.query || {}, res);
     if (pathname === '/api/home/weather') return homeModule.weather(reply);
     if (pathname === '/api/home/weather/places') {
@@ -1397,8 +1461,8 @@ function handleHomeRoute(req, res, u, pathname) {
     // Home Assistant's panel (lib/auror-ha), through this server with the token added.
     if (pathname === '/api/home/ha/status') return reply(aurorHa.status());
     if (pathname === '/api/home/wake') return reply(aurorWake.status());
-    if (pathname === '/api/home/ha/states') return aurorHa.states(reply);
-    if (pathname === '/api/home/ha/camera') return aurorHa.camera(u.query || {}, res);
+    if (pathname === '/api/home/ha/states') return aurorTvOnly(req, res, pathname) || aurorHa.states(reply);
+    if (pathname === '/api/home/ha/camera') return aurorTvOnly(req, res, pathname) || aurorHa.camera(u.query || {}, res);
     if (pathname === '/api/home/immich/memories') return homeModule.immich.memories(String(u.query && u.query.day || ''), reply);
     // For the AUROR · Immich screen saver, which asks from the TV itself.
     if (pathname === '/api/home/immich/saver') return homeModule.immich.saverPhotos(reply);
@@ -1519,7 +1583,7 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/updatenow') return aurorUpdate.updateNow(reply);
       if (pathname === '/api/home/sleep') return reply(body && body.next === true ? aurorTv.nextSleep() : aurorTv.setSleep(body && body.minutes));
       if (pathname === '/api/home/poweroff') return aurorTv.powerOff(reply);
-      if (pathname === '/api/home/ssh') return aurorTv.setSsh(!!(body && body.on === true), reply);
+      if (pathname === '/api/home/ssh') return aurorSshSwitch(req, res, u, pathname, body, reply);
       if (pathname === '/api/home/start-layout') return homeModule.setHideLgHomeAtStart(body, reply);
       // Glasshouse Bar leaves LG's Home its place, so it is switched off first.
       if (pathname === '/api/home/enable') {
@@ -1551,7 +1615,7 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/immich/pair') return reply(homeModule.immich.pair(lanOrigin()));
       if (pathname === '/api/home/ha/pair') return reply(aurorHa.pair(lanOrigin()));
       if (pathname === '/api/home/ha/forget') return aurorHa.forget(reply);
-      if (pathname === '/api/home/ha/act') return aurorHa.act(body, reply);
+      if (pathname === '/api/home/ha/act') return aurorTvOnly(req, res, pathname) || aurorHa.act(body, reply);
       if (pathname === '/api/home/ha/dashboard') return aurorHa.openDashboard(reply);
       // The computer Steam Link wakes (lib/auror-wake).
       if (pathname === '/api/home/wake') return aurorWake.save(body, reply);
