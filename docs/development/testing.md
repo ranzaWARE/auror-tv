@@ -518,6 +518,8 @@ has not recorded one.
 
 `test-auror-tv.js` covers AUROR's top bar and SSH setting: Wi-Fi, cable or no network and online, limited or off, kept for 15 s; the sleep timer's steps, its toast a minute before and switching off, cancelled when the TV goes off another way and kept across a restart of the server; and SSH's flag, with dropbear started once and only dropbear stopped.
 
+`test-auror-access.js` checks through the routes that Home Assistant's panel (readings, cameras, actions) answers only the TV's own pages, from 127.0.0.1, ::1 or ::ffff:127.0.0.1 under `localhost` or an IP address: a device on the network is refused, with the token too, and so is a page on the TV under a rebinding name; a refusal is logged once a minute per address and route.
+
 `test-homescreen-webos10.js` checks webOS 10's Home screen layout over a stand-in folder: the banner taking the height of the rows hidden, nothing changed before the experimental switch is on, the layout put back after a restart of the TV, the banner text hidden by a copy of LG's language files with the two strings blank and LG's left alone, a black or uploaded banner picture in each size folder, an upload cropped for each shape the banner takes with the one for its shape shown and the others kept until a part shown or hidden needs them, a bad upload refused with the picture before kept, and putting LG's Home screen back forgetting the choices and the upload.
 
 `test-home-recent-apps.js` exercises the recent-app HTTP routes: refused and

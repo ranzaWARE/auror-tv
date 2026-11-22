@@ -2653,6 +2653,7 @@
  "srv.audio.override.receiver": {"text": "L’helper installato gestisce DTS e DTS-HD. Il ricevitore deve dichiarare entrambi i formati.", "from": "The installed helper handles DTS and DTS-HD. The receiver must advertise both formats."},
  "srv.audio.override.setup": {"text": "Scegli l’uscita HDMI ARC, attiva eARC e seleziona Pass Through prima di attivare la forzatura.", "from": "Choose HDMI ARC output, enable eARC and select Pass Through before enabling the override."},
  "srv.audio.override.unverified": {"text": "L’helper DTS installato non corrisponde al pacchetto fissato e verificato.", "from": "The installed DTS helper does not match the pinned, checked package."},
+ "srv.auror.haTvOnly": {"text": "Il pannello di Home Assistant risponde solo alla TV stessa.", "from": "Home Assistant's panel answers only the TV itself."},
  "srv.auror.photoExpired": {"text": "Questo link è scaduto. Apri Sfondi nelle impostazioni della Home sulla TV per averne uno nuovo.", "from": "This link has expired. Open Backgrounds in the TV's Home settings for a new one."},
  "srv.auror.photoGone": {"text": "quella foto non è più sulla TV", "from": "that photo is no longer on the TV"},
  "srv.auror.photoMax": {"text": "La TV tiene al massimo {n} foto. Eliminane qualcuna prima.", "from": "The TV keeps {n} photos at most. Remove some first."},
