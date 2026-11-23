@@ -623,3 +623,5 @@ body{font-family:"Space Grotesk",sans-serif !important;color:#e0e4ea !important}
 .guiding #shelfTitle,.guiding #shelfSub{max-width:1000px}
 /* Grown to Internet TV's player: the whole screen, from the Top Shelf's corner 8 px outside it. */
 #shelf #preview.full{left:8px;top:8px;right:auto;width:1920px;height:1080px;border-radius:0;box-shadow:none}
+/* Glasshouse's news strip runs along the bottom, below the rows. */
+.has-news #rowsView{bottom:96px}

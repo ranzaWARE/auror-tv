@@ -184,6 +184,7 @@ function renderAppsPanel() {
 
   renderSavedPages(d);
 
+  renderRunningApps(d);
   renderPreload(d);
   renderBackgroundServices(d);
   renderAppDns(d);
@@ -505,7 +506,7 @@ function renderRemoteKeys(d) {
   const more = away.length ? `<details class="rk-more"${rkMoreOpen ? ' open' : ''} ontoggle="rkMoreOpen = this.open">
       <summary class="rk-grp">${esc(t('apps.remoteKeys.elsewhere', 'Buttons on remotes sold elsewhere ({n})', { n: away.length }))}</summary>
       <div class="rk-grid">${away.map(tile).join('')}</div></details>` : '';
-  // How far a Brightness key moves the picture, once a key is set to one.
+  // The settings of the Brightness keys, in a section of their own that shows once a key is set to one.
   let stepRow = '';
   if (rk.keys.some(k => k.id === 'action:brightnessUp' || k.id === 'action:brightnessDown')) {
     const sizes = [5, 10, 15, 20, 25];
@@ -518,7 +519,20 @@ function renderRemoteKeys(d) {
         ${sizes.map(n => `<option value="${n}"${n === rk.brightnessStep ? ' selected' : ''}>${n}</option>`).join('')}
       </select></div></div>`;
   }
-  list.innerHTML = groups + more + stepRow;
+  // How the level bar a Brightness key shows looks, where the filter and the bar's app can show it.
+  let barStyleRow = '';
+  if (stepRow && rk.brightnessBar) {
+    barStyleRow = `<div class="prot-row">
+      <div class="prot-main"><div class="prot-title"><label for="apps-rk-bar-style">${esc(t('apps.remoteKeys.barStyle', 'Level bar style'))}</label></div>
+        <div class="prot-desc">${esc(t('apps.remoteKeys.barStyleDesc', 'How the bar that a Brightness key shows looks: laid out like the TV\'s volume bar, a horizontal bar low on the screen, the same bar vertical at the right edge, or no bar.'))}</div></div>
+      <div class="prot-status"><select id="apps-rk-bar-style" class="pill-sel" ${rkWritable ? '' : 'disabled'} onchange="rkSetBrightnessBarStyle(this.value)">
+        ${[['lg', t('apps.remoteKeys.barStyleLg', 'LG style')], ['horizontal', t('apps.remoteKeys.barStyleHorizontal', 'Horizontal')],
+           ['vertical', t('apps.remoteKeys.barStyleVertical', 'Vertical')], ['none', t('apps.remoteKeys.barStyleNone', 'No bar')]]
+          .map(o => `<option value="${o[0]}"${o[0] === (rk.brightnessBarStyle || 'lg') ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}
+      </select></div></div>`;
+  }
+  const brightness = stepRow ? `<div class="rk-grp">${esc(t('apps.remoteKeys.brightnessSection', 'Brightness key settings'))}</div>${stepRow}${barStyleRow}` : '';
+  list.innerHTML = groups + more + brightness;
   if (rkOpen) {
     const tile = list.querySelector(`.rk-key[data-key="${CSS.escape(rkOpen)}"]`);
     rkOpen = null;
@@ -578,6 +592,7 @@ function toggleRemoteKey(tile) {
     ${k.replacesVoice ? `<div class="pv-note">${esc(t('apps.remoteKeys.replacesVoice', 'Set to anything else, this button no longer starts voice control. As LG has it brings it back.'))}</div>` : ''}
     ${k.homeGuide ? `<div class="pv-note">${esc(t('apps.remoteKeys.guideNative', 'On this TV the Guide key needs a change to LG’s key handler. Setting it restarts the TV’s screen once, and again each time the TV starts.'))}</div>` : ''}
     ${k.nativeInput ? `<div class="pv-note">${esc(t('apps.remoteKeys.inputNative', 'On this TV the Input key needs a change to LG’s key handler. Setting it, or setting it back to LG’s list, restarts the TV’s screen once, and the change is made again each time the TV starts.'))}</div>` : ''}
+    ${k.channelNative ? `<div class="pv-note">${esc(t('apps.remoteKeys.channelNative', 'On this TV the channel keys need a change to LG’s key handler. Setting one, or setting one back to As LG has it, restarts the TV’s screen once, and the change is made again each time the TV starts. While set, the key no longer changes the channel.'))}</div>` : ''}
     ${k.turnsOffVoice ? `<div class="pv-note">${esc(t('apps.remoteKeys.turnsOffVoice', 'Setting this key switches off LG\'s voice assistant, so voice search, the AI assistant and the microphone stop working until it is As LG has it again.'))}</div>` : ''}
     <div class="rk-opts">${opt('lg', esc(t('apps.remoteKeys.lg', 'As LG has it')))}${k.noNothing ? '' : opt('nothing', `<span aria-hidden="true">⦸</span> ${esc(t('apps.remoteKeys.nothing', 'Nothing'))}`)}${switchers}${barChoice}${gone}</div>
     ${media.length ? `<div class="rk-sub">${esc(t('apps.remoteKeys.buttons', 'Buttons'))}</div>
@@ -646,6 +661,23 @@ async function rkSetBrightnessStep(value) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ brightnessStep: Number(value) })
+    });
+    const r = await res.json();
+    if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
+  } catch (e) {
+    error = e.message;
+  }
+  if (error) alert(t('apps.remoteKeys.failed', 'Could not change it: {error}', { error }));
+  await loadApps();
+}
+
+async function rkSetBrightnessBarStyle(value) {
+  let error = null;
+  try {
+    const res = await fetch(api('/api/remotekeys'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brightnessBarStyle: value })
     });
     const r = await res.json();
     if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
@@ -1017,6 +1049,97 @@ function renderBackgroundServices(d) {
       </div>
     </div>`;
   }).join('');
+}
+
+function renderRunningApps(d) {
+  const list = q('apps-running-list');
+  const summary = q('apps-running-summary');
+  const actions = q('apps-running-actions');
+  const closeAllBtn = q('btn-close-all-running');
+  const running = d.running || [];
+  const totalMb = running.reduce((sum, a) => sum + (a.mb || 0), 0);
+
+  if (summary) {
+    if (!running.length) {
+      summary.textContent = t('apps.running.none', 'None running');
+    } else if (running.length === 1) {
+      summary.textContent = totalMb
+        ? t('apps.running.summaryOneMb', '1 app · {mb} MB', { mb: totalMb })
+        : t('apps.count.one', '1 app');
+    } else {
+      summary.textContent = totalMb
+        ? t('apps.running.summaryMb', '{n} apps · {mb} MB', { n: running.length, mb: totalMb })
+        : t('apps.count', '{n} apps', { n: running.length });
+    }
+  }
+
+  if (actions) actions.style.display = running.length > 1 ? '' : 'none';
+  if (closeAllBtn) {
+    closeAllBtn.disabled = !d.writable;
+    closeAllBtn.textContent = t('apps.running.closeAll', 'Close all');
+  }
+
+  if (!list) return;
+  if (!running.length) {
+    list.classList.remove('catalog-grid');
+    list.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.running.noneDesc', 'No apps are currently running in memory.'))}</div>`;
+    return;
+  }
+
+  list.classList.add('catalog-grid');
+  list.innerHTML = running.map(a => {
+    const title = a.title || a.id;
+    const monogram = esc(String(title).trim().charAt(0).toUpperCase() || '?');
+    const iconUrl = api(a.iconUrl || ('/api/apps/icon?id=' + encodeURIComponent(a.id)));
+    const badges = [];
+    if (a.foreground) badges.push(`<span class="app-badge">${esc(t('apps.running.inFront', 'In front'))}</span>`);
+    if (a.mb) badges.push(`<span class="app-badge">${esc(t('apps.running.mb', '{mb} MB', { mb: a.mb }))}</span>`);
+    return `<div class="catalog-card" id="running-card-${esc(a.id)}">
+      <div class="catalog-card-head">
+        <span class="catalog-card-ico-wrap"><span class="catalog-card-monogram" aria-hidden="true">${monogram}</span><img class="catalog-card-ico" src="${iconUrl}" width="46" height="46" loading="lazy" alt="" onerror="this.style.display='none'"></span>
+        <div class="catalog-card-main">
+          <div class="catalog-card-title" title="${esc(title)}" translate="no">${esc(title)}</div>
+          <div class="catalog-card-meta" translate="no">${esc(a.id)}</div>
+        </div>
+      </div>
+      ${badges.length ? `<div class="catalog-card-badges">${badges.join('')}</div>` : ''}
+      <div class="prot-status">
+        <button type="button" class="pill bad" id="btn-close-app-${esc(a.id)}" onclick="closeRunningApp('${jsq(a.id)}')" ${d.writable ? '' : 'disabled'}>${esc(t('apps.running.close', 'Close'))}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function sendCloseRunning(body, btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('busy');
+    btn.textContent = t('apps.running.closing', 'Closing\u2026');
+  }
+  let error = null;
+  try {
+    const res = await fetch(api('/api/apps/close'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d || !d.ok) error = (d && d.error) || t('common.unknownError', 'unknown error');
+  } catch (e) {
+    error = e.message;
+  } finally {
+    if (btn) btn.classList.remove('busy');
+  }
+  await loadApps();
+  if (error) alert(t('apps.running.closeFailed', 'Could not close app: {error}', { error }));
+}
+
+function closeRunningApp(appId) {
+  return sendCloseRunning({ id: appId }, document.getElementById('btn-close-app-' + appId));
+}
+
+function closeAllRunningApps() {
+  return sendCloseRunning({ all: true }, q('btn-close-all-running'));
 }
 
 function renderPreload(d) {
