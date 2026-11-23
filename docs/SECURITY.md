@@ -25,6 +25,13 @@ it before exposing it more widely.
   `/api/home/saver/test`, which starts the screen saver as the dashboard's
   screen saver control does: like Home's other settings, it needs
   `allowControl` or a request from the TV, and the token where one is set.
+- **Music highway listens to what the TV plays.** While that screen saver is
+  on screen, the server records the TV's sound output (the mix it plays, not
+  a microphone) with `arecord` and turns it into levels and beats as it
+  arrives, keeping only the last fraction of a second; nothing is saved or
+  sent anywhere, and recording stops 3 seconds after the screen saver
+  closes. Whoever can reach the dashboard can read those levels at
+  `/api/audio/levels`, which a token gates with the rest of the API.
 - **Syslog forwarding is off by default.** With `syslog.server` set in
   `config.json` the same logs go to that server as plain UDP: unencrypted,
   unauthenticated, and readable by anything on the path. Addresses,

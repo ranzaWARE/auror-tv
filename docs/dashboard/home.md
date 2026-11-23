@@ -131,6 +131,18 @@ With Jellyfin linked, a **Continue watching** row sits under Apps: what the serv
 
     Displays current temperature, condition icon, and location level with the clock, sourced from Home Assistant or Open-Meteo. See [Weather badge](#weather-badge).
 
+-   **Home Assistant: board**
+
+    ---
+
+    A short list beside the clock that Home Assistant sends, such as today's matches from a sports integration, a few lines at a time. See [Home Assistant: board](#home-assistant-board).
+
+-   **Home Assistant: values at a glance**
+
+    ---
+
+    Up to four short lines from Home Assistant beside the clock: the next bin collection, a parcel on its way, a share price. Each reads an entity picked on the dashboard, or an automation sends them. See [Home Assistant: values at a glance](#home-assistant-values-at-a-glance).
+
 -   **Badges & labels**
 
     ---
@@ -543,7 +555,7 @@ The Home tab's **Home customisation** section holds what applies to whichever Ho
 
 * While Glasshouse Home is on:
     * **Starting up:** Open Home at power-on, Reopen Home after a wake, Hide LG's Home while the TV starts.
-    * **Shown on Home:** Clock and date, Last watched, App count, App labels, Pulse on the app in focus, Sound when moving, CEC addresses, Weather, Remote battery, Picture details.
+    * **Shown on Home:** Clock and date, Last watched, App count, App labels, Pulse on the app in focus, Sound when moving with the buttons, Sound when moving with the pointer, Weather, Remote battery, Picture details, CEC addresses.
     * **Live preview:** Live preview, with Preview sound, Keep the preview on and Preview in the tile once it is on.
     * **Search.**
     * **Animations:** Fade in and out, Wallpaper drift, Wallpaper cross-fade, Smooth scrolling, Sliding panels.
@@ -570,9 +582,10 @@ Individual toggles in the **Shown on Home** section control informative badges a
 * **App labels:** Shows or hides app names beneath app icons on Glasshouse Home and Glasshouse Bar. Switched off, only the icons appear. Individual apps can also be renamed inline under **Rows and tiles** → **Apps** on the web dashboard, applying across Glasshouse Home, Glasshouse Minimal, and Glasshouse Bar (clearing a custom name restores the TV's own title).
 * **Apps as cards:** Not offered: AUROR's apps are banners already, so the Home tab hides this switch and **Card transparency**.
 * **Pulse on the app in focus:** Off by default. The ring around the app in focus breathes, with a soft glow around it, as a card or a square tile. Both the ring and the glow take the accent of Home's colours. The frame of the channel in focus in the TV guide and in the player's channel list breathes too.
-* **Sound when moving:** Off by default. A sound plays through the TV each time focus lands on another tile, whether the arrow keys or the Magic Remote's pointer moved it, in Home's rows, the TV guide and the channel list while playing: **Click** or **Rollover**, from Kenney's UI Audio (CC0), at half their recorded volume, or **Your own**. The play button beside the choice plays it in the browser. With **Your own** chosen, **Upload a sound** takes an OGG, WAV or MP3 file of up to 512 KB, played as it is, and **Remove** deletes it; Home uses a new one within a few seconds. It is kept on the TV as `/var/lib/tvweb/home-sounds/nav.ogg` (or `nav.wav`, `nav.mp3`), so it can also be copied there over SSH.
-* **CEC addresses:** Displays physical HDMI-CEC port addresses (such as `1.0.0.0` or `2.1.0.0`) on each input tile.
+* **Sound when moving with the buttons:** Off by default. A sound plays through the TV each time an arrow key moves focus to another tile, and each time OK or Back is pressed (once, however long it is held), or Left or Right opens or closes the channel list while playing, in Home's rows, the TV guide and the channel list while playing: **Click** or **Rollover**, from Kenney's UI Audio (CC0), at half their recorded volume, or **Your own**. The play button beside the choice plays it in the browser. With **Your own** chosen, **Upload a sound** takes an OGG, WAV or MP3 file of up to 512 KB, played as it is, and **Remove** deletes it; Home uses a new one within a few seconds. It is kept on the TV as `/var/lib/tvweb/home-sounds/nav.ogg` (or `nav.wav`, `nav.mp3`), so it can also be copied there over SSH.
+* **Sound when moving with the pointer:** The same choices for focus moved by the Magic Remote's pointer or wheel, and for a click. It is unavailable while Magic Remote pointer is off, and not shown with no Magic Remote paired. Until Home's settings are first saved after updating, it takes the buttons' sound; **Your own** is the file uploaded above.
 * **Picture details:** Displays the active picture preset, OLED light / backlight level, and signal format in the top-right corner.
+* **CEC addresses:** Displays physical HDMI-CEC port addresses (such as `1.0.0.0` or `2.1.0.0`) on each input tile.
 * **Magic Remote pointer:** On by default. Switched off, the remote's pointer is hidden on Glasshouse Home and moving the remote no longer moves the focus, so only the arrow keys move around Home; OK opens the tile in focus. The wheel still scrolls the rows. Apps, inputs and LG's menus keep the pointer.
 
 ### Weather badge
@@ -584,6 +597,47 @@ The weather badge displays the current temperature and an icon level with the cl
 * **Off:** Disables the badge completely.
 
 The badge appears once data is received, is kept when the TV restarts, and is hidden once 3 hours pass without an update (or when an empty value is sent from Home Assistant).
+
+### Home Assistant: values at a glance
+
+Up to four lines of your own after the weather, or before the clock in the Alternative View, each an icon, a name and a value: *Bin 1 · collected on Wednesday*, *PostNord · arrives tomorrow*, *Viscaria · 14.58 SEK*. For Home Assistant users. The setting chooses where they come from, and offers only what is set up: **Entities you pick** needs the [Home Assistant API](../HOME-ASSISTANT.md#reading-home-assistant-entities) on the HA & MQTT tab, and **Sent by an automation** needs MQTT. With neither, the setting is not shown.
+
+* **Entities you pick (default):** each line reads a Home Assistant entity, every 30 seconds while Home is on screen. **Add a line** uses the Home Assistant entity picker (search by name, entity ID or unit, filter by entity type such as `Sensors` or `Weather`, and load more results on scroll), up to four, and says what it added, or why it could not. Each line can be moved or removed, and **Customise** gives it, all optional:
+  * **Name:** shown in place of the entity's own name.
+  * **Attribute:** one of its attributes in place of its state, such as `next_date` for a bin collection whose state is text.
+  * **Text before:** a few words put in front of the value, such as *collected* or *arrives*, so a date reads *collected tomorrow*.
+
+  Under each line, **Shows as** gives how it reads beside the clock.
+
+  A date shows as today, tomorrow, a weekday within the week, or a day and month after that, in the page's language. A number shows with its own decimals, two at most, and its unit. Anything else shows as Home Assistant has it. The icon is the entity's own, or one for what it measures.
+
+  Some examples, with entity names as the integrations usually make them:
+
+  | Entity | Attribute | Name | Text before | Shows |
+  |---|---|---|---|---|
+  | `sensor.bin_collection` (a bin's next collection) | `next_date` | Bin 1 | collected | *Bin 1 · collected on Wednesday* |
+  | `sensor.postnord_delivery_12345` (PostNord) | `next_delivery` | PostNord | arrives | *PostNord · arrives tomorrow* |
+  | `sensor.yahoofinance_visc_st` (Yahoo Finance) | | Viscaria | | *Viscaria · 14.58 SEK* |
+  | `sensor.outdoor_temperature` | | Outside | | *Outside · 3.4 °C* |
+
+  To find an attribute, open the entity in Home Assistant's **Developer tools → States**: its attributes are listed beside its state. An attribute shows without the entity's unit, which belongs to its state.
+* **Sent by an automation:** whatever was last written to the `text.lg_tv_home_info` entity, a JSON list such as `[{"icon":"trash-can","label":"Bin 1","value":"in 4 days"}]` ([entities](../HOME-ASSISTANT-ENTITIES.md)), kept across a restart until the next one. An empty value or `[]` takes them away ([example automation](../HOME-ASSISTANT.md#7-your-own-lines-on-glasshouse-home)).
+* **Off.**
+
+Icons are [Material Design Icons](https://pictogrammers.com/library/mdi/) names, with or without `mdi:`. Glasshouse Home draws its own outline for names starting with trash, delete, recycle, mail, email, post, chart, trending, finance, cash, car, flash, lightning, power, battery, calendar, thermometer, home, package and truck, and a dot for any other.
+
+### Home Assistant: board
+
+Beside the lines, a board of up to twenty lines that Home Assistant sends, shown four at a time, turning to the next four every 8 seconds, with a page count by its title. It keeps one width as the pages turn, that of its longest line, and a line too long for it slides to show its end and back. For Home Assistant users, and offered only with MQTT set up, as Home Assistant sends the board over it. The setting chooses whether it shows:
+
+* **Sent by an automation:** whatever was last written to the `text.lg_tv_home_board` entity, `{"title":"Football today","minutes":10,"lines":[{"label":"Arsenal 2–1 Chelsea","value":"67'"}]}`. It is not kept across a restart, and with `minutes` it goes that long after the last push. An empty value takes it away at once. Glasshouse fetches nothing for it: the matches, or anything else, come from an integration of the owner's choice, such as a sports one, through an automation that writes the entity. [Home Assistant](../HOME-ASSISTANT.md#9-a-board-on-glasshouse-home) has an example.
+
+  **Shown** puts the board **Beside the lines** (default) or **Running along the bottom**: there its lines open every run of the strip the news uses, with the next headlines after them, so a changed line comes round within a run. The strip shows even with the news off.
+* **Off (default).**
+
+### News strip
+
+Along the bottom, below the rows: the headlines of up to three news feeds, each after its source, on one line, eight headlines a run and the next eight the run after. The **News strip** setting turns it on. **Add a feed** takes a feed's address (RSS 2.0, RSS 1.0 or Atom, such as `https://www.svt.se/rss.xml`), up to three, and each feed's card then says whether it was read and how many headlines it gave, or why not: it could not be read, it is not a feed, or it is over 2 MB, which stops its download there. Feeds can be moved or removed, and **Customise** gives one a name to show in place of its own. The feeds take turns, up to fifteen headlines from each. Each feed is read every 10 minutes at most while the strip is on screen, and new headlines join at the end of a run, so none is cut off. The [News screen saver](screen-savers.md#news) reads the same feeds. **Headlines** shows them **One at a time** (default), each for a few seconds and fading to the next, or **Running** right to left. **Speed** is **Slow** (default) or **Normal**: 8 or 6 seconds a headline, or 60 or 100 pixels a second. Both apply to the board's matches when they are in the strip, and to the News screen saver. Running is less smooth on TVs whose browser cannot draw every frame, such as a C6.
 
 ### Remote battery
 

@@ -784,6 +784,17 @@ On an OLED65B8SLC (webOS 4.4.3) and an OLED42C24LA (webOS 9.2.2) set to the UK
 `systemprefs.db`. The clocks Glasshouse draws follow it, and a TV that answers
 without `timeFormat` is taken as 24-hour.
 
+## The screen saver app's QML locale (C6, webOS 11.1)
+
+QML screen savers run inside LG's `com.webos.app.screensaver`, whose QML
+locale stays `en_US` whatever the TV's menu language: on an OLED77C64LA
+(webOS 11.1.0) set to Swedish, `Qt.formatDate(now, "dddd d MMMM")` gave
+"Sunday 22 November". The menu language is read from
+`com.webos.settingsservice/getSystemSettings` with `keys: ["localeInfo"]`, as
+`settings.localeInfo.locales.UI` (`sv-SE`): on that TV, adding
+`category: "option"` gave an answer without `localeInfo`, and the dates stayed
+English until the key was asked for without a category.
+
 ## Home input titles (G3, webOS 9.2.2)
 
 HDMI launch points added by Glasshouse are bookmarks with `systemApp: false`.
@@ -999,6 +1010,35 @@ Measured on 22 October 2026 on an LCD 65UQ801C0SB, firmware 04.60.90.
 - **LG's Home is slow to come back.** Given its place back and launched, it was
   in front about 6 s later, against 2 to 3 s on a G3; the screen is black
   meanwhile.
+
+## The screen saver's runner (OLED55A19LA, webOS 6.5.3)
+
+- `qml-runner` runs a QML screen saver with its standard output and error on
+  `/dev/null`: `console.log` from the saver is lost, and nothing of it
+  reaches `/var/log/messages`. A saver that ends shows there only as the
+  window going invisible, then tvpowerd going back to Active.
+- The GPU is a single-core Mali-G52 (`/sys/class/misc/mali0/device/gpuinfo`:
+  `Mali-G52 1 cores r1p0 0x7402`), with no utilisation figure under sysfs.
+- With Spotify playing behind the screen saver, WebAppMgr kept using about
+  42% of one core and the compositor 21%; the load average stayed near 38.
+
+## The sound output as a capture device (OLED55A19LA, webOS 6.5.3)
+
+Checked with Spotify playing, read-only, on 21 November 2026:
+
+- `/proc/asound/pcm` lists card 0 (`mlp_scard_audio`) with eight software
+  mixer playback devices, two game audio ones, and three capture devices:
+  `00-10: Pcm8 capture App`, `00-11: AAC encode capture` and
+  `00-12: Pcm9 capture App`.
+- `arecord -D hw:0,10 -f S16_LE -c 2 -r 48000` and the same on `hw:0,12`
+  record the mix the TV is playing, Spotify included: neighbouring samples
+  differ by a fifth of their size, as music does, not noise. Recording did not
+  interrupt playback.
+- PulseAudio runs system-wide (`/var/run/pulse/native`). Its `pcm_output` sink
+  was `RUNNING`, but `parec` from `pcm_output.monitor` gave only zeros:
+  Spotify does not play through it.
+- With Spotify in front, the TV still went into the screen saver when idle,
+  though a request to start one was refused as something playing.
 
 ## The screen saver and the Magic Remote's pointer (webOS 9.2, C2)
 
@@ -2069,6 +2109,56 @@ manager launched only HDMI 4 in nine minutes of the same file, and set back to
   own check closes it unseen.
 - **The compositor's restart leaves no app.** With Glasshouse Home off nothing
   opens LG's Home after it, and the screen stays black until an app is launched.
+
+## The channel keys, native key filters (OLED48C54LA, webOS 11.2.0, firmware 43.21.77)
+
+- **Volume and channel reach the key filters.** `libsystemUI.so`'s
+  `handleSystemKeys` names `KEY_CHANNELUP`, `KEY_CHANNELDOWN` and calls
+  `master/volumeUp` itself. Nothing in `com.webos.keyaction.*` names the channel
+  keys; `com.webos.keyaction.volume` is `{ action: "ignore" }`.
+- **The first filter blocks what the profile lists.** `handleKeyBlockByApp`
+  (`libpreProcess.so`, first in `keyFiltersCpp`) asks
+  `systemprofile/getProfiles` for `blockedKeys` once, as it loads, and accepts
+  every event of a key whose code is in it, after `createToast(0x2b)`, LG's
+  "This button is not available" notice. The list is empty on this TV.
+- **`blockedKeys` cannot be set from outside.** `profile_generator` reads each
+  JSON file in `/var/webos-profile/override/` (`[override_directory] file:`)
+  and copies a value it does not know into
+  `/var/webos-profile/platform/profile.json` as it is, an array included, but
+  recomputes `blockedKeys`, `blockedOrgKeys` and `blockedApps` from the feature
+  files in `/etc/webos-profile/platform/configuration/` (`[process] ignore
+  feature : blockedKeys`), each a list of key names that `profile_keymap.json`
+  turns into codes (`IR_KEY_CH_UP` 402). No feature lists the channel keys, and
+  a feature named only in an override is ignored too. `debug/rescan` runs the
+  generator again; `getProfiles` returns the new value within a few seconds.
+- **Two 11-character names make the list Glasshouse's.** The filter's request
+  `{"names":["blockedKeys"]}` (at 0x1533f) and the name it reads in the answer
+  (0x152a8, only used there) both made `tvwebBlocks`, an override value, and
+  the filter took 402 and 403, nothing of LG's acting on them, Live TV
+  included. The toast call (`blx` at 0xb7b8) has no result anyone reads.
+- **Only whitelisted log lines reach `/var/log/messages`.** PmLogDaemon passes
+  the context and message id pairs in `/etc/PmLogDaemon/whitelist.txt`; even
+  `PmLogCtl logkv LSM info ...` with another id is dropped, as are the filters'
+  own `[KEY_HANDLER]` lines. `LSM NL_INPUT_KEYFILTER_USE` and `lginput2
+  NL_NON_LIST_BUTTON_CLICK` are on it.
+- **`lginput2` logs presses, not holds.** It logs each press of a channel key as
+  `NL_NON_LIST_BUTTON_CLICK`, quick presses 160 ms apart included, but a key
+  held for 3 s logged once and another twice. It holds the remote's
+  `/dev/input/event*` devices: reading them gave nothing.
+- **The filter sees every event.** Code written into the zeros after
+  `.eh_frame` (0x18854 to 0x18a20, mapped executable with the segment's last
+  page) and called in place of the toast logged, for a 3 s hold, a press (`ev`
+  0), 61 repeats (`ev` 2) 50 ms apart from 0.5 s after it, and the release (`ev`
+  1). The compositor ran on it without a restart.
+- **A word past `.bss` is free and writable.** The library's `.bss` ends at
+  0x1a2b4; the loader zeroes the rest of that page, which the library does not
+  use. A repeat counter at 0x1a2c0 let the code log the first repeat and every
+  fourth after it: a 2.5 s hold logged 11 repeats, 200 ms apart from 0.5 s.
+- **The panel follows OLED Light written every 0.2 s,** read before each write
+  or not, and with a key held: five steps of 10 in a second were each seen.
+- **After a restart of the compositor nothing is in front** until Home is
+  pressed or an app opened: the screen stayed black after one, LG's Home showed
+  after another.
 
 ## Promoted stub apps (G3, webOS 9.2.2)
 
@@ -4203,3 +4293,36 @@ or merely cached overlay does not exempt a stopped Home view.
 With the correction installed, navigating Guide for at least 30 s kept it
 open. Successive watchdog checks logged that the view was behind
 `com.webos.app.livemenu`, rather than restoring LG's Home.
+
+## The volume bar's layout (OLED48C56LB, webOS 10.3.0)
+
+LG's volume bar is QML in the compositor (`surface-manager`), not a web app:
+`/usr/lib/qml/WebOSCompositor/views/StarfishVolumeView.qml` decides when it
+shows and `views/volume/StarfishVolume.qml` draws it, with the sizes and
+timings in the `"volume"` block of `StarfishDefaultSettings.qml` and the images
+in `images/4k/` (also `qhd/` and the plain folder). Sizes are in units of a
+1920 x 1080 screen, scaled to the output; the 4k images are twice those.
+
+The bar is vertical at the right edge, centred on the screen. From the left it
+has the output's icon (72), the level as a number (font 85, `#E6E5E5`, with a
+drop shadow), and a track 36 wide and 570 high, 51 from the edge, with an up
+and a down arrow (about 30 square) above and below it. The fill is 18 wide, up
+to 534 long above a 10 margin. When muted it is replaced by a 96 circle
+(`#373A41`, opacity 0.5) holding a mute icon. It fades in and out in 150 ms and
+stays up 1500 ms after the last change.
+
+The configd value `com.webos.surfacemanager.volumeOSD` (`true` unless set)
+turns the bar and the mute icon off: with it `false` the view marks itself
+unavailable and closes. On this TV, setting it to `false` removed both at
+once, without restarting anything, and `true` brought them back.
+LG has no brightness bar to copy; the level bar of a Brightness key takes this
+layout.
+
+## Live audio decoder state under `/proc/lg/amst0` (B8, webOS 4.4.3)
+
+Measured on 22 November 2026 on an OLED65B8SLC (`05.50.70`) while Spotify (`spotify-beehive`) played in the foreground. The TV answers `Unknown method` for `com.webos.service.audio/tv/getAudioInputProperty` and has no `/proc/lgtv-driver/audio` files, while `/proc/lg/amst0/` exposes DSP decoder and renderer state:
+
+- `/proc/lg/amst0/status` reports `Main Decoder : 1`.
+- `/proc/lg/amst0/dec0/status` (idle HDMI 2) reports `bStarted: OFF`, `codec: AUD_CODEC_UNKNOWN`, `samplingFreq: 0`.
+- `/proc/lg/amst0/dec1/status` (active Spotify) reports `bStarted: ON`, `input: AUD_INPUT_SYSTEM`, `codec: AUD_CODEC_AAC`, `samplingFreq: 44100`, `avgBitRate: 128000`.
+- `/proc/lg/amst0/ren{0,1}/status` report `bStarted`, `input` (`AUD_INPUT_HDMI2`, `AUD_INPUT_SYSTEM`), `bSetMainRen`, and `samplingFreq`.
